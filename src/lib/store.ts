@@ -25,9 +25,18 @@ export type ChatPanelState = {
   zIndex: number;
 };
 
+export type TabGroup = {
+  id: string;
+  name: string;
+  color: string;
+  collapsed: boolean;
+  tabIds: string[];
+};
+
 export type Tab = ContentItem & {
     activeViewId: string;
     isTemporary?: boolean;
+    groupId?: string; // Hangi gruba ait
     history: string[];
     historyIndex: number;
     navigationHistory: string[]; // Breadcrumb navigasyon geçmişi
@@ -35,17 +44,24 @@ export type Tab = ContentItem & {
     undoRedoStack: Array<{ activeViewId: string; timestamp: number }>;
     undoRedoIndex: number;
     lastAccessedAt?: number; // Sekmeye son erişim zamanı
-    isSuspended?: boolean; // Arka plan sekmeleri için duraklatma durumu
     hasActiveMedia?: boolean; // Video/ses oynatıcısı var mı
     hasActiveTimer?: boolean; // Aktif saat/sayaç var mı
 };
+
+export type NewTabBehavior = 'chrome-style' | 'library' | 'folder' | 'custom';
+export type StartupBehavior = 'last-session' | 'new-tab' | 'library' | 'folder' | 'custom';
 
 interface AppStore {
   user: User | null;
   username: string | null;
   tabs: Tab[];
+  tabGroups: TabGroup[];
   activeTabId: string;
   tabAccessHistory: Array<{ tabId: string; timestamp: number }>; // Son 3 sekme geçmişi
+  newTabBehavior: NewTabBehavior;
+  startupBehavior: StartupBehavior;
+  customNewTabContent?: ContentItem;
+  customStartupContent?: ContentItem;
   isSecondLeftSidebarOpen: boolean;
   activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | null;
   isStyleSettingsOpen: boolean;
@@ -112,8 +128,20 @@ interface AppStore {
   undo: (tabId: string) => void;
   redo: (tabId: string) => void;
   recordTabAccess: (tabId: string) => void;
-  suspendBackgroundTabs: () => void;
   updateTabMediaState: (tabId: string, hasActiveMedia: boolean, hasActiveTimer: boolean) => void;
+  
+  // Tab Group Actions
+  createTabGroup: (name: string, color: string, tabIds: string[]) => void;
+  updateTabGroup: (groupId: string, updates: Partial<TabGroup>) => void;
+  deleteTabGroup: (groupId: string) => void;
+  addTabToGroup: (tabId: string, groupId: string) => void;
+  removeTabFromGroup: (tabId: string) => void;
+  
+  // New Tab/Startup Behavior
+  setNewTabBehavior: (behavior: NewTabBehavior) => void;
+  setStartupBehavior: (behavior: StartupBehavior) => void;
+  setCustomNewTabContent: (content: ContentItem) => void;
+  setCustomStartupContent: (content: ContentItem) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -122,8 +150,11 @@ export const useAppStore = create<AppStore>()(
       user: null,
       username: null,
       tabs: [],
+      tabGroups: [],
       activeTabId: '',
       tabAccessHistory: [],
+      newTabBehavior: 'chrome-style',
+      startupBehavior: 'last-session',
       isSecondLeftSidebarOpen: true,
       activeSecondaryPanel: 'library',
       isStyleSettingsOpen: false,
@@ -156,7 +187,6 @@ export const useAppStore = create<AppStore>()(
       setActiveTab: (activeTabId) => {
         get().recordTabAccess(activeTabId);
         set({ activeTabId });
-        get().suspendBackgroundTabs();
       },
       setTabs: (tabs) => set({ tabs }),
       setIsUiHidden: (isUiHidden) => set({ isUiHidden }),
@@ -220,7 +250,78 @@ export const useAppStore = create<AppStore>()(
         });
       },
       createNewTab: () => {
-        const { tabs } = get();
+        const { tabs, newTabBehavior, customNewTabContent } = get();
+        
+        // Chrome-style new tab behavior
+        if (newTabBehavior === 'chrome-style') {
+          const newId = `tab-${Date.now()}`;
+          const now = new Date().toISOString();
+          
+          const newTab: Tab = {
+            id: newId,
+            title: 'Yeni Sekme',
+            type: 'new-tab',
+            activeViewId: newId,
+            createdAt: now,
+            updatedAt: now,
+            parentId: null,
+            isDeletable: true,
+            history: [newId],
+            historyIndex: 0,
+            navigationHistory: [newId],
+            navigationIndex: 0,
+            undoRedoStack: [{ activeViewId: newId, timestamp: Date.now() }],
+            undoRedoIndex: 0
+          };
+          
+          set({ 
+            tabs: [...tabs, newTab], 
+            activeTabId: newId,
+            isSecondLeftSidebarOpen: false,
+            activeSecondaryPanel: null
+          });
+          return;
+        }
+        
+        // Library behavior
+        if (newTabBehavior === 'library') {
+          // Open root library in new tab
+          set({ 
+            isSecondLeftSidebarOpen: true,
+            activeSecondaryPanel: 'library'
+          });
+          return;
+        }
+        
+        // Custom behavior
+        if (newTabBehavior === 'custom' && customNewTabContent) {
+          const newId = customNewTabContent.id;
+          const existingTab = tabs.find(t => t.id === newId);
+          if (existingTab) {
+            set({ activeTabId: newId });
+            return;
+          }
+          
+          const now = new Date().toISOString();
+          const newTab: Tab = {
+            ...customNewTabContent,
+            activeViewId: customNewTabContent.id,
+            history: [customNewTabContent.id],
+            historyIndex: 0,
+            navigationHistory: [customNewTabContent.id],
+            navigationIndex: 0,
+            undoRedoStack: [{ activeViewId: customNewTabContent.id, timestamp: Date.now() }],
+            undoRedoIndex: 0
+          };
+          
+          set({ 
+            tabs: [...tabs, newTab], 
+            activeTabId: newId
+          });
+          return;
+        }
+        
+        // Default: Legacy 3-panel layout (fallback)
         const newId = `tab-${Date.now()}`;
         const now = new Date().toISOString();
         
@@ -436,22 +537,8 @@ export const useAppStore = create<AppStore>()(
         return {
           tabAccessHistory: newHistory,
           tabs: state.tabs.map(t => 
-            t.id === tabId ? { ...t, lastAccessedAt: now, isSuspended: false } : t
+            t.id === tabId ? { ...t, lastAccessedAt: now } : t
           )
-        };
-      }),
-      suspendBackgroundTabs: () => set((state) => {
-        const activeTabIds = new Set([
-          state.activeTabId,
-          ...state.tabAccessHistory.slice(0, 3).map(h => h.tabId)
-        ]);
-        return {
-          tabs: state.tabs.map(tab => {
-            if (!activeTabIds.has(tab.id) && !tab.hasActiveMedia && !tab.hasActiveTimer) {
-              return { ...tab, isSuspended: true };
-            }
-            return tab;
-          })
         };
       }),
       updateTabMediaState: (tabId, hasActiveMedia, hasActiveTimer) => set((state) => ({
@@ -459,6 +546,61 @@ export const useAppStore = create<AppStore>()(
           t.id === tabId ? { ...t, hasActiveMedia, hasActiveTimer } : t
         )
       })),
+      
+      // Tab Group Actions
+      createTabGroup: (name, color, tabIds) => set((state) => ({
+        tabGroups: [...state.tabGroups, {
+          id: `group-${Date.now()}`,
+          name,
+          color,
+          collapsed: false,
+          tabIds
+        }],
+        tabs: state.tabs.map(tab => 
+          tabIds.includes(tab.id) ? { ...tab, groupId: `group-${Date.now()}` } : tab
+        )
+      })),
+      updateTabGroup: (groupId, updates) => set((state) => ({
+        tabGroups: state.tabGroups.map(g => 
+          g.id === groupId ? { ...g, ...updates } : g
+        )
+      })),
+      deleteTabGroup: (groupId) => set((state) => ({
+        tabGroups: state.tabGroups.filter(g => g.id !== groupId),
+        tabs: state.tabs.map(tab => 
+          tab.groupId === groupId ? { ...tab, groupId: undefined } : tab
+        )
+      })),
+      addTabToGroup: (tabId, groupId) => set((state) => {
+        const group = state.tabGroups.find(g => g.id === groupId);
+        if (!group) return state;
+        
+        return {
+          tabGroups: state.tabGroups.map(g => 
+            g.id === groupId 
+              ? { ...g, tabIds: [...new Set([...g.tabIds, tabId])] }
+              : g
+          ),
+          tabs: state.tabs.map(tab => 
+            tab.id === tabId ? { ...tab, groupId } : tab
+          )
+        };
+      }),
+      removeTabFromGroup: (tabId) => set((state) => ({
+        tabGroups: state.tabGroups.map(g => ({
+          ...g,
+          tabIds: g.tabIds.filter(id => id !== tabId)
+        })),
+        tabs: state.tabs.map(tab => 
+          tab.id === tabId ? { ...tab, groupId: undefined } : tab
+        )
+      })),
+      
+      // New Tab/Startup Behavior Settings
+      setNewTabBehavior: (behavior) => set({ newTabBehavior: behavior }),
+      setStartupBehavior: (behavior) => set({ startupBehavior: behavior }),
+      setCustomNewTabContent: (content) => set({ customNewTabContent: content }),
+      setCustomStartupContent: (content) => set({ customStartupContent: content }),
     }),
     {
       name: 'canvasflow-storage',
@@ -482,7 +624,12 @@ export const useAppStore = create<AppStore>()(
       partialize: (state) => ({
         username: state.username,
         tabs: state.tabs,
+        tabGroups: state.tabGroups,
         activeTabId: state.activeTabId,
+        newTabBehavior: state.newTabBehavior,
+        startupBehavior: state.startupBehavior,
+        customNewTabContent: state.customNewTabContent,
+        customStartupContent: state.customStartupContent,
         isSecondLeftSidebarOpen: state.isSecondLeftSidebarOpen,
         activeSecondaryPanel: state.activeSecondaryPanel,
         // Do not persist isOpen to avoid auto-opening on first load

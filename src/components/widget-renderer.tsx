@@ -59,6 +59,7 @@ const PurchaseWidget = dynamic(() => import('./widgets/purchase-widget'), { ssr:
 const AchievementsWidget = dynamic(() => import('./widgets/achievements-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const AwardCardWidget = dynamic(() => import('./widgets/award-card-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const TrainingModuleWidget = dynamic(() => import('./widgets/training-module-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const NewTabScreen = dynamic(() => import('./new-tab-screen').then(m => ({ default: m.NewTabScreen })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 
 const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   item: MiniGridPreview,
@@ -137,6 +138,7 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   achievements: AchievementsWidget,
   'award-card': AwardCardWidget,
   'training-module': TrainingModuleWidget,
+  'new-tab': NewTabScreen,
 };
 
 const WidgetRendererBase = ({ item, ...props }: { item: ContentItem } & any) => {

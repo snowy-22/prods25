@@ -1309,11 +1309,17 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                               )}>
                                 <TabBar 
                                     tabs={state.tabs}
+                                    tabGroups={state.tabGroups}
                                     activeTabId={state.activeTabId}
                                     onTabClick={state.setActiveTab}
                                     onCloseTab={state.closeTab}
                                     onNewTab={state.createNewTab}
                                     onSetLayout={(cols) => {}}
+                                    onToggleGroup={(groupId) => {
+                                      state.updateTabGroup(groupId, {
+                                        collapsed: !state.tabGroups.find(g => g.id === groupId)?.collapsed
+                                      });
+                                    }}
                                     tabAccessHistory={state.tabAccessHistory}
                                 />
                               </div>
