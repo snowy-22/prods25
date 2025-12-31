@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -13,16 +11,14 @@ import { useLocalStorage } from '@/hooks/use-local-storage';
 import { initialContent, ContentItem } from '@/lib/initial-content';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
-import { createClient } from '@/lib/supabase/client';
-import { useAppStore } from '@/lib/store';
+import { useAuth } from '@/providers/auth-provider';
 
 export default function HomePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const supabase = createClient();
+  const { user, loading, signInAnonymously } = useAuth();
   const [isHydrated, setIsHydrated] = useState(false);
   const [username, setUsername] = useLocalStorage<string | null>('canvasflow_username', null);
-  const { setUser, setUsername: setStoreUsername } = useAppStore();
   
   const [authAction, setAuthAction] = useState<'login' | 'signup' | null>(null);
 
@@ -35,44 +31,29 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!isHydrated) return;
+    if (!isHydrated || loading) return;
     
-    // Check for existing session
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          setUser(session.user);
-          const userUsername = session.user.user_metadata.username || session.user.email?.split('@')[0] || 'User';
-          setStoreUsername(userUsername);
-          setUsername(userUsername);
-          router.push('/canvas');
-        }
-      } catch (error) {
-        console.error("Session check failed:", error);
-      }
-    };
-    
-    checkSession();
-  }, [isHydrated, supabase, setUser, setStoreUsername, setUsername, router]);
-
-  useEffect(() => {
-    if (isHydrated && username) {
+    // If user is authenticated, redirect to canvas
+    if (user) {
+      router.push('/canvas');
+    } else if (username && username !== 'Guest') {
+      // If there's a stored username (demo profile), allow access
       router.push('/canvas');
     }
-  }, [username, router, isHydrated]);
+  }, [user, username, loading, isHydrated, router]);
   
-  const handleProfileLogin = (user: ContentItem) => {
+  const handleProfileLogin = (userProfile: ContentItem) => {
     // For demo profiles, we still use local storage
-    setUsername(user.title);
-    setStoreUsername(user.title);
-    toast({ title: `Tekrar hoş geldin, ${user.title}!` });
+    setUsername(userProfile.title);
+    toast({ title: `Tekrar hoş geldin, ${userProfile.title}!` });
+    router.push('/canvas');
   };
 
   const handleAnonymousSignIn = async () => {
+    signInAnonymously();
     setUsername('Guest');
-    setStoreUsername('Guest');
     toast({ title: "Misafir olarak giriş yaptınız." });
+    router.push('/canvas');
   };
   
   const handleAddNewAccount = () => {
@@ -81,18 +62,26 @@ export default function HomePage() {
 
   const handleAuthSuccess = (newUsername: string) => {
     setUsername(newUsername);
-    setStoreUsername(newUsername);
+    toast({ title: "Giriş başarılı!", description: `Hoş geldin, ${newUsername}` });
+    router.push('/canvas');
   };
 
-  if (!isHydrated) {
+  if (!isHydrated || loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <AppLogo className="h-24 w-24 text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 animate-ping opacity-20 rounded-full bg-primary blur-xl"></div>
+            <AppLogo className="h-24 w-24 text-primary relative z-10" />
+          </div>
+          <p className="text-muted-foreground animate-pulse">Yükleniyor...</p>
+        </div>
       </div>
     );
   }
 
-  if (username) {
+  // If authenticated or has demo profile, redirect happens in useEffect
+  if (user || (username && username !== 'Guest')) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
         <div className="relative">

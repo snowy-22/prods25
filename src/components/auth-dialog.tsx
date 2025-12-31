@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/providers/auth-provider';
 import { createClient } from '@/lib/supabase/client';
 
 const loginSchema = z.object({
@@ -35,6 +34,7 @@ type AuthDialogProps = {
 
 export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthDialogProps) {
   const { toast } = useToast();
+  const { signIn, signUp } = useAuth();
   const [isResetSent, setIsResetSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = createClient();
@@ -67,33 +67,26 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
     try {
       if (isSignup) {
         const signupValues = values as z.infer<typeof signupSchema>;
-        const { data, error } = await supabase.auth.signUp({
-          email: signupValues.email,
-          password: signupValues.password,
-          options: {
-            data: {
-              username: signupValues.username,
-            },
-          },
+        await signUp(signupValues.email, signupValues.password, signupValues.username);
+        
+        toast({ 
+          title: "Hesap oluşturuldu!", 
+          description: "E-postanızı kontrol edip doğrulayın." 
         });
-
-        if (error) throw error;
-
-        toast({ title: "Hesap oluşturuldu!", description: "Lütfen e-postanızı doğrulayın." });
         onAuthSuccess(signupValues.username);
       } else {
         const loginValues = values as z.infer<typeof loginSchema>;
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: loginValues.email,
-          password: loginValues.password,
+        await signIn(loginValues.email, loginValues.password);
+        
+        // Username will be set by auth provider
+        const username = loginValues.username || loginValues.email.split('@')[0];
+        toast({ 
+          title: "Giriş başarılı!", 
+          description: `Hoş geldin!` 
         });
-
-        if (error) throw error;
-
-        const username = data.user?.user_metadata?.username || data.user?.email?.split('@')[0] || 'User';
-        toast({ title: "Giriş başarılı!", description: `Hoş geldin, ${username}` });
         onAuthSuccess(username);
       }
+      
       setAction(null);
       form.reset();
     } catch (error: any) {

@@ -2,12 +2,14 @@
 import React from 'react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from './ui/tooltip';
-import { Maximize, Minimize, EyeOff, Timer, Eye, LayoutGrid, Palette, Router, Minus, Plus, MoreHorizontal, ExternalLink, Undo2, Redo2, ChevronLeft, ChevronRight, Menu, BarChart } from 'lucide-react';
+import { Maximize, Minimize, EyeOff, Timer, Eye, LayoutGrid, Palette, Router, Minus, Plus, MoreHorizontal, ExternalLink, Undo2, Redo2, ChevronLeft, ChevronRight, Menu, BarChart, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppLogo } from './icons/app-logo';
 import { useDevice } from '@/hooks/use-device';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/providers/auth-provider';
+import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,8 +67,24 @@ export default function HeaderControls({
 }: HeaderControlsProps) {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
   const deviceInfo = useDevice();
   const isMobile = deviceInfo.type === 'mobile';
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({ title: "Çıkış yapıldı", description: "Başarıyla çıkış yaptınız." });
+      router.push('/');
+    } catch (error: any) {
+      toast({ 
+        title: "Hata", 
+        description: error.message || "Çıkış yapılırken hata oluştu.",
+        variant: "destructive" 
+      });
+    }
+  };
 
   return (
     <div className="flex items-center gap-1 sm:gap-2">
@@ -202,6 +220,15 @@ export default function HeaderControls({
                 <BarChart className="mr-2 h-4 w-4" />
                 <span>Analiz</span>
               </DropdownMenuItem>
+              {user && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Çıkış Yap</span>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </TooltipProvider>
@@ -241,6 +268,15 @@ export default function HeaderControls({
               <BarChart className="mr-2 h-4 w-4" />
               <span>Analiz</span>
             </DropdownMenuItem>
+            {user && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Çıkış Yap</span>
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
