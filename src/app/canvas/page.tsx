@@ -59,6 +59,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import WebsitePreview from '@/components/widgets/WebsitePreview';
 import { createClient } from '@/lib/supabase/client';
 import { LayoutMode } from '@/lib/layout-engine';
+import { useAuth } from '@/providers/auth-provider';
 
 
 const MainContentInternal = ({ username }: { username: string | null }) => {
@@ -1536,6 +1537,8 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
 export default function CanvasPage() {
   const [username] = useLocalStorage<string | null>('canvasflow_username', null);
+  const { user, loading } = useAuth();
+  const { username: storeUsername } = useAppStore();
   const [isHydrated, setIsHydrated] = useState(false);
   const router = useRouter();
 
@@ -1544,18 +1547,32 @@ export default function CanvasPage() {
   }, []);
 
   useEffect(() => {
-    if (isHydrated && username === null) {
+    if (!isHydrated || loading) return;
+    
+    // Allow access if:
+    // 1. User is authenticated via Supabase
+    // 2. Has a username in local storage (demo profiles)
+    // 3. Has username in store (guest mode)
+    const hasAccess = user || username || storeUsername;
+    
+    if (!hasAccess) {
       router.push('/');
     }
-  }, [isHydrated, username, router]);
+  }, [isHydrated, user, username, storeUsername, loading, router]);
 
-  if (!isHydrated || username === null) {
+  if (!isHydrated || loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <AppLogo className="h-16 w-16 text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <AppLogo className="h-16 w-16 text-primary animate-pulse" />
+          <p className="text-muted-foreground text-sm">Yükleniyor...</p>
+        </div>
       </div>
     );
   }
 
-  return <MainContentInternal username={username} />;
+  // Display name priority: authenticated user > local storage > store
+  const displayName = user?.user_metadata?.username || username || storeUsername || 'User';
+
+  return <MainContentInternal username={displayName} />;
 }
