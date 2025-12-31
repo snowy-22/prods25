@@ -1,0 +1,76 @@
+{
+  "placeholderImages": [
+    {
+      "id": "1",
+      "description": "Abstract colorful shapes",
+      "imageUrl": "https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "abstract colorful"
+    },
+    {
+      "id": "2",
+      "description": "Cityscape at night",
+      "imageUrl": "https://images.unsplash.com/photo-1519996236371-d49c81b04a89?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "city night"
+    },
+    {
+      "id": "3",
+      "description": "Serene mountain landscape",
+      "imageUrl": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "mountain landscape"
+    },
+    {
+      "id": "4",
+      "description": "Lush forest",
+      "imageUrl": "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "lush forest"
+    },
+    {
+      "id": "5",
+      "description": "Minimalist architecture",
+      "imageUrl": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "minimalist architecture"
+    },
+    {
+      "id": "6",
+      "description": "Ocean waves",
+      "imageUrl": "https://images.unsplash.com/photo-1505118380757-91f5f45d8de4?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "ocean waves"
+    },
+    {
+      "id": "7",
+      "description": "Geometric patterns",
+      "imageUrl": "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "geometric patterns"
+    },
+    {
+      "id": "8",
+      "description": "Vintage texture",
+      "imageUrl": "https://images.unsplash.com/photo-1518640467707-6811f4a6ab73?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "vintage texture"
+    },
+    {
+      "id": "9",
+      "description": "Starry night sky",
+      "imageUrl": "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "night sky"
+    },
+    {
+      "id": "10",
+      "description": "Cozy library",
+      "imageUrl": "https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "cozy library"
+    },
+    {
+      "id": "11",
+      "description": "Futuristic city",
+      "imageUrl": "https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "futuristic city"
+    },
+    {
+      "id": "12",
+      "description": "Autumn forest path",
+      "imageUrl": "https://images.unsplash.com/photo-1476842634003-7dcca8f832de?q=80&w=1920&auto=format&fit=crop",
+      "imageHint": "autumn path"
+    }
+  ]
+}

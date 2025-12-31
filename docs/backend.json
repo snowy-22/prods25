@@ -1,0 +1,317 @@
+{
+  "entities": {
+    "User": {
+      "title": "Kullanıcı",
+      "type": "object",
+      "description": "Firebase Auth tarafından yönetilen, sistemdeki her bir kullanıcıyı temsil eder.",
+      "properties": {
+        "id": { "type": "string", "description": "Firebase Auth UID." },
+        "email": { "type": "string", "format": "email", "description": "Kullanıcının e-posta adresi." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Hesabın oluşturulma zamanı." }
+      },
+      "required": ["id", "email", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "Kullanıcı Profili",
+      "type": "object",
+      "description": "Kullanıcının herkese açık veya kendisinin yönettiği profil bilgilerini saklar.",
+      "properties": {
+        "id": { "type": "string", "description": "Profilin benzersiz ID'si (kullanıcı ID'si ile aynı)." },
+        "username": { "type": "string", "description": "Kullanıcının herkese açık adı." },
+        "bio": { "type": "string", "description": "Kullanıcının yazdığı kısa biyografi." },
+        "photoURL": { "type": "string", "format": "uri", "description": "Profil fotoğrafının URL'si." }
+      },
+      "required": ["id", "username"]
+    },
+    "UserActivity": {
+        "title": "Kullanıcı Aktivitesi",
+        "type": "object",
+        "description": "Kullanıcıların uygulama içi davranışlarını ve oturum bilgilerini takip eder.",
+        "properties": {
+            "userId": { "type": "string" },
+            "lastLogin": { "type": "string", "format": "date-time" },
+            "loginCount": { "type": "number" },
+            "lastSeen": { "type": "string", "format": "date-time" },
+            "sessionCount": { "type": "number" },
+            "totalSessionDuration": { "type": "number", "description": "Saniye cinsinden toplam oturum süresi." },
+            "mostVisitedCanvasId": { "type": "string" },
+            "lastActiveCanvasId": { "type": "string" }
+        }
+    },
+    "UserSession": {
+        "title": "Kullanıcı Oturumu",
+        "type": "object",
+        "description": "Tek bir kullanıcı oturumunun detaylarını kaydeder.",
+        "properties": {
+            "sessionId": { "type": "string" },
+            "userId": { "type": "string" },
+            "startTime": { "type": "string", "format": "date-time" },
+            "endTime": { "type": "string", "format": "date-time" },
+            "duration": { "type": "number", "description": "Saniye cinsinden." },
+            "deviceInfo": { "type": "object" }
+        }
+    },
+    "UserAction": {
+        "title": "Kullanıcı Eylemi",
+        "type": "object",
+        "description": "Kullanıcı tarafından gerçekleştirilen önemli bir eylemi kaydeder (feature usage).",
+        "properties": {
+            "actionId": { "type": "string" },
+            "userId": { "type": "string" },
+            "actionType": { "type": "string", "enum": ["create_item", "delete_item", "share_item", "change_setting"] },
+            "timestamp": { "type": "string", "format": "date-time" },
+            "details": { "type": "object" }
+        }
+    },
+    "UserSegment": {
+        "title": "Kullanıcı Segmenti",
+        "type": "object",
+        "description": "Kullanıcıların davranışlarına göre ait oldukları segment.",
+        "properties": {
+            "userId": { "type": "string" },
+            "segment": { "type": "string", "enum": ["Power User", "Active User", "Casual User", "New User", "Churn Risk"] },
+            "updatedAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "ContentItem": {
+      "title": "İçerik Öğesi",
+      "type": "object",
+      "description": "Uygulamadaki klasör, liste, video, resim, widget gibi her türlü dinamik içeriği temsil eden temel varlık.",
+      "properties": {
+        "id": { "type": "string", "description": "İçeriğin benzersiz ID'si." },
+        "parentId": { "type": "string", "description": "Hiyerarşideki üst öğenin ID'si." },
+        "ownerId": { "type": "string", "description": "İçeriğin sahibi olan kullanıcının ID'si." },
+        "type": { "type": "string", "enum": ["folder", "list", "video", "image", "website", "notes", "clock"], "description": "Öğenin türü." },
+        "title": { "type": "string", "description": "Öğenin başlığı." },
+        "content": { "type": "string", "description": "Metin tabanlı içerik (notlar, açıklamalar vb.)." },
+        "url": { "type": "string", "format": "uri", "description": "Harici kaynağın (video, resim, web sitesi) URL'si." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "ratings": { "type": "array", "items": { "$ref": "#/entities/RatingEvent" } },
+        "priority": { "type": "string", "enum": ["+", "++", "+++"] },
+        "metrics": { "type": "object", "description": "Özel teknik metrikler (env. no, fiyat vb.)." },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "sharing": { "$ref": "#/entities/SharingSettings" }
+      },
+      "required": ["id", "ownerId", "type", "title", "createdAt", "updatedAt"]
+    },
+    "RatingEvent": {
+        "title": "Puanlama Olayı",
+        "type": "object",
+        "description": "Bir kullanıcının bir içeriğe puan vermesi eylemini temsil eder. Blockchain üzerinde 'Proof of Action' olarak kullanılabilir.",
+        "properties": {
+            "userId": { "type": "string" },
+            "contentId": { "type": "string" },
+            "rating": { "type": "number", "minimum": 1, "maximum": 10 },
+            "timestamp": { "type": "string", "format": "date-time" }
+        },
+        "required": ["userId", "contentId", "rating", "timestamp"]
+    },
+    "SharingSettings": {
+        "title": "Paylaşım Ayarları",
+        "type": "object",
+        "properties": {
+            "isPublic": { "type": "boolean" },
+            "privacy": { "type": "string", "enum": ["public", "private", "password", "invited"] },
+            "canComment": { "type": "boolean" },
+            "canRate": { "type": "boolean" }
+        }
+    },
+    "Follow": {
+        "title": "Takip",
+        "type": "object",
+        "description": "Bir kullanıcının başka bir kullanıcıyı takip etme ilişkisi.",
+        "properties": {
+            "followerId": { "type": "string" },
+            "followingId": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "Like": {
+        "title": "Beğeni",
+        "type": "object",
+        "description": "Bir kullanıcının bir içerik öğesini beğenmesi.",
+        "properties": {
+            "userId": { "type": "string" },
+            "contentId": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "Comment": {
+        "title": "Yorum",
+        "type": "object",
+        "description": "İçeriklere yapılan yorumlar. Kendi içinde yanıtları barındırabilir.",
+        "properties": {
+            "id": { "type": "string" },
+            "contentId": { "type": "string" },
+            "userId": { "type": "string" },
+            "parentId": { "type": "string", "description": "Eğer bu bir yanıtsa, ana yorumun ID'si." },
+            "text": { "type": "string" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "Share": {
+        "title": "Paylaşım",
+        "type": "object",
+        "description": "Bir içeriğin paylaşılma eylemini kaydeder.",
+        "properties": {
+            "contentId": { "type": "string" },
+            "sharedByUserId": { "type": "string" },
+            "sharedWithUserId": { "type": "string", "description": "Belirli bir kullanıcıyla paylaşıldıysa." },
+            "platform": { "type": "string", "enum": ["twitter", "facebook", "direct_link"] },
+            "createdAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "Conversation": {
+        "title": "Sohbet",
+        "type": "object",
+        "description": "İki veya daha fazla kullanıcı arasındaki mesajlaşma oturumu.",
+        "properties": {
+            "id": { "type": "string" },
+            "participantIds": { "type": "array", "items": { "type": "string" } },
+            "lastMessage": { "type": "string" },
+            "updatedAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "Message": {
+        "title": "Mesaj",
+        "type": "object",
+        "description": "Bir sohbet içindeki tek bir mesaj.",
+        "properties": {
+            "id": { "type": "string" },
+            "conversationId": { "type": "string" },
+            "senderId": { "type": "string" },
+            "text": { "type": "string" },
+            "attachmentUrl": { "type": "string", "format": "uri" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "Notification": {
+        "title": "Bildirim",
+        "type": "object",
+        "description": "Kullanıcılara gönderilen bildirimler (beğeni, yeni yorum vb.).",
+        "properties": {
+            "id": { "type": "string" },
+            "recipientId": { "type": "string" },
+            "type": { "type": "string", "enum": ["new_like", "new_comment", "new_follower", "mention"] },
+            "relatedContentId": { "type": "string" },
+            "relatedUserId": { "type": "string" },
+            "isRead": { "type": "boolean" },
+            "createdAt": { "type": "string", "format": "date-time" }
+        }
+    },
+    "Space": {
+        "title": "Mekan",
+        "type": "object",
+        "description": "Fiziksel veya sanal bir alanı ve ona bağlı cihazları temsil eder.",
+        "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "type": { "type": "string", "enum": ["room", "office", "vehicle", "virtual"] },
+            "location": { "type": "string", "description": "Coğrafi konum veya sanal adres." },
+            "deviceIds": { "type": "array", "items": { "type": "string" } }
+        }
+    },
+    "Device": {
+        "title": "Cihaz",
+        "type": "object",
+        "description": "Uygulamaya bağlı bir donanımı veya sanal birimi temsil eder.",
+        "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "type": { "type": "string", "enum": ["monitor", "light", "thermostat", "camera", "phone"] },
+            "status": { "type": "string", "enum": ["online", "offline", "error"] },
+            "lastSeen": { "type": "string", "format": "date-time" },
+            "spaceId": { "type": "string", "description": "Bağlı olduğu mekanın ID'si." }
+        }
+    },
+    "EventLog": {
+        "title": "Olay Günlüğü",
+        "type": "object",
+        "description": "Uygulama içinde gerçekleşen önemli eylemleri ve sistem olaylarını kaydeder.",
+        "properties": {
+            "id": { "type": "string" },
+            "timestamp": { "type": "string", "format": "date-time" },
+            "userId": { "type": "string", "description": "Eylemi gerçekleştiren kullanıcı." },
+            "eventType": { "type": "string", "description": "Örn: 'user_login', 'content_create', 'setting_change'." },
+            "details": { "type": "object", "description": "Olayla ilgili ek veri." }
+        }
+    }
+  },
+  "auth": {
+    "providers": [ "password", "anonymous", "google.com" ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": { "entityName": "UserProfile", "schema": { "$ref": "#/entities/UserProfile" } }
+      },
+      {
+        "path": "/users/{userId}/activity",
+        "definition": { "entityName": "UserActivity", "schema": { "$ref": "#/entities/UserActivity" } }
+      },
+       {
+        "path": "/users/{userId}/sessions/{sessionId}",
+        "definition": { "entityName": "UserSession", "schema": { "$ref": "#/entities/UserSession" } }
+      },
+      {
+        "path": "/users/{userId}/actions/{actionId}",
+        "definition": { "entityName": "UserAction", "schema": { "$ref": "#/entities/UserAction" } }
+      },
+      {
+        "path": "/users/{userId}/segment",
+        "definition": { "entityName": "UserSegment", "schema": { "$ref": "#/entities/UserSegment" } }
+      },
+      {
+        "path": "/users/{userId}/content/{contentId}",
+        "definition": { "entityName": "ContentItem", "schema": { "$ref": "#/entities/ContentItem" } }
+      },
+      {
+        "path": "/users/{userId}/followers/{followerId}",
+        "definition": { "entityName": "Follow", "schema": { "$ref": "#/entities/Follow" } }
+      },
+      {
+        "path": "/users/{userId}/following/{followingId}",
+        "definition": { "entityName": "Follow", "schema": { "$ref": "#/entities/Follow" } }
+      },
+      {
+        "path": "/users/{userId}/notifications/{notificationId}",
+        "definition": { "entityName": "Notification", "schema": { "$ref": "#/entities/Notification" } }
+      },
+      {
+        "path": "/content/{contentId}/likes/{likeId}",
+        "definition": { "entityName": "Like", "schema": { "$ref": "#/entities/Like" } }
+      },
+      {
+        "path": "/content/{contentId}/comments/{commentId}",
+        "definition": { "entityName": "Comment", "schema": { "$ref": "#/entities/Comment" } }
+      },
+      {
+        "path": "/content/{contentId}/shares/{shareId}",
+        "definition": { "entityName": "Share", "schema": { "$ref": "#/entities/Share" } }
+      },
+      {
+        "path": "/conversations/{conversationId}",
+        "definition": { "entityName": "Conversation", "schema": { "$ref": "#/entities/Conversation" } }
+      },
+      {
+        "path": "/conversations/{conversationId}/messages/{messageId}",
+        "definition": { "entityName": "Message", "schema": { "$ref": "#/entities/Message" } }
+      },
+      {
+        "path": "/spaces/{spaceId}",
+        "definition": { "entityName": "Space", "schema": { "$ref": "#/entities/Space" } }
+      },
+      {
+        "path": "/devices/{deviceId}",
+        "definition": { "entityName": "Device", "schema": { "$ref": "#/entities/Device" } }
+      },
+      {
+        "path": "/event-logs/{logId}",
+        "definition": { "entityName": "EventLog", "schema": { "$ref": "#/entities/EventLog" } }
+      }
+    ],
+    "reasoning": "Veri yapısı, kullanıcı merkezli ve ölçeklenebilir bir model üzerine kurulmuştur. Kullanıcıya özel veriler (içerikler, bildirimler, aktivite, oturumlar) /users/{userId} altında toplanırken, içeriklerle ilgili genel etkileşimler (beğeni, yorum) kendi ana koleksiyonlarında saklanarak sorgu performansını artırır. Mekan, cihaz ve olay günlüğü gibi yeni eklenen global veriler, kendi ana koleksiyonlarında tutularak yönetimi basitleştirir ve uygulama genelinde erişimi kolaylaştırır."
+  }
+}
