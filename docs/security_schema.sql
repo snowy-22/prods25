@@ -1,6 +1,44 @@
 -- Security and Compliance Database Tables
 -- These tables support the security features implemented in the application
 
+-- Profiles Table
+-- Extends auth.users with role and profile information
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  full_name VARCHAR(255),
+  role VARCHAR(50) NOT NULL DEFAULT 'user', -- 'user', 'moderator', 'admin', 'super_admin'
+  avatar_url TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_profiles_role ON profiles(role);
+CREATE INDEX idx_profiles_email ON profiles(email);
+
+-- Enable RLS on profiles
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Profiles RLS Policies
+CREATE POLICY "Users can view own profile"
+  ON profiles FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile"
+  ON profiles FOR UPDATE
+  USING (auth.uid() = id);
+
+-- Admins can view all profiles
+CREATE POLICY "Admins can view all profiles"
+  ON profiles FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM profiles p
+      WHERE p.id = auth.uid() 
+      AND p.role IN ('admin', 'super_admin')
+    )
+  );
+
 -- Audit Logs Table
 -- Tracks all important user actions for security and compliance
 CREATE TABLE IF NOT EXISTS audit_logs (

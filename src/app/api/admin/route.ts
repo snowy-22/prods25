@@ -84,7 +84,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
-// Middleware will be added after Supabase setup
-// export const GET = withRateLimit(withAuth(withPermission(GET, 'admin', 'view')));
-// export const POST = withRateLimit(withAuth(withPermission(POST, 'admin', 'execute')));

@@ -77,8 +77,3 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     );
   }
 }
-
-// Middleware will be added after testing basic routes
-// export const GET = withRateLimit(withAuth(getUser));
-// export const PUT = withRateLimit(withAuth(withPermission(updateUser, 'users', 'update')));
-// export const DELETE = withRateLimit(withAuth(withPermission(deleteUser, 'users', 'delete')));

@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/users
  * Create new user
- * TODO: Add authentication middleware
+ * TODO: Add validation middleware
  */
 export async function POST(req: NextRequest) {
   try {
@@ -83,7 +83,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
-// Middleware will be added after Supabase setup
-// export const GET = withRateLimit(withAuth(GET));
-// export const POST = withRateLimit(withAuth(POST));
