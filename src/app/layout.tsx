@@ -6,8 +6,15 @@ import { AuthProvider } from '@/providers/auth-provider';
 import { LogTracker } from '@/components/log-tracker';
 
 export const metadata: Metadata = {
-  title: 'CanvasFlow',
-  description: 'A limitless canvas for your ideas.',
+  title: 'CanvasFlow - Sınırsız Dijital Kanvas',
+  description: 'Fikirlerinizi organize edin, projelerinizi yönetin, yaratıcılığınızı keşfedin.',
+  keywords: ['canvas', 'dijital kanvas', 'proje yönetimi', 'not alma', 'organizasyon'],
+  authors: [{ name: 'CanvasFlow' }],
+  openGraph: {
+    title: 'CanvasFlow',
+    description: 'Fikirleriniz için sınırsız bir kanvas',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({

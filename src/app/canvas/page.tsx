@@ -1536,7 +1536,6 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
 
 export default function CanvasPage() {
-  const [username] = useLocalStorage<string | null>('canvasflow_username', null);
   const { user, loading } = useAuth();
   const { username: storeUsername } = useAppStore();
   const [isHydrated, setIsHydrated] = useState(false);
@@ -1551,14 +1550,13 @@ export default function CanvasPage() {
     
     // Allow access if:
     // 1. User is authenticated via Supabase
-    // 2. Has a username in local storage (demo profiles)
-    // 3. Has username in store (guest mode)
-    const hasAccess = user || username || storeUsername;
+    // 2. Has username in store (guest mode)
+    const hasAccess = user || storeUsername;
     
     if (!hasAccess) {
       router.push('/');
     }
-  }, [isHydrated, user, username, storeUsername, loading, router]);
+  }, [isHydrated, user, storeUsername, loading, router]);
 
   if (!isHydrated || loading) {
     return (
@@ -1571,8 +1569,8 @@ export default function CanvasPage() {
     );
   }
 
-  // Display name priority: authenticated user > local storage > store
-  const displayName = user?.user_metadata?.username || username || storeUsername || 'User';
+  // Display name: authenticated user > store username > default
+  const displayName = user?.user_metadata?.username || storeUsername || 'User';
 
   return <MainContentInternal username={displayName} />;
 }
