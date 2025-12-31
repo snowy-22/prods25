@@ -15,13 +15,27 @@ import {
   refundPurchase,
 } from '@/lib/db/ecommerce';
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+// Check if Stripe is configured
+const isStripeConfigured = !!process.env.STRIPE_SECRET_KEY;
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+
+// Helper to return 503 if Stripe not configured
+function stripeNotAvailable() {
+  return NextResponse.json(
+    { error: 'Payment service is not configured', configured: false },
+    { status: 503 }
+  );
+}
 
 // ============================================================================
 // POST /api/payments/checkout-session
 // Create Stripe checkout session for purchase
 // ============================================================================
 export async function createSession(req: NextRequest) {
+  if (!isStripeConfigured) {
+    return stripeNotAvailable();
+  }
+
   try {
     const {
       data: { user },

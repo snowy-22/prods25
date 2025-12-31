@@ -5,14 +5,15 @@ import Stripe from 'stripe';
  */
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
-if (!stripeSecretKey) {
-  throw new Error('Missing STRIPE_SECRET_KEY environment variable');
-}
+// Stripe is optional - allow missing key for development
+export const isStripeAvailable = !!stripeSecretKey;
 
-export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2025-01-27.acacia',
-  typescript: true,
-});
+export const stripe = stripeSecretKey 
+  ? new Stripe(stripeSecretKey, {
+      apiVersion: '2025-01-27.acacia',
+      typescript: true,
+    })
+  : null;
 
 /**
  * Create checkout session for purchases
@@ -26,6 +27,10 @@ export async function createCheckoutSession(
   }>,
   metadata: Record<string, string> = {}
 ) {
+  if (!isStripeAvailable || !stripe) {
+    throw new Error('Stripe is not configured');
+  }
+
   try {
     // Convert items to Stripe line items
     const lineItems = items.map((item) => ({
@@ -61,6 +66,10 @@ export async function createCheckoutSession(
  * Retrieve checkout session details
  */
 export async function getCheckoutSession(sessionId: string) {
+  if (!isStripeAvailable || !stripe) {
+    throw new Error('Stripe is not configured');
+  }
+
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     return session;
@@ -78,6 +87,10 @@ export async function createPaymentIntent(
   customerId: string,
   metadata: Record<string, string> = {}
 ) {
+  if (!isStripeAvailable || !stripe) {
+    throw new Error('Stripe is not configured');
+  }
+
   try {
     const intent = await stripe.paymentIntents.create({
       amount,
@@ -102,6 +115,10 @@ export async function confirmPaymentIntent(
   intentId: string,
   paymentMethodId: string
 ) {
+  if (!isStripeAvailable || !stripe) {
+    throw new Error('Stripe is not configured');
+  }
+
   try {
     const intent = await stripe.paymentIntents.confirm(intentId, {
       payment_method: paymentMethodId,
@@ -122,6 +139,10 @@ export async function getOrCreateCustomer(
   email: string,
   name: string
 ) {
+  if (!isStripeAvailable || !stripe) {
+    throw new Error('Stripe is not configured');
+  }
+
   try {
     // Search for existing customer with this email
     const customers = await stripe.customers.list({ email, limit: 1 });
