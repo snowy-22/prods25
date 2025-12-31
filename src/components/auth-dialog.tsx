@@ -107,15 +107,22 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
       return;
     }
     
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) {
-      toast({ title: "Hata", description: error.message, variant: "destructive" });
-    } else {
-      setIsResetSent(true);
-      toast({
-          title: "Şifre Sıfırlama E-postası Gönderildi",
-          description: "Lütfen e-posta kutunuzu kontrol edin.",
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
+      if (error) {
+        toast({ title: "Hata", description: error.message, variant: "destructive" });
+      } else {
+        setIsResetSent(true);
+        toast({
+            title: "Şifre Sıfırlama E-postası Gönderildi",
+            description: "Lütfen e-posta kutunuzu kontrol edin.",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

@@ -167,6 +167,8 @@ export const iconComponents = {
   youtube: Youtube,
   'message-square': MessageSquare,
   users: UsersIcon,
+  tabs: Layers,
+  search: Globe,
 };
 
 export type IconName = keyof typeof iconComponents;

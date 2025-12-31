@@ -128,10 +128,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUsername(null);
   };
 
-  const signInAnonymously = () => {
+  const signInAnonymously = async () => {
     // For guest/anonymous access without Supabase auth
+    const guestUsername = `Guest_${Date.now()}`;
+    setUser(null);
     setStoreUser(null);
-    setUsername('Guest');
+    setUsername(guestUsername);
+    setLoading(false);
   };
 
   return (

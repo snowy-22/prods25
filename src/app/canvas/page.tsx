@@ -66,10 +66,18 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const { toast } = useToast();
     const router = useRouter();
     const supabase = createClient();
+    const [isMounted, setIsMounted] = useState(false);
     const [allRawItems, setAllRawItems] = useLocalStorage<ContentItem[]>('canvasflow_items', initialContent);
     const itemsRef = useRef<ContentItem[]>(allRawItems);
     
+    // Ensure client-side only rendering to prevent hydration mismatch
     useEffect(() => {
+        setIsMounted(true);
+    }, []);
+    
+    useEffect(() => {
+        if (!isMounted) return;
+        
         if (!allRawItems || allRawItems.length === 0) {
             setAllRawItems(initialContent);
         } else if (allRawItems.length > 0) {
@@ -84,7 +92,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             }
         }
         itemsRef.current = allRawItems.length > 0 ? allRawItems : initialContent;
-    }, [allRawItems, setAllRawItems]);
+    }, [allRawItems, setAllRawItems, isMounted]);
 
     const updateItems = useCallback((updater: (prev: ContentItem[]) => ContentItem[]) => {
         const next = updater(itemsRef.current);
@@ -94,6 +102,8 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
     // Migration for missing folders
     useEffect(() => {
+        if (!isMounted) return;
+        
         const currentItems = itemsRef.current;
         const missingFolders = initialContent.filter(initialItem => 
             ['root', 'saved-items', 'welcome-folder', 'trash-folder'].includes(initialItem.id) &&
@@ -104,7 +114,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             updateItems(prev => [...prev, ...missingFolders]);
             toast({ title: "İçerik Güncellendi", description: "Temel klasörler geri yüklendi." });
         }
-    }, [updateItems, toast]);
+    }, [updateItems, toast, isMounted]);
 
     // Reset all grid spans to 1x1 for equal sizing (one-time migration)
     useEffect(() => {
@@ -1062,6 +1072,17 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         return allItems.filter(i => i.parentId === 'devices-folder');
     }, [allItems]);
 
+    // Show loading while mounting to prevent hydration issues
+    if (!isMounted) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-4">
+                    <AppLogo className="h-16 w-16 text-primary animate-pulse" />
+                    <p className="text-muted-foreground text-sm">Hazırlanıyor...</p>
+                </div>
+            </div>
+        );
+    }
     
     if (!activeTab || !activeView) {
         return <div className="flex h-screen w-full items-center justify-center bg-background"><AppLogo className="h-16 w-16 text-primary" /></div>;
@@ -1537,16 +1558,47 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
 export default function CanvasPage() {
   const { user, loading } = useAuth();
-  const { username: storeUsername } = useAppStore();
+  const { username: storeUsername, setUsername: setStoreUsername } = useAppStore();
   const [isHydrated, setIsHydrated] = useState(false);
+  const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
+  // Check localStorage for persisted username (guest mode)
   useEffect(() => {
-    if (!isHydrated || loading) return;
+    if (!isHydrated) return;
+    
+    if (!storeUsername && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('canvasflow-storage');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.state?.username) {
+            setStoreUsername(parsed.state.username);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse localStorage:', e);
+      }
+    }
+    setHasCheckedStorage(true);
+  }, [isHydrated, storeUsername, setStoreUsername]);
+
+  // Sync auth state to store on mount/change
+  useEffect(() => {
+    if (!isHydrated) return;
+    
+    if (user) {
+      const username = user.user_metadata?.username || user.email?.split('@')[0] || 'User';
+      setStoreUsername(username);
+    }
+  }, [user, isHydrated, setStoreUsername]);
+
+  useEffect(() => {
+    if (!isHydrated || loading || !hasCheckedStorage) return;
     
     // Allow access if:
     // 1. User is authenticated via Supabase
@@ -1556,7 +1608,7 @@ export default function CanvasPage() {
     if (!hasAccess) {
       router.push('/');
     }
-  }, [isHydrated, user, storeUsername, loading, router]);
+  }, [isHydrated, user, storeUsername, loading, router, hasCheckedStorage]);
 
   if (!isHydrated || loading) {
     return (

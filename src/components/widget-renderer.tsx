@@ -53,6 +53,12 @@ const GradientGeneratorWidget = dynamic(() => import('./widgets/gradient-generat
 const LoremIpsumGeneratorWidget = dynamic(() => import('./widgets/lorem-ipsum-generator-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const BusinessModelCanvasWidget = dynamic(() => import('./widgets/business-model-canvas-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const SearchWidget = dynamic(() => import('./widgets/search-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const HueWidget = dynamic(() => import('./widgets/hue-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const ReservationWidget = dynamic(() => import('./widgets/reservation-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const PurchaseWidget = dynamic(() => import('./widgets/purchase-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const AchievementsWidget = dynamic(() => import('./widgets/achievements-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const AwardCardWidget = dynamic(() => import('./widgets/award-card-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const TrainingModuleWidget = dynamic(() => import('./widgets/training-module-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 
 const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   item: MiniGridPreview,
@@ -125,6 +131,12 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'business-model-canvas': BusinessModelCanvasWidget,
   bmc: BusinessModelCanvasWidget,
   search: SearchWidget,
+  hue: HueWidget,
+  reservation: ReservationWidget,
+  purchase: PurchaseWidget,
+  achievements: AchievementsWidget,
+  'award-card': AwardCardWidget,
+  'training-module': TrainingModuleWidget,
 };
 
 const WidgetRendererBase = ({ item, ...props }: { item: ContentItem } & any) => {

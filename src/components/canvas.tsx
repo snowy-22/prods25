@@ -131,6 +131,9 @@ const Canvas = memo(function Canvas({
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [carouselCenterIndex, setCarouselCenterIndex] = useState(0);
 
+  // normalize legacy layout values to supported ones - MUST be before useEffect
+  const normalizedLayoutMode: LayoutMode = layoutMode === 'canvas' ? 'canvas' : 'grid';
+
   // Canvas moduna özel kısayollar
   useEffect(() => {
     if (normalizedLayoutMode !== 'canvas') return;
@@ -159,9 +162,6 @@ const Canvas = memo(function Canvas({
       setInternalIsLoading(false);
       onLoadComplete();
   }, [items, onLoadComplete]);
-
-  // normalize legacy layout values to supported ones
-  const normalizedLayoutMode: LayoutMode = layoutMode === 'canvas' ? 'canvas' : 'grid';
 
   const canvasScale = (scale || 100) / 100;
   // Use proper scaling approach - avoid transform scale for better rendering

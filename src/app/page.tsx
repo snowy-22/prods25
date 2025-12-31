@@ -8,11 +8,13 @@ import { AuthDialog } from '@/components/auth-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { User } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
+import { useAppStore } from '@/lib/store';
 
 export default function HomePage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, loading, signInAnonymously } = useAuth();
+  const { setUsername } = useAppStore();
   const [isHydrated, setIsHydrated] = useState(false);
   
   const [authAction, setAuthAction] = useState<'login' | 'signup' | null>(null);
@@ -38,8 +40,10 @@ export default function HomePage() {
     setAuthAction('signup');
   };
 
-  const handleAnonymousSignIn = () => {
-    signInAnonymously();
+  const handleAnonymousSignIn = async () => {
+    const guestUsername = `Guest_${Date.now()}`;
+    await signInAnonymously();
+    setUsername(guestUsername);
     toast({ title: "Misafir olarak giriş yaptınız." });
     router.push('/canvas');
   };
