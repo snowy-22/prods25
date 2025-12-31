@@ -8,6 +8,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ContentItem, SortDirection, SortOption, widgetTemplates, RatingEvent, ItemType } from '@/lib/initial-content';
+import { SocialPanel } from './social-panel';
 import {
   ThumbsUp,
   Save,
@@ -1543,61 +1544,12 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                 <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="social-panel">
                     <div className="p-3 border-b flex items-center justify-between h-16">
                         <h2 className="font-bold text-lg px-2 flex items-center gap-2"><Users /> Sosyal Merkez</h2>
-                        <Button variant="ghost" size="icon"><Search className="h-5 w-5"/></Button>
                     </div>
-                    <div className='flex-1 min-h-0'>
-                        <Tabs defaultValue="feed" className="w-full h-full flex flex-col">
-                            <TabsList className="grid w-full grid-cols-3">
-                                <TabsTrigger value="feed">Akış</TabsTrigger>
-                                <TabsTrigger value="discover">Keşfet</TabsTrigger>
-                                <TabsTrigger value="profile">Profilim</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="feed" className="flex-1 min-h-0 mt-0">
-                                <ScrollArea className='h-full'>
-                                    <div className="p-2 space-y-2">
-                                        <div className='p-2 space-y-2'>
-                                            <Button className='w-full' variant='outline'><Share2 className='mr-2 h-4 w-4' /> Sosyal Merkezde Paylaş</Button>
-                                            <Button className='w-full' variant='outline'><Plus className='mr-2 h-4 w-4' /> Profilime Ekle</Button>
-                                        </div>
-                                        <Separator/>
-                                        {(socialContent || []).map(item => <SocialFeedCard key={item.id} item={item} onSetView={handleSetView!} onPreviewItem={onPreviewItem} onSaveItem={onSaveItem!}/>)}
-                                    </div>
-                                </ScrollArea>
-                            </TabsContent>
-                            <TabsContent value="discover" className="flex-1 min-h-0 mt-0">
-                                 <ScrollArea className='h-full'>
-                                     <div className="p-2 space-y-2">
-                                       <h3 className='text-sm font-semibold text-muted-foreground px-2'>Kişiler</h3>
-                                       {socialUsers.map(user => <UserCard key={user.id} user={{name: user.title}} onClick={() => onUserCardClick?.(user)} />)}
-                                       <Separator className='my-4'/>
-                                       <h3 className='text-sm font-semibold text-muted-foreground px-2'>Organizasyonlar</h3>
-                                       <OrganizationCard name="CanvasFlow Topluluğu" members={["Ali", "Ayşe", "Fatma", "Can", "Ece"]} />
-                                     </div>
-                                </ScrollArea>
-                            </TabsContent>
-                             <TabsContent value="profile" className="flex-1 min-h-0 mt-0">
-                                <ScrollArea className='h-full p-4'>
-                                    {userProfileItem && (
-                                        <div className='space-y-4'>
-                                             <div className="flex flex-col items-center text-center">
-                                                <Avatar className="w-24 h-24 mb-4 border-4 border-primary">
-                                                    <AvatarImage src={`https://avatar.vercel.sh/${username}.png`} alt={username} />
-                                                    <AvatarFallback>{username?.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <h2 className="text-2xl font-bold">{username}</h2>
-                                                <p className="text-muted-foreground max-w-xs">{userProfileItem.content}</p>
-                                                <div className='flex gap-4 mt-4'>
-                                                    <Button variant="outline">Profili Düzenle</Button>
-                                                    <Button onClick={() => onShare?.(userProfileItem)}>
-                                                        <Share2 className="mr-2 h-4 w-4" /> Profili Paylaş
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-3 gap-4 text-center p-4 rounded-lg bg-muted">
-                                                <div>
-                                                    <p className="font-bold text-lg">{publicCollections.length}</p>
-                                                    <p className="text-xs text-muted-foreground">Paylaşım</p>
-                                                </div>
+                    <div className='flex-1 min-h-0 p-4'>
+                        <SocialPanel />
+                    </div>
+                </div>
+            );
                                                 <div>
                                                     <p className="font-bold text-lg">{(userProfileItem.likeCount || 0) + 123}</p>
                                                     <p className="text-xs text-muted-foreground">Takipçi</p>
