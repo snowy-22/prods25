@@ -7,33 +7,59 @@ import { AppLogo } from '@/components/icons/app-logo';
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const supabase = createClient();
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        const supabase = createClient();
+        
+        // Supabase automatically handles the code exchange
+        // Just check if we have a session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Auth callback error:', error);
-          router.push('/?error=auth_failed');
+          router.replace('/?error=auth_failed');
           return;
         }
 
-        if (session) {
+        if (session?.user) {
           // Successfully authenticated
-          router.push('/canvas');
+          console.log('OAuth login successful:', session.user.email);
+          
+          // Create profile if it doesn't exist
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .upsert({
+              id: session.user.id,
+              username: session.user.user_metadata?.name || 
+                       session.user.user_metadata?.full_name || 
+                       session.user.email?.split('@')[0] || 
+                       'User',
+              email: session.user.email,
+              full_name: session.user.user_metadata?.full_name || 
+                        session.user.user_metadata?.name || null,
+            }, {
+              onConflict: 'id',
+              ignoreDuplicates: false
+            });
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+          }
+
+          router.replace('/canvas');
         } else {
-          router.push('/');
+          router.replace('/');
         }
       } catch (err) {
         console.error('Unexpected error:', err);
-        router.push('/');
+        router.replace('/');
       }
     };
 
     handleAuthCallback();
-  }, [router, supabase]);
+  }, [router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-background">

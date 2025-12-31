@@ -10,6 +10,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, username: string) => Promise<void>;
+  signInWithOAuth: (provider: 'google' | 'github') => Promise<void>;
   signOut: () => Promise<void>;
   signInAnonymously: () => void;
 }
@@ -137,8 +138,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   };
 
+  const signInWithOAuth = async (provider: 'google' | 'github') => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) throw error;
+    // Browser will be redirected to OAuth provider
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, signInAnonymously }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, signInAnonymously, signInWithOAuth }}>
       {children}
     </AuthContext.Provider>
   );

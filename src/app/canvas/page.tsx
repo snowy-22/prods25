@@ -174,6 +174,9 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     // Sync local data to Supabase when logged in
     useEffect(() => {
         const syncData = async () => {
+            // Disable sync for now - items table not yet created in Supabase
+            return;
+            
             if (state.user && !hasSyncedRef.current && !isSyncing) {
                 setIsSyncing(true);
                 try {
@@ -245,7 +248,10 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                     hasSyncedRef.current = true;
                 } catch (e: any) {
                     console.error("Sync failed", e);
-                    toast({ title: "Senkronizasyon Hatası", description: e.message, variant: "destructive" });
+                    // Only show toast if there's an actual error message
+                    if (e?.message) {
+                        toast({ title: "Senkronizasyon Hatası", description: e.message, variant: "destructive" });
+                    }
                 } finally {
                     setIsSyncing(false);
                 }

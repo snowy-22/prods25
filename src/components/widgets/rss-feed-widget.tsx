@@ -53,8 +53,8 @@ export default function RssFeedWidget({ size = 'medium' }: { size?: 'small' | 'm
                     "font-semibold px-1",
                     size === 'large' ? "text-xl mb-4" : "text-sm"
                 )}>{feed.title}</h3>
-                {feed.items.map((item: any) => (
-                    <a key={item.link || item.title} href={item.link} target="_blank" rel="noopener noreferrer" className={cn(
+                {feed.items.map((item: any, index: number) => (
+                    <a key={`${feed.title}-${index}-${item.link || item.title}`} href={item.link} target="_blank" rel="noopener noreferrer" className={cn(
                         "block p-2 rounded-md hover:bg-muted group transition-colors",
                         size === 'large' ? "p-4" : size === 'small' ? "p-1" : ""
                     )}>
