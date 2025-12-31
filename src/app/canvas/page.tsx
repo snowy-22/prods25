@@ -415,8 +415,11 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 .eq('id', itemId);
             
             if (error) {
-                console.error("Supabase update failed", error);
-                toast({ title: "Güncelleme Hatası", description: "Değişiklikler buluta kaydedilemedi.", variant: "destructive" });
+                // Silently fail if items table doesn't exist yet
+                console.log("Cloud sync skipped (items table not configured):", error.message);
+                if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
+                    toast({ title: "Buluta Kaydetme", description: "Değişiklikler yerel olarak kaydedildi ancak buluta gönderilemedi.", variant: "default" });
+                }
             }
         }
     }, [updateItems, state.user, supabase, toast, activeTab, state]);
@@ -437,8 +440,11 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 .in('id', itemIds);
             
             if (error) {
-                console.error("Supabase bulk update failed", error);
-                toast({ title: "Güncelleme Hatası", description: "Değişiklikler buluta kaydedilemedi.", variant: "destructive" });
+                // Silently fail if items table doesn't exist yet
+                console.log("Cloud sync skipped (items table not configured):", error.message);
+                if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
+                    toast({ title: "Buluta Kaydetme", description: "Değişiklikler yerel olarak kaydedildi ancak buluta gönderilemedi.", variant: "default" });
+                }
             }
         }
     }, [updateItems, state.user, supabase, toast]);
@@ -474,8 +480,12 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 });
 
             if (error) {
-                console.error("Supabase insert failed", error);
-                toast({ title: "Ekleme Hatası", description: "Yeni öğe buluta kaydedilemedi.", variant: "destructive" });
+                // Silently fail if items table doesn't exist yet
+                console.log("Cloud sync skipped (items table not configured):", error.message);
+                // Only show error if it's not a "relation does not exist" error
+                if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
+                    toast({ title: "Buluta Kaydetme", description: "Öğe yerel olarak eklendi ancak buluta kaydedilemedi.", variant: "default" });
+                }
             }
         }
     }, [setAllRawItems, state.user, supabase, toast]);
@@ -506,8 +516,11 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 .in('id', idsToDelete);
 
             if (error) {
-                console.error("Supabase delete failed", error);
-                toast({ title: "Silme Hatası", description: "Öğeler buluttan silinemedi.", variant: "destructive" });
+                // Silently fail if items table doesn't exist yet
+                console.log("Cloud sync skipped (items table not configured):", error.message);
+                if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
+                    toast({ title: "Buluttan Silme", description: "Öğeler yerel olarak silindi ancak buluttan kaldırılamadı.", variant: "default" });
+                }
             }
         }
     }, [updateItems, state.user, supabase, toast]);
@@ -659,8 +672,12 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 });
 
             if (error) {
-                console.error("Supabase insert failed", error);
-                toast({ title: "Ekleme Hatası", description: "Yeni öğe buluta kaydedilemedi.", variant: "destructive" });
+                // Silently fail if items table doesn't exist yet
+                console.log("Cloud sync skipped (items table not configured):", error.message);
+                // Only show error if it's not a "relation does not exist" error
+                if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
+                    toast({ title: "Buluta Kaydetme", description: "Öğe yerel olarak eklendi ancak buluta kaydedilemedi.", variant: "default" });
+                }
             }
         }
 
