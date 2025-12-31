@@ -63,21 +63,7 @@ export default function HomePage() {
     );
   }
 
-  // If authenticated or has demo profile, redirect happens in useEffect
-  if (user || (username && username !== 'Guest')) {
-    return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
-        <div className="relative">
-          <div className="absolute inset-0 animate-ping opacity-20 rounded-full bg-primary blur-xl"></div>
-          <AppLogo className="h-24 w-24 text-primary relative z-10" />
-        </div>
-        <div className="flex flex-col items-center gap-2">
-          <h2 className="text-xl font-semibold animate-pulse">CanvasFlow Yükleniyor</h2>
-          <p className="text-muted-foreground text-sm">Lütfen bekleyin, yönlendiriliyorsunuz...</p>
-        </div>
-      </div>
-    );
-  }
+  // User redirect happens in useEffect, no need for additional check
 
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-8 p-4">
