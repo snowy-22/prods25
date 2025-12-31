@@ -42,6 +42,7 @@ type HeaderControlsProps = {
   canNavigateForward?: boolean;
   onNavigateBack?: () => void;
   onNavigateForward?: () => void;
+  onToggleSpaceControl?: () => void;
 };
 
 export default function HeaderControls({

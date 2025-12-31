@@ -47,6 +47,7 @@ import PreviewDialog from '../../components/preview-dialog';
 import ShortcutsDialog from '../../components/shortcuts-dialog';
 import SpacesPanel from '@/components/spaces-panel';
 import DevicesPanel from '@/components/devices-panel';
+import CanvasSpaceControl from '@/components/canvas-space-control';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import TabBar from '@/components/tab-bar';
 import { useAppStore } from '@/lib/store';
@@ -60,6 +61,8 @@ import WebsitePreview from '@/components/widgets/WebsitePreview';
 import { createClient } from '@/lib/supabase/client';
 import { LayoutMode } from '@/lib/layout-engine';
 import { useAuth } from '@/providers/auth-provider';
+import { useRealtimeSync } from '@/hooks/use-realtime-sync';
+import { useRealtimeSync } from '@/hooks/use-realtime-sync';
 
 
 const MainContentInternal = ({ username }: { username: string | null }) => {
@@ -155,6 +158,12 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const state = useAppStore();
     const setUsername = useAppStore(s => s.setUsername);
     const setUser = useAppStore(s => s.setUser);
+    
+    // Enable realtime sync across browser tabs and sessions
+    const { broadcastItemUpdate, broadcastItemAdd, broadcastItemDelete } = useRealtimeSync(true);
+    
+    // Enable realtime sync across browser tabs and sessions
+    const { broadcastItemUpdate, broadcastItemAdd, broadcastItemDelete } = useRealtimeSync(true);
 
     // Supabase Auth Listener
     useEffect(() => {
@@ -404,6 +413,9 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             prevItems.map(item =>
                 item.id === itemId
                     ? { ...item, ...updates, updatedAt: new Date().toISOString() }
+        
+        // Broadcast to other browser tabs in real-time
+        broadcastItemUpdate(state.activeTabId, itemId, updates);
                     : item
             )
         );
@@ -508,6 +520,9 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         const idsToDelete = [itemId, ...childrenIdsToDelete];
 
         updateItems(prevItems => prevItems.filter(item => !idsToDelete.includes(item.id)));
+        
+        // Broadcast to other browser tabs in real-time
+        broadcastItemDelete(state.activeTabId, itemId);
 
         if (state.user) {
             const { error } = await supabase
@@ -680,6 +695,9 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 }
             }
         }
+        
+        // Broadcast to other browser tabs in real-time
+        broadcastItemAdd(state.activeTabId, parentId || 'root', newItem);
 
         return newItem;
     }, [updateItems, state.selectedItemIds, state.user, supabase, toast]);
@@ -816,6 +834,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const isUiHidden = state.isUiHidden;
     const setIsUiHidden = state.setIsUiHidden;
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isSpaceControlOpen, setIsSpaceControlOpen] = useState(false);
     const [gridSize, setGridSize] = useLocalStorage('canvas-grid-size', 280);
     const [isBottomPanelCollapsed, setIsBottomPanelCollapsed] = useState(true);
     const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('canvasflow_sidebar_width', 320);
@@ -977,6 +996,23 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             const target = e.target as HTMLElement | null;
             if (target && (target.closest('input, textarea') || target.getAttribute('contenteditable') === 'true')) {
                 return;
+            }
+
+            // ESC key: Clear selection first, then exit fullscreen
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                
+                // If there's a selection, clear it first
+                if (state.selectedItemIds.length > 0) {
+                    state.clearSelection();
+                    return;
+                }
+                
+                // If no selection and in fullscreen, exit fullscreen
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                    return;
+                }
             }
 
             if (isCtrl && e.key.toLowerCase() === 'h') {
@@ -1495,6 +1531,45 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             onToolCall={handleToolCall}
                         />
                     ))}
+                    
+                    {state.isSpacesPanelOpen && (
+                        <SpacesPanel
+                            onClose={() => state.togglePanel('isSpacesPanelOpen', false)}
+                            spaces={spaces}
+                            allItems={allItems}
+                            onAddNewSpace={() => {
+                                addItemToView(
+                                    { type: 'space', title: 'Yeni Mekan', icon: 'home' },
+                                    'spaces-folder'
+                                );
+                            }}
+                        />
+                    )}
+                    
+                    {state.isDevicesPanelOpen && (
+                        <DevicesPanel
+                            onClose={() => state.togglePanel('isDevicesPanelOpen', false)}
+                            devices={devices}
+                            activeDeviceId={activeBroadcastTargetId}
+                            onDeviceClick={setActiveBroadcastTargetId}
+                            onAddNewDevice={() => {
+                                addItemToView(
+                                    { 
+                                        type: 'device', 
+                                        title: 'Yeni Cihaz',
+                                        icon: 'monitor',
+                                        deviceInfo: {
+                                            os: navigator.platform || 'Unknown',
+                                            browser: navigator.userAgent.split(' ').pop() || 'Unknown'
+                                        }
+                                    },
+                                    'devices-folder'
+                                );
+                            }}
+                            onShowInfo={state.setItemForInfo}
+                            sessionId="session-123"
+                        />
+                    )}
 
                     <GlobalSearch
                         panelState={state.searchPanelState}
