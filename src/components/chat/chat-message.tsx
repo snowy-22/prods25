@@ -7,8 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Copy, ThumbsDown, ThumbsUp, MoreVertical, Code } from 'lucide-react';
 import { useState } from 'react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -148,15 +146,11 @@ export function ChatMessageComponent({
                 </div>
               )}
               <div className="overflow-x-auto rounded-md bg-black/30">
-                <SyntaxHighlighter
-                  language={message.language || 'bash'}
-                  style={oneDark}
-                  className="text-sm"
-                  showLineNumbers
-                  wrapLines
-                >
-                  {message.content}
-                </SyntaxHighlighter>
+                <pre className="p-4 text-sm font-mono">
+                  <code className="language-{message.language || 'bash'}">
+                    {message.content}
+                  </code>
+                </pre>
               </div>
             </div>
           )}

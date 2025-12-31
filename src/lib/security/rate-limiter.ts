@@ -123,12 +123,17 @@ export function cleanupExpiredRateLimits(): number {
   const now = Date.now();
   let cleaned = 0;
 
-  for (const [key, entry] of rateLimitStore.entries()) {
+  const keysToDelete: string[] = [];
+  rateLimitStore.forEach((entry, key) => {
     if (now > entry.resetTime) {
-      rateLimitStore.delete(key);
-      cleaned++;
+      keysToDelete.push(key);
     }
-  }
+  });
+
+  keysToDelete.forEach(key => {
+    rateLimitStore.delete(key);
+    cleaned++;
+  });
 
   return cleaned;
 }

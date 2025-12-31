@@ -80,23 +80,17 @@ export default function SearchWidget({ item, size = 'medium' }: SearchWidgetProp
 
       <ScrollArea className="flex-1">
         <div className="space-y-3">
-          {size !== 'small' && (
+          {size === 'large' && (
             <>
               <div className="space-y-2">
-                <h4 className={cn(
-                  "text-xs font-semibold text-muted-foreground uppercase",
-                  size === 'small' && "text-[10px]"
-                )}>
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase">
                   Örnek Komutlar
                 </h4>
                 {examplePrompts.map((prompt) => (
                   <Button
                     key={prompt.text}
                     variant="ghost"
-                    className={cn(
-                      "w-full justify-start",
-                      size === 'small' ? "h-7 text-xs" : "h-9 text-sm"
-                    )}
+                    className="w-full justify-start h-9 text-sm"
                     onClick={() => setQuery(prompt.text)}
                   >
                     {prompt.icon} <span className="ml-2">{prompt.text}</span>
@@ -116,10 +110,7 @@ export default function SearchWidget({ item, size = 'medium' }: SearchWidgetProp
                     <Button
                       key={action.label}
                       variant="outline"
-                      className={cn(
-                        "flex-col gap-1 h-auto",
-                        size === 'small' ? "p-1 text-[10px]" : "p-3 text-xs"
-                      )}
+                      className="flex-col gap-1 h-auto p-3 text-xs"
                     >
                       <div className={action.color}>{action.icon}</div>
                       <span className="font-medium">{action.label}</span>

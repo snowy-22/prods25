@@ -143,14 +143,14 @@ export class ModuleTracker {
       moduleId: item.id,
       type,
       title: item.title || 'Untitled',
-      description: item.description,
+      description: (item as any).description || '',
       version: 1,
       createdAt: item.createdAt || new Date().toISOString(),
       updatedAt: item.updatedAt || new Date().toISOString(),
       status: 'active',
-      tags: item.tags || [],
+      tags: (item as any).tags || [],
       metadata: {
-        customData: item.metadata || {},
+        customData: (item as any).metadata || {},
         dimensions: { width: item.width, height: item.height },
         position: { x: item.x, y: item.y }
       }
@@ -345,7 +345,7 @@ export function createWorkflowDiagram(
       position: { x: item.x || 0, y: item.y || 0 },
       properties: {
         title: item.title,
-        description: item.description,
+        description: (item as any).description || '',
         icon: item.icon
       }
     })),

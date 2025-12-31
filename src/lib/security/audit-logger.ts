@@ -116,7 +116,7 @@ export async function getAuditLogs(
     query = query
       .order('timestamp', { ascending: false })
       .limit(options?.limit || 50)
-      .offset(options?.offset || 0);
+      .range((options?.offset || 0), ((options?.offset || 0) + (options?.limit || 50) - 1));
 
     const { data, error } = await query;
 
@@ -214,7 +214,7 @@ export async function getAuditStats(
       totalActions: 0,
       successfulActions: 0,
       failedActions: 0,
-      actionsByType: {},
+      actionsByType: {} as Record<AuditAction, number>,
     };
   }
 }
