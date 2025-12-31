@@ -501,8 +501,16 @@ const PlayerFrameComponent = ({
                                         {isPlayerHeaderVisible && (
                                             <div 
                                                 className={cn(
-                                                        "flex items-center justify-between bg-card-foreground/5 px-2 h-8 text-xs font-semibold text-foreground flex-shrink-0 relative gap-2",
+                                                        "flex items-center justify-between px-2 h-8 text-xs font-semibold text-foreground flex-shrink-0 relative gap-2",
+                                                        item.cellAnimation === 'fade-in' && 'animate-in fade-in duration-500',
+                                                        item.cellAnimation === 'slide-up' && 'animate-in slide-in-from-bottom duration-500',
+                                                        item.cellAnimation === 'zoom-in' && 'animate-in zoom-in duration-500',
+                                                        item.cellAnimation === 'bounce' && 'animate-bounce',
+                                                        item.cellAnimation === 'rotate' && 'animate-spin',
                                                 )}
+                                                style={{
+                                                    backgroundColor: item.cellBackgroundColor || 'hsl(var(--card-foreground) / 0.05)',
+                                                }}
                                                 onClick={handleHeaderClick}
                                                 onDoubleClick={handleHeaderDoubleClick}
                                             >
@@ -523,7 +531,19 @@ const PlayerFrameComponent = ({
                               )}
                             </div>
                             <div className="relative flex items-center gap-1.5 min-w-0">
-                                <div className={cn('flex flex-col truncate transition-opacity', showHoverItems && 'group-hover/player:opacity-0')}>
+                                <div 
+                                    className={cn('flex flex-col truncate transition-opacity', showHoverItems && 'group-hover/player:opacity-0')}
+                                    style={{
+                                        fontFamily: item.cellTitleFont === 'mono' ? 'monospace' : 
+                                                   item.cellTitleFont === 'serif' ? 'serif' : 
+                                                   item.cellTitleFont === 'display' ? 'var(--font-display)' : 
+                                                   undefined,
+                                        fontSize: item.cellTitleSize ? `${item.cellTitleSize}px` : undefined,
+                                        color: item.cellTitleColor || undefined,
+                                        fontWeight: item.cellTitleBold ? 'bold' : undefined,
+                                        fontStyle: item.cellTitleItalic ? 'italic' : undefined,
+                                    }}
+                                >
                                     <span className="truncate">{item.title}</span>
                                     {item.author_name && <span className="text-[9px] text-muted-foreground truncate leading-none">{item.author_name}</span>}
                                 </div>

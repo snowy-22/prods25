@@ -468,6 +468,118 @@ export default function StyleSettingsPanel({
                         </ToggleGroup>
                     </AccordionContent>
                 </AccordionItem>
+                
+                <AccordionItem value="folder-backgrounds" className='px-4'>
+                    <AccordionTrigger className="py-3 text-sm font-medium">
+                        <div className='flex items-center gap-2'><Square className='h-4 w-4'/> <span>Klasör Hücreleri</span></div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label className="text-xs">Hücre Arka Plan Rengi</Label>
+                            <div className="flex gap-2 items-center">
+                                <div 
+                                    className="w-8 h-8 rounded border cursor-pointer flex-shrink-0" 
+                                    style={{ backgroundColor: activeView.cellBackgroundColor || 'transparent' }}
+                                    onClick={() => document.getElementById('cell-bg-color-input')?.click()}
+                                />
+                                <Input 
+                                    id="cell-bg-color-input"
+                                    type="color" 
+                                    value={activeView.cellBackgroundColor || '#ffffff'} 
+                                    onChange={(e) => onUpdate({ cellBackgroundColor: e.target.value })}
+                                    className="h-8"
+                                />
+                                <Button variant="ghost" size="icon" onClick={() => onUpdate({ cellBackgroundColor: undefined })}>
+                                    <Ban className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label className="text-xs">Hücre Animasyonu</Label>
+                            <ToggleGroup 
+                                type="single" 
+                                value={activeView.cellAnimation || 'none'} 
+                                onValueChange={(value) => onUpdate({ cellAnimation: value as any })} 
+                                className="grid grid-cols-2 gap-2"
+                            >
+                                <ToggleGroupItem value="none" className="text-xs">Yok</ToggleGroupItem>
+                                <ToggleGroupItem value="fade-in" className="text-xs">Belirme</ToggleGroupItem>
+                                <ToggleGroupItem value="slide-up" className="text-xs">Yukarı Kayma</ToggleGroupItem>
+                                <ToggleGroupItem value="zoom-in" className="text-xs">Yakınlaşma</ToggleGroupItem>
+                                <ToggleGroupItem value="bounce" className="text-xs">Zıplama</ToggleGroupItem>
+                                <ToggleGroupItem value="rotate" className="text-xs">Dönme</ToggleGroupItem>
+                            </ToggleGroup>
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="space-y-2">
+                            <Label className="text-xs">Başlık Yazı Tipi</Label>
+                            <ToggleGroup 
+                                type="single" 
+                                value={activeView.cellTitleFont || 'default'} 
+                                onValueChange={(value) => onUpdate({ cellTitleFont: value as any })} 
+                                className="grid grid-cols-2 gap-2"
+                            >
+                                <ToggleGroupItem value="default" className="text-xs">Varsayılan</ToggleGroupItem>
+                                <ToggleGroupItem value="mono" className="text-xs font-mono">Monospace</ToggleGroupItem>
+                                <ToggleGroupItem value="serif" className="text-xs font-serif">Serif</ToggleGroupItem>
+                                <ToggleGroupItem value="display" className="text-xs">Display</ToggleGroupItem>
+                            </ToggleGroup>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label className="text-xs">Başlık Boyutu ({activeView.cellTitleSize || 14}px)</Label>
+                            <Slider 
+                                value={[activeView.cellTitleSize || 14]} 
+                                onValueChange={(v) => onUpdate({ cellTitleSize: v[0] })} 
+                                min={10} max={32} step={1} 
+                            />
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label className="text-xs">Başlık Rengi</Label>
+                            <div className="flex gap-2 items-center">
+                                <div 
+                                    className="w-8 h-8 rounded border cursor-pointer flex-shrink-0" 
+                                    style={{ backgroundColor: activeView.cellTitleColor || 'hsl(var(--foreground))' }}
+                                    onClick={() => document.getElementById('cell-title-color-input')?.click()}
+                                />
+                                <Input 
+                                    id="cell-title-color-input"
+                                    type="color" 
+                                    value={activeView.cellTitleColor || '#000000'} 
+                                    onChange={(e) => onUpdate({ cellTitleColor: e.target.value })}
+                                    className="h-8"
+                                />
+                                <Button variant="ghost" size="icon" onClick={() => onUpdate({ cellTitleColor: undefined })}>
+                                    <Ban className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs">Başlık Kalın</Label>
+                                <Switch 
+                                    checked={activeView.cellTitleBold || false}
+                                    onCheckedChange={(checked) => onUpdate({ cellTitleBold: checked })}
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs">Başlık İtalik</Label>
+                                <Switch 
+                                    checked={activeView.cellTitleItalic || false}
+                                    onCheckedChange={(checked) => onUpdate({ cellTitleItalic: checked })}
+                                />
+                            </div>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
             </Accordion>
         </ScrollArea>
     </div>

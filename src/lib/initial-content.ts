@@ -269,6 +269,15 @@ export type ContentItem = {
   screensaverShortcut?: string;
   scale?: number;
   studioView?: StudioView;
+  
+  // Folder cell appearance
+  cellBackgroundColor?: string;
+  cellAnimation?: 'none' | 'fade-in' | 'slide-up' | 'zoom-in' | 'bounce' | 'rotate';
+  cellTitleFont?: 'default' | 'mono' | 'serif' | 'display';
+  cellTitleSize?: number;
+  cellTitleColor?: string;
+  cellTitleBold?: boolean;
+  cellTitleItalic?: boolean;
 
   // Comments and Analysis
   comments?: Comment[];
