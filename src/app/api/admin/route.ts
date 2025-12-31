@@ -1,0 +1,90 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+/**
+ * GET /api/admin/dashboard
+ * Get admin dashboard data
+ * TODO: Add admin permission middleware
+ */
+export async function GET(req: NextRequest) {
+  try {
+    // TODO: Fetch admin dashboard data from database
+    const dashboardData = {
+      stats: {
+        totalUsers: 1523,
+        activeUsers: 432,
+        totalRevenue: 45320,
+        pendingActions: 12,
+      },
+      recentActivity: [
+        {
+          type: 'user_registered',
+          user: 'john@example.com',
+          timestamp: new Date().toISOString(),
+        },
+        {
+          type: 'payment_received',
+          amount: 99.99,
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+        },
+      ],
+      systemHealth: {
+        cpu: 45,
+        memory: 62,
+        disk: 38,
+        status: 'healthy',
+      },
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: dashboardData,
+    });
+  } catch (error) {
+    console.error('Get admin dashboard error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch admin dashboard' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/admin/actions
+ * Perform admin actions
+ * TODO: Add admin permission middleware
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+
+    if (!body.action || !body.target) {
+      return NextResponse.json(
+        { error: 'Action and target are required' },
+        { status: 400 }
+      );
+    }
+
+    // TODO: Perform admin action (ban user, delete content, etc.)
+    const result = {
+      action: body.action,
+      target: body.target,
+      timestamp: new Date().toISOString(),
+      status: 'completed',
+    };
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error('Admin action error:', error);
+    return NextResponse.json(
+      { error: 'Failed to perform admin action' },
+      { status: 500 }
+    );
+  }
+}
+
+// Middleware will be added after Supabase setup
+// export const GET = withRateLimit(withAuth(withPermission(GET, 'admin', 'view')));
+// export const POST = withRateLimit(withAuth(withPermission(POST, 'admin', 'execute')));

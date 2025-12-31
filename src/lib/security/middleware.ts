@@ -2,7 +2,7 @@
 // Protects API routes and enforces security policies
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, RATE_LIMIT_PRESETS } from '@/lib/security/rate-limiter';
 import { hasPermission } from '@/lib/security/rbac';
 
@@ -24,7 +24,7 @@ export async function withAuth(
 ) {
   return async (req: NextRequest, context: any) => {
     try {
-      const supabase = createServerClient();
+      const supabase = await createClient();
       const {
         data: { user },
         error,
@@ -93,7 +93,7 @@ export function withPermission(
     const user = (req as any).user;
 
     // Get user role from database
-    const supabase = createServerClient();
+    const supabase = await createClient();
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
