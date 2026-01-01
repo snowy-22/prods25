@@ -24,6 +24,7 @@ const signupSchema = z.object({
   username: z.string().min(3, { message: "Kullanıcı adı en az 3 karakter olmalıdır." }),
   email: z.string().email({ message: "Geçerli bir e-posta adresi girin." }),
   password: z.string().min(6, { message: "Şifre en az 6 karakter olmalıdır." }),
+  referralCode: z.string().optional(),
 });
 
 
@@ -41,6 +42,8 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
   const { setUser, setUsername, setTabs } = useAppStore();
   const [isResetSent, setIsResetSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+  const [referralCodeInput, setReferralCodeInput] = useState('');
   const supabase = createClient();
 
   const isSignup = action === 'signup';
@@ -50,21 +53,29 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
     resolver: zodResolver(formSchema),
     defaultValues: {
       username: "",
+      referralCode: "",
       email: authData?.email || "",
       password: "",
     },
   });
   
   useEffect(() => {
+    // Check for referral code in URL
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const refCode = params.get('ref');
+      setReferralCodeInput(refCode || '');
+    }
+    
     form.reset({
         username: "",
         email: authData?.email || "",
-        password: ""
+        password: "",
+        referralCode: referralCodeInput
     });
     setIsResetSent(false);
-  }, [action, authData, form]);
-
-
+  }, [action, authData, form, referralCodeInput]);
+  
   const onSubmit = async (values: z.infer<typeof loginSchema> | z.infer<typeof signupSchema>) => {
     setIsSubmitting(true);
 
@@ -72,6 +83,30 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
       if (isSignup) {
         const signupValues = values as z.infer<typeof signupSchema>;
         await signUp(signupValues.email, signupValues.password, signupValues.username);
+        
+        // Apply referral code if provided
+        if (signupValues.referralCode) {
+          try {
+            const response = await fetch('/api/referral/apply', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                code: signupValues.referralCode,
+                autoFriend: true,
+                autoFollow: true 
+              })
+            });
+            
+            if (response.ok) {
+              toast({ 
+                title: "Referans kodu uygulandı!", 
+                description: "Ödülleriniz hesap doğrulaması sonrası verilecek." 
+              });
+            }
+          } catch (error) {
+            console.error('Referral code application error:', error);
+          }
+        }
         
         toast({ 
           title: "Hesap oluşturuldu!", 
@@ -153,46 +188,7 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
     }
   }
 
-  const handleGuestLogin = async () => {
-    setIsSubmitting(true);
-    try {
-      const response = await fetch('/api/auth/guest', { method: 'POST' });
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.error || 'Misafir oturumu oluşturulamadı');
-      }
-      
-      // Store guest session data
-      localStorage.setItem('guestToken', data.session.sessionToken);
-      localStorage.setItem('guestUsername', data.session.guestUsername);
-      localStorage.setItem('guestExpires', data.session.expiresAt);
-      
-      // Set username in store
-      setUsername(data.session.guestUsername);
-      
-      // Load guest canvas template
-      if (data.session.canvasData && data.session.canvasData.tabs) {
-        setTabs(data.session.canvasData.tabs);
-      }
-      
-      toast({ 
-        title: "Misafir girişi başarılı!", 
-        description: "24 saatlik geçici erişim sağlandı." 
-      });
-      
-      setAction(null);
-      router.push('/canvas');
-    } catch (error: any) {
-      toast({ 
-        title: "Hata", 
-        description: error.message || "Misafir girişi yapılamadı.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+
   
   return (
     <Dialog open={!!action} onOpenChange={handleOpenChange}>
@@ -213,7 +209,49 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
                         <FormItem>
                         <FormLabel>Kullanıcı Adı</FormLabel>
                         <FormControl>
-                            <Input placeholder="kullaniciadim" {...field} />
+              
+            
+            {isSignup && (
+              <FormField
+                control={form.control}
+                name="referralCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center justify-between">
+                      <span>Referans Kodu (Opsiyonel)</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 text-xs"
+                        onClick={() => setShowQRScanner(!showQRScanner)}
+                      >
+                        {showQRScanner ? '❌ Kapat' : '📷 QR Tara'}
+                      </Button>
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="ABC123DEF456" 
+                        {...field}
+                        value={field.value || referralCodeInput}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setReferralCodeInput(e.target.value);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    {showQRScanner && (
+                      <div className="mt-2 p-2 border rounded bg-muted text-sm">
+                        <p className="text-center text-muted-foreground">
+                          QR tarayıcı henüz aktif değil. Kodu manuel girin.
+                        </p>
+                      </div>
+                    )}
+                  </FormItem>
+                )}
+              />
+            )}              <Input placeholder="kullaniciadim" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>
@@ -305,32 +343,6 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
             GitHub ile Giriş
           </Button>
         </div>
-
-        {/* Guest Login */}
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-background px-2 text-muted-foreground">veya</span>
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          variant="secondary"
-          className="w-full"
-          onClick={handleGuestLogin}
-          disabled={isSubmitting}
-        >
-          <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-          Misafir Olarak Devam Et
-        </Button>
-        <p className="text-xs text-center text-muted-foreground mt-2">
-          Misafir oturumlar 24 saat sonra silinir
-        </p>
       </DialogContent>
     </Dialog>
   );

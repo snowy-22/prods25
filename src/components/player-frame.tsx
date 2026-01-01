@@ -571,13 +571,17 @@ const PlayerFrameComponent = ({
                           </div>
 
                           <div className='flex items-center gap-1.5 ml-auto'>
-                              {layoutMode === 'free' && isInteractive && (
+                              {layoutMode === 'canvas' && isInteractive && (
                                   <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-6 w-6 handle-drag"
-                                      title="Taşı"
+                                      className="h-6 w-6 handle-drag cursor-move"
+                                      title="Taşı (Sol Üst Köşeden Sürükle)"
                                       onClick={(e) => e.stopPropagation()}
+                                      onMouseDown={(e) => {
+                                        e.stopPropagation();
+                                        // Canvas modunda drag başlatılır
+                                      }}
                                   >
                                       <MoreHorizontal className="h-4 w-4" />
                                   </Button>

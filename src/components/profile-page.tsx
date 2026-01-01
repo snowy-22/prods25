@@ -11,6 +11,7 @@ import { ArrowLeft, Mail, MapPin, Link as LinkIcon, MessageCircle, UserPlus, Use
 import { supabase } from '@/lib/supabase/client';
 import { useAppStore } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
+import { ReferralSettingsPanel } from './referral-settings-panel';
 
 interface ProfilePageProps {
   userId: string;
@@ -261,6 +262,9 @@ export function ProfilePage({ userId, onClose }: ProfilePageProps) {
           <TabsList className="w-full">
             <TabsTrigger value="items" className="flex-1">İçerikler</TabsTrigger>
             <TabsTrigger value="likes" className="flex-1">Beğeniler</TabsTrigger>
+            {user?.id === userId && (
+              <TabsTrigger value="referral" className="flex-1">Davetiye</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="items" className="space-y-2 mt-4">
@@ -281,6 +285,12 @@ export function ProfilePage({ userId, onClose }: ProfilePageProps) {
           <TabsContent value="likes" className="space-y-2 mt-4">
             <p className="text-center text-muted-foreground py-8">Henüz beğeni yok</p>
           </TabsContent>
+
+          {user?.id === userId && (
+            <TabsContent value="referral" className="mt-4">
+              <ReferralSettingsPanel userId={userId} className="space-y-4" />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

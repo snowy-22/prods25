@@ -1175,7 +1175,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
         case 'devices':
             const { onSetClipboard, onPaste, clipboard, onShowInfo, onShare, onRenameItem, onTogglePinItem, onNewFolder, onNewList, onNewPlayer, onNewCalendar, onNewSpace, onNewDevice, expandedItems, onToggleExpansion, setActiveDevice, activeDeviceId, setDraggedItem, onDeleteItem, onLibraryDrop } = props;
             return (
-              <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid={`${props.type}-panel`}>
+              <div className="h-full flex flex-col bg-card/60 backdrop-blur-md hidden lg:flex" data-testid={`${props.type}-panel`}>
                                 <div className="p-3 border-b flex items-center justify-between h-16">
                   <h2 className="font-bold text-lg px-2 flex items-center gap-2">
                     {headerIconMap[type]} {panelTitleMap[type]}
@@ -1546,7 +1546,11 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                         <h2 className="font-bold text-lg px-2 flex items-center gap-2"><Users /> Sosyal Merkez</h2>
                     </div>
                     <div className='flex-1 min-h-0 p-4'>
-                        <SocialPanel />
+                        <SocialPanel onOpenContent={(item) => {
+                            if (props.onOpenInNewTab) {
+                                props.onOpenInNewTab(item, allItems);
+                            }
+                        }} />
                     </div>
                 </div>
             );

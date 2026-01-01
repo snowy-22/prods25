@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { DeviceType, OsType, BrowserType } from '@/hooks/use-device';
 
-export type ItemType = 'website' | 'image' | 'video' | 'audio' | 'pdf' | 'map' | 'folder' | 'list' | 'clock' | 'notes' | 'player' | 'calendar' | '3dplayer' | 'award' | 'todolist' | 'weather' | 'calculator' | 'currencyConverter' | 'unitConverter' | 'currencyRates' | 'playerControls' | 'navigation' | 'mediaHub' | 'aiImage' | 'inventory' | 'space' | 'file' | 'pharmacy' | 'trash-folder' | 'flowchart' | 'kanban' | 'swot' | 'fishbone' | '5s' | 'qfd' | 'processchart' | 'pmp' | 'rss' | 'devices' | 'profile-card' | 'profile-share' | 'mindmap' | 'financial-engineering' | 'book' | 'item' | 'saved-items' | 'alarm' | 'stopwatch' | 'timer' | 'world-clock' | 'pomodoro' | 'user-profile' | 'awards-folder' | 'spaces-folder' | 'devices-folder' | 'root' | 'match' | 'league-table' | 'fixture' | 'scan' | 'search' | 'todo' | 'social-feed' | 'user-list' | 'screenshot' | 'screen-recorder' | 'qrcode' | 'color-picker' | 'clipboard-manager' | 'gradient-generator' | 'lorem-ipsum' | 'business-model-canvas' | 'hue' | 'reservation' | 'purchase' | 'achievements' | 'training-module' | 'award-card' | 'new-tab';
+export type ItemType = 'website' | 'image' | 'video' | 'audio' | 'pdf' | 'map' | 'folder' | 'list' | 'clock' | 'notes' | 'player' | 'calendar' | '3dplayer' | 'award' | 'todolist' | 'weather' | 'calculator' | 'currencyConverter' | 'unitConverter' | 'currencyRates' | 'playerControls' | 'navigation' | 'mediaHub' | 'aiImage' | 'inventory' | 'space' | 'file' | 'pharmacy' | 'trash-folder' | 'flowchart' | 'kanban' | 'swot' | 'fishbone' | '5s' | 'six-s' | 'kaizen-platform' | 'agile-calendar' | 'qfd' | 'processchart' | 'pmp' | 'rss' | 'devices' | 'profile-card' | 'profile-share' | 'mindmap' | 'financial-engineering' | 'financial-calculator' | 'book' | 'item' | 'saved-items' | 'alarm' | 'stopwatch' | 'timer' | 'world-clock' | 'pomodoro' | 'user-profile' | 'awards-folder' | 'spaces-folder' | 'devices-folder' | 'root' | 'match' | 'league-table' | 'fixture' | 'scan' | 'search' | 'todo' | 'social-feed' | 'user-list' | 'screenshot' | 'screen-recorder' | 'qrcode' | 'color-picker' | 'clipboard-manager' | 'gradient-generator' | 'lorem-ipsum' | 'business-model-canvas' | 'hue' | 'reservation' | 'purchase' | 'achievements' | 'training-module' | 'award-card' | 'new-tab' | 'device' | 'hue-light' | 'organization-chart' | 'business-analysis' | 'product-catalog' | 'stock-management' | 'sales-card' | 'advanced-table';
 
 export type SortOption = 'manual' | 'name' | 'createdAt' | 'updatedAt' | 'itemCount' | 'averageRating' | 'platformViews' | 'platformLikes' | 'sourceViews' | 'sourceLikes' | 'sourceCreatedAt';
 export type SortDirection = 'asc' | 'desc';
@@ -99,6 +99,13 @@ export type Metric = {
     value: string | number;
 };
 
+export type InfoBarSettings = {
+    visible?: boolean;
+    displayMode?: 'hidden' | 'visible' | 'on-hover';
+    visibleButtons?: string[]; // Button keys to show: 'rating', 'priority', 'metrics', 'score', etc.
+    buttonOrder?: string[]; // Order of buttons in info bar
+};
+
 export type RatingEvent = {
   userId: string;
   rating: number; // 1-10 scale
@@ -166,7 +173,6 @@ export type ContentItem = {
   itemImageUrl?: string; // For inventory item photo
   itemVideoUrl?: string; // For inventory item video
   item3dModelUrl?: string; // For inventory item 3D model
-  assignedSpaceId?: string; // To assign an item to a space
   calendarSources?: string[]; // For calendar widget sources
 
   clockMode?: ClockMode; // For clock widgets
@@ -212,6 +218,9 @@ export type ContentItem = {
   // View options for metrics on the player card
   visibleMetrics?: string[]; // Array of metric keys to display, e.g., ['rating', 'priority', 'Ekran Boyutu']
   // The order of this array determines the display order.
+  
+  // Info Bar Settings
+  infoBarSettings?: InfoBarSettings;
 
   overallRating?: number; // Manual 1-10 rating for a list/folder
   averageRating?: number; // Calculated average rating of children
@@ -228,6 +237,25 @@ export type ContentItem = {
   // Flow mode connections
   connections?: Array<{ from: string; to: string; label?: string; style?: 'solid' | 'dashed' | 'dotted' }>;
   flowPosition?: { x: number; y: number };
+
+  // Space/Location Properties
+  spaceType?: 'residential' | 'commercial' | 'storage' | 'garage' | 'office' | 'other';
+  address?: string; // Gerçek adres
+  coordinates?: { lat: number; lng: number }; // Harita koordinatları
+  hideAddressInUI?: boolean; // Adresi gizle
+  hideSpaceTypeInUI?: boolean; // Mekan tipini gizle
+  spaceAbbreviation?: string; // Kısaltma (örn: "ME" = Merkez Ev)
+  floorPlanUrl?: string; // Kat planı görseli
+  floorPlanData?: string; // JSON formatında kat planı verisi
+  containerInventory?: Array<{ // Konteynerler ve raf yapısı
+    id: string;
+    name: string;
+    type: 'shelf' | 'cabinet' | 'drawer' | 'box' | 'container' | 'room';
+    items: string[]; // item id'leri
+  }>;
+  spaceMetadata?: Record<string, any>; // Genişletilebilir mekan verileri
+  assignedSpaceId?: string; // Bu öğenin atandığı mekan ID'si
+  metadata?: Record<string, any>; // For hue-light and device metadata
 
   sortOption?: SortOption;
   sortDirection?: SortDirection;
@@ -437,6 +465,7 @@ export const widgetTemplates: Record<string, Omit<ContentItem, 'id' | 'createdAt
     ],
     "Finans": [
         { type: 'financial-engineering', title: 'Finans Mühendisliği', icon: 'financial-engineering' },
+        { type: 'financial-calculator', title: 'Enflasyon & Fiyat Hesaplayıcı', icon: 'financial-engineering' },
         { type: 'currencyConverter', title: 'Döviz Çevirici', icon: 'currencyConverter' },
         { type: 'currencyRates', title: 'Canlı Kurlar', icon: 'currencyRates' },
     ],
@@ -446,13 +475,13 @@ export const widgetTemplates: Record<string, Omit<ContentItem, 'id' | 'createdAt
         { type: 'unitConverter', title: 'Birim Çevirici', icon: 'unitConverter' },
         { type: 'navigation', title: 'Navigasyon', icon: 'navigation' },
         { type: 'pharmacy', title: 'Nöbetçi Eczane', icon: 'pharmacy' },
-        { type: 'screenshot', title: 'Ekran Görüntüsü', icon: 'camera' },
+        { type: 'screenshot', title: 'Ekran Görüntüsü', icon: 'image' },
         { type: 'screen-recorder', title: 'Ekran Kaydı', icon: 'video' },
         { type: 'qrcode', title: 'QR Kod Üretici', icon: 'qrcode' },
         { type: 'color-picker', title: 'Renk Seçici', icon: 'palette' },
-        { type: 'clipboard-manager', title: 'Pano Yöneticisi', icon: 'clipboard' },
-        { type: 'gradient-generator', title: 'Gradient Üretici', icon: 'gradient' },
-        { type: 'lorem-ipsum', title: 'Lorem Ipsum Üretici', icon: 'text' },
+        { type: 'clipboard-manager', title: 'Pano Yöneticisi', icon: 'clipboardList' },
+        { type: 'gradient-generator', title: 'Gradient Üretici', icon: 'paintbrush' },
+        { type: 'lorem-ipsum', title: 'Lorem Ipsum Üretici', icon: 'fileText' },
     ],
     "Yapay Zeka": [
         { type: 'aiImage', title: 'AI Görüntü Üretici', icon: 'aiImage' },
@@ -467,6 +496,9 @@ export const widgetTemplates: Record<string, Omit<ContentItem, 'id' | 'createdAt
         { type: 'swot', title: 'SWOT Analizi', icon: 'swot' },
         { type: 'fishbone', title: 'Balık Kılçığı Diyagramı', icon: 'fishbone' },
         { type: '5s', title: '5S Panosu', icon: '5s' },
+        { type: 'six-s', title: '6S Uygulaması', icon: 'processchart' },
+        { type: 'kaizen-platform', title: 'Kaizen Platformu', icon: 'layout' },
+        { type: 'agile-calendar', title: 'Agile Takvimi', icon: 'calendar' },
         { type: 'qfd', title: 'QFD Matrisi', icon: 'qfd' },
         { type: 'processchart', title: 'Süreç Şeması', icon: 'processchart' },
         { type: 'pmp', title: 'Proje Yönetimi Panosu', icon: 'pmp' },
@@ -485,6 +517,12 @@ export const widgetTemplates: Record<string, Omit<ContentItem, 'id' | 'createdAt
       { type: 'match', title: 'Maç Sonucu', url: '', icon: 'trophy' },
       { type: 'league-table', title: 'Puan Durumu', url: '', icon: 'list' },
       { type: 'fixture', title: 'Fikstür', url: '', icon: 'calendar' },
+    ],
+    "E-Ticaret": [
+      { type: 'product-catalog', title: 'Ürün Kataloğu', icon: 'package' },
+      { type: 'stock-management', title: 'Stok Hareketleri', icon: 'package2' },
+      { type: 'sales-card', title: 'Satış Kartları', icon: 'dollarSign' },
+      { type: 'advanced-table', title: 'Gelişmiş Tablo', icon: 'table' },
     ]
 };
 
@@ -520,6 +558,311 @@ export const initialContent: ContentItem[] = [
     { id: 'ex-kick-channel', type: 'video', title: 'Kick: Channel (Autoplay/Mute)', icon: 'tv', url: 'https://kick.com/trainwreckstv', createdAt: now, updatedAt: now, parentId: 'social-examples' },
     { id: 'trash-folder', type: 'trash-folder', title: 'Çöp Kutusu', icon: 'trash-2', createdAt: now, updatedAt: now, parentId: 'root', isDeletable: false, order: 10, styles: { width: '400px', height: '300px' } },
     { id: 'bmc-example', type: 'business-model-canvas', title: 'İşletme Modeli Canvas', icon: 'layout', createdAt: now, updatedAt: now, parentId: 'root', order: 4, styles: { width: '1200px', height: '800px' }, content: 'İşletme modelinizi yapılandırmak ve analiz etmek için Business Model Canvas' },
+    
+    // Mekan Yönetimi - Merkez Ev Örneği
+    { 
+        id: 'merkez-ev', 
+        type: 'space', 
+        title: 'Merkez Ev', 
+        icon: 'home', 
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'root', 
+        isDeletable: true,
+        order: 5,
+        spaceType: 'residential',
+        spaceAbbreviation: 'ME',
+        address: 'İstanbul, Türkiye',
+        hideAddressInUI: true,
+        hideSpaceTypeInUI: false,
+        containerInventory: [
+            { id: 'cont-bedroom', name: 'Yatak Odası', type: 'room', items: ['item-bed-light'] },
+            { id: 'cont-corridor', name: 'Koridor', type: 'room', items: ['item-corridor-light-1', 'item-corridor-light-2', 'item-corridor-light-3', 'item-corridor-light-4'] },
+            { id: 'cont-living-room', name: 'Oturma Odası', type: 'room', items: ['item-living-light-1', 'item-living-light-2', 'item-tv', 'item-pc'] }
+        ],
+        spaceMetadata: {
+            totalLights: 8,
+            totalDevices: 2,
+            lastUpdated: now,
+            description: 'Ev merkezi mekan örneği'
+        }
+    },
+
+    // Merkez Ev Cihazları ve Eşyaları
+    { id: 'item-tv', type: 'device', title: 'Samsung QN85A 65"', icon: 'tv', content: 'Qled TV', createdAt: now, updatedAt: now, parentId: 'merkez-ev', isDeletable: true, assignedSpaceId: 'merkez-ev' },
+    { id: 'item-pc', type: 'device', title: 'İş Bilgisayarı', icon: 'monitor', content: 'PC', createdAt: now, updatedAt: now, parentId: 'merkez-ev', isDeletable: true, assignedSpaceId: 'merkez-ev' },
+    
+    // Philips Hue Işıkları - Yatak Odası
+    { id: 'item-bed-light', type: 'hue-light', title: 'Yatak Odası Işığı', icon: 'lightbulb', content: 'Philips Hue', createdAt: now, updatedAt: now, parentId: 'merkez-ev', isDeletable: true, assignedSpaceId: 'merkez-ev', metadata: { hueId: 'bed-1', color: '#FFD700', brightness: 100 } },
+    
+    // Philips Hue Işıkları - Koridor (4 adet)
+    { id: 'item-corridor-light-1', type: 'hue-light', title: 'Koridor Işığı 1', icon: 'lightbulb', content: 'Philips Hue', createdAt: now, updatedAt: now, parentId: 'merkez-ev', isDeletable: true, assignedSpaceId: 'merkez-ev', metadata: { hueId: 'corridor-1', color: '#FFD700', brightness: 100 } },
+    { id: 'item-corridor-light-2', type: 'hue-light', title: 'Koridor Işığı 2', icon: 'lightbulb', content: 'Philips Hue', createdAt: now, updatedAt: now, parentId: 'merkez-ev', isDeletable: true, assignedSpaceId: 'merkez-ev', metadata: { hueId: 'corridor-2', color: '#FFD700', brightness: 100 } },
+    { id: 'item-corridor-light-3', type: 'hue-light', title: 'Koridor Işığı 3', icon: 'lightbulb', content: 'Philips Hue', createdAt: now, updatedAt: now, parentId: 'merkez-ev', isDeletable: true, assignedSpaceId: 'merkez-ev', metadata: { hueId: 'corridor-3', color: '#FFD700', brightness: 100 } },
+    { id: 'item-corridor-light-4', type: 'hue-light', title: 'Koridor Işığı 4', icon: 'lightbulb', content: 'Philips Hue', createdAt: now, updatedAt: now, parentId: 'merkez-ev', isDeletable: true, assignedSpaceId: 'merkez-ev', metadata: { hueId: 'corridor-4', color: '#FFD700', brightness: 100 } },
+    
+    // Philips Hue Işıkları - Oturma Odası (2 adet)
+    { id: 'item-living-light-1', type: 'hue-light', title: 'Oturma Odası Işığı 1', icon: 'lightbulb', content: 'Philips Hue', createdAt: now, updatedAt: now, parentId: 'merkez-ev', isDeletable: true, assignedSpaceId: 'merkez-ev', metadata: { hueId: 'living-1', color: '#FFD700', brightness: 100 } },
+    { id: 'item-living-light-2', type: 'hue-light', title: 'Oturma Odası Işığı 2', icon: 'lightbulb', content: 'Philips Hue', createdAt: now, updatedAt: now, parentId: 'merkez-ev', isDeletable: true, assignedSpaceId: 'merkez-ev', metadata: { hueId: 'living-2', color: '#FFD700', brightness: 100 } },
+    
+    // Yeni Widget'lar
+    { 
+        id: 'org-chart-example', 
+        type: 'organization-chart', 
+        title: 'Organizasyon Şeması', 
+        icon: 'share-2', 
+        content: 'Şirket hiyerarşisi ve organizasyon yapısını görselleştirin',
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'root', 
+        isDeletable: true,
+        order: 7,
+        styles: { width: '1000px', height: '600px' },
+        metadata: {
+            nodes: [
+                { id: 'ceo', title: 'CEO', position: 'Yönetici', color: '#FF6B6B', children: ['dev', 'sales'] },
+                { id: 'dev', title: 'Geliştirme Müdürü', position: 'Teknik Lider', color: '#4ECDC4', children: [] },
+                { id: 'sales', title: 'Satış Müdürü', position: 'Pazarlama', color: '#45B7D1', children: [] }
+            ]
+        }
+    },
+    
+    { 
+        id: 'business-analysis-example', 
+        type: 'business-analysis', 
+        title: 'İş Analizi Formu', 
+        icon: 'barChart2', 
+        content: 'Proje ve iş analizi raporlarını yönetin',
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'root', 
+        isDeletable: true,
+        order: 8,
+        styles: { width: '900px', height: '700px' },
+        metadata: {
+            analyses: []
+        }
+    },
+    
+    // Mekanlar Klasörü
+    { id: 'spaces-folder', type: 'spaces-folder', title: 'Mekanlar', icon: 'home', createdAt: now, updatedAt: now, parentId: 'root', isDeletable: false, order: 6, styles: { width: '400px', height: '300px' }, content: 'Tüm mekanlar burda saklanır' },
+    
+    // Mekan 2 - Feriköy Evim
+    { 
+        id: 'ferikoy-evim', 
+        type: 'space', 
+        title: 'Feriköy Evim', 
+        icon: 'home', 
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'spaces-folder', 
+        isDeletable: true,
+        order: 1,
+        spaceType: 'residential',
+        spaceAbbreviation: 'FE',
+        address: 'Feriköy, İstanbul',
+        hideAddressInUI: true,
+        hideSpaceTypeInUI: false,
+        containerInventory: [
+            { id: 'cont-fk-bedroom', name: 'Yatak Odası', type: 'room', items: [] },
+            { id: 'cont-fk-living', name: 'Oturma Odası', type: 'room', items: [] }
+        ]
+    },
+    
+    // Mekan 3 - Edirne Evim
+    { 
+        id: 'edirne-evim', 
+        type: 'space', 
+        title: 'Edirne Evim', 
+        icon: 'home', 
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'spaces-folder', 
+        isDeletable: true,
+        order: 2,
+        spaceType: 'residential',
+        spaceAbbreviation: 'EE',
+        address: 'Edirne, Türkiye',
+        hideAddressInUI: true,
+        hideSpaceTypeInUI: false,
+        containerInventory: [
+            { id: 'cont-ed-bedroom', name: 'Yatak Odası', type: 'room', items: [] },
+            { id: 'cont-ed-living', name: 'Oturma Odası', type: 'room', items: [] }
+        ]
+    },
+    
+    // Mekan 4 - Edirne 1+1
+    { 
+        id: 'edirne-1plus1', 
+        type: 'space', 
+        title: 'Edirne 1+1', 
+        icon: 'home', 
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'spaces-folder', 
+        isDeletable: true,
+        order: 3,
+        spaceType: 'residential',
+        spaceAbbreviation: 'E1',
+        address: 'Edirne, Türkiye',
+        hideAddressInUI: true,
+        hideSpaceTypeInUI: false,
+        containerInventory: [
+            { id: 'cont-e1-main', name: 'Ana Oda', type: 'room', items: [] },
+            { id: 'cont-e1-kitchen', name: 'Mutfak', type: 'room', items: [] }
+        ]
+    },
+    
+    // Mekan 5 - Edirne Dedem
+    { 
+        id: 'edirne-dedem', 
+        type: 'space', 
+        title: 'Edirne Dedem', 
+        icon: 'home', 
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'spaces-folder', 
+        isDeletable: true,
+        order: 4,
+        spaceType: 'residential',
+        spaceAbbreviation: 'ED',
+        address: 'Edirne, Türkiye',
+        hideAddressInUI: true,
+        hideSpaceTypeInUI: false,
+        containerInventory: [
+            { id: 'cont-ed-bed1', name: 'Yatak Odası 1', type: 'room', items: [] },
+            { id: 'cont-ed-bed2', name: 'Yatak Odası 2', type: 'room', items: [] }
+        ]
+    },
+    
+    // Mekan 6 - Urla Annem
+    { 
+        id: 'urla-annem', 
+        type: 'space', 
+        title: 'Urla Annem', 
+        icon: 'home', 
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'spaces-folder', 
+        isDeletable: true,
+        order: 5,
+        spaceType: 'residential',
+        spaceAbbreviation: 'UA',
+        address: 'Urla, İzmir',
+        hideAddressInUI: true,
+        hideSpaceTypeInUI: false,
+        containerInventory: [
+            { id: 'cont-ua-main', name: 'Salon', type: 'room', items: [] },
+            { id: 'cont-ua-kitchen', name: 'Mutfak', type: 'room', items: [] }
+        ]
+    },
+    
+    // Mekan 7 - Urla Kira 1
+    { 
+        id: 'urla-kira-1', 
+        type: 'space', 
+        title: 'Urla Kira 1', 
+        icon: 'home', 
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'spaces-folder', 
+        isDeletable: true,
+        order: 6,
+        spaceType: 'residential',
+        spaceAbbreviation: 'UK1',
+        address: 'Urla, İzmir',
+        hideAddressInUI: true,
+        hideSpaceTypeInUI: false,
+        containerInventory: [
+            { id: 'cont-uk1-main', name: 'Ana Oda', type: 'room', items: [] }
+        ]
+    },
+    
+    // Mekan 8 - Urla Kira 2
+    { 
+        id: 'urla-kira-2', 
+        type: 'space', 
+        title: 'Urla Kira 2', 
+        icon: 'home', 
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'spaces-folder', 
+        isDeletable: true,
+        order: 7,
+        spaceType: 'residential',
+        spaceAbbreviation: 'UK2',
+        address: 'Urla, İzmir',
+        hideAddressInUI: true,
+        hideSpaceTypeInUI: false,
+        containerInventory: [
+            { id: 'cont-uk2-main', name: 'Ana Oda', type: 'room', items: [] }
+        ]
+    },
+    
+    // Mekan 9 - Urla Kira 3
+    { 
+        id: 'urla-kira-3', 
+        type: 'space', 
+        title: 'Urla Kira 3', 
+        icon: 'home', 
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'spaces-folder', 
+        isDeletable: true,
+        order: 8,
+        spaceType: 'residential',
+        spaceAbbreviation: 'UK3',
+        address: 'Urla, İzmir',
+        hideAddressInUI: true,
+        hideSpaceTypeInUI: false,
+        containerInventory: [
+            { id: 'cont-uk3-main', name: 'Ana Oda', type: 'room', items: [] }
+        ]
+    },
+    
+    // Mekan 10 - Urla Annanem
+    { 
+        id: 'urla-annanem', 
+        type: 'space', 
+        title: 'Urla Annanem', 
+        icon: 'home', 
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'spaces-folder', 
+        isDeletable: true,
+        order: 9,
+        spaceType: 'residential',
+        spaceAbbreviation: 'UAN',
+        address: 'Urla, İzmir',
+        hideAddressInUI: true,
+        hideSpaceTypeInUI: false,
+        containerInventory: [
+            { id: 'cont-uan-living', name: 'Oturma Odası', type: 'room', items: [] },
+            { id: 'cont-uan-kitchen', name: 'Mutfak', type: 'room', items: [] }
+        ]
+    },
+    
+    // Mekan 11 - İzmir Annanem
+    { 
+        id: 'izmir-annanem', 
+        type: 'space', 
+        title: 'İzmir Annanem', 
+        icon: 'home', 
+        createdAt: now, 
+        updatedAt: now, 
+        parentId: 'spaces-folder', 
+        isDeletable: true,
+        order: 10,
+        spaceType: 'residential',
+        spaceAbbreviation: 'İAN',
+        address: 'İzmir, Türkiye',
+        hideAddressInUI: true,
+        hideSpaceTypeInUI: false,
+        containerInventory: [
+            { id: 'cont-ian-main', name: 'Salon', type: 'room', items: [] },
+            { id: 'cont-ian-bedroom', name: 'Yatak Odası', type: 'room', items: [] }
+        ]
+    },
 ];
 
 export const socialUsers = [

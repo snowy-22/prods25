@@ -25,10 +25,20 @@ export function calculateLayout(
     
     // Grid Mode: Responsive ızgara düzeninde organize edilmiş içerik
     if (mode === 'grid') {
+        // Responsive threshold: container genişliğine göre maksimum span hesapla
+        const baseGridSize = 280;
+        const gap = 24;
+        const safeWidth = Math.max(containerWidth, 320);
+        const maxColumns = Math.max(1, Math.floor((safeWidth + gap) / (baseGridSize + gap)));
+        
+        // Span değerlerini container genişliğine göre sınırla
+        const effectiveColSpan = Math.min(item.gridSpanCol || 1, maxColumns);
+        const effectiveRowSpan = Math.min(item.gridSpanRow || 1, 4);
+        
         return {
             styles: {
-                gridColumn: `span ${Math.min(item.gridSpanCol || 1, 4)}`,
-                gridRow: `span ${Math.min(item.gridSpanRow || 1, 4)}`,
+                gridColumn: `span ${effectiveColSpan}`,
+                gridRow: `span ${effectiveRowSpan}`,
                 aspectRatio: '1',
                 position: 'relative',
                 width: '100%',

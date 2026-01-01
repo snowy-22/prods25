@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { RatingPopoverContent } from './secondary-sidebar';
 import { useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 interface PreviewDialogProps {
   item: ContentItem | null;
@@ -39,6 +40,8 @@ export default function PreviewDialog({
 }: PreviewDialogProps) {
   
   const { toast } = useToast();
+  const responsive = useResponsiveLayout();
+  
   useHotkeys('arrow-left', () => isOpen && onNavigate('prev'), { enableOnFormTags: true, preventDefault: true }, [isOpen, onNavigate]);
   useHotkeys('arrow-right', () => isOpen && onNavigate('next'), { enableOnFormTags: true, preventDefault: true }, [isOpen, onNavigate]);
 
@@ -71,8 +74,18 @@ export default function PreviewDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl w-full h-[90vh] flex flex-col p-0 gap-0 bg-background/80 backdrop-blur-lg border-border/50">
-        <div className="flex items-center justify-between p-3 border-b h-16 flex-shrink-0">
+      <DialogContent className={cn(
+        "flex flex-col p-0 gap-0 bg-background/80 backdrop-blur-lg border-border/50",
+        responsive.isMobile
+          ? "w-screen h-screen max-w-none rounded-none"
+          : "max-w-6xl w-full h-[90vh]"
+      )}>
+        <div className={cn(
+          "flex items-center justify-between border-b flex-shrink-0",
+          responsive.isMobile 
+            ? "p-2 h-14 gap-2"
+            : "p-3 h-16"
+        )}>
             <div className='flex items-center gap-2 min-w-0'>
                  <DialogTitle className="text-lg font-semibold truncate" title={item.title}>
                     {item.title}
@@ -89,23 +102,47 @@ export default function PreviewDialog({
                     </Popover>
                 )}
             </div>
-            <div className='flex items-center gap-2 text-sm'>
+            <div className={cn(
+              'flex items-center gap-2 text-sm',
+              responsive.isMobile && 'gap-1 text-xs'
+            )}>
               {canNavigate && (
                 <>
-                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => onNavigate('prev')}>
-                    <ChevronLeft className="h-5 w-5" />
+                  <Button 
+                    variant="ghost" 
+                    size={responsive.isMobile ? "sm" : "icon"} 
+                    className={responsive.isMobile ? "h-8 w-8" : "h-9 w-9"} 
+                    onClick={() => onNavigate('prev')}
+                  >
+                    <ChevronLeft className={responsive.isMobile ? "h-4 w-4" : "h-5 w-5"} />
                   </Button>
-                  <span className='text-sm font-mono text-muted-foreground'>
+                  <span className={cn(
+                    'font-mono text-muted-foreground',
+                    responsive.isMobile && 'text-xs'
+                  )}>
                     {context.currentIndex + 1} / {context.items.length}
                   </span>
-                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => onNavigate('next')}>
-                    <ChevronRight className="h-5 w-5" />
+                  <Button 
+                    variant="ghost" 
+                    size={responsive.isMobile ? "sm" : "icon"} 
+                    className={responsive.isMobile ? "h-8 w-8" : "h-9 w-9"} 
+                    onClick={() => onNavigate('next')}
+                  >
+                    <ChevronRight className={responsive.isMobile ? "h-4 w-4" : "h-5 w-5"} />
                   </Button>
                 </>
               )}
               {isContainer && (
-                <Button variant="outline" onClick={handleOpenItem}>
-                  <FolderOpen className="mr-2 h-4 w-4" /> Aç
+                <Button 
+                  variant="outline" 
+                  size={responsive.isMobile ? "sm" : "default"}
+                  onClick={handleOpenItem}
+                >
+                  <FolderOpen className={cn(
+                    "mr-2 h-4 w-4",
+                    responsive.isMobile && "mr-1"
+                  )} /> 
+                  {!responsive.isMobile && "Aç"}
                 </Button>
               )}
             </div>
@@ -145,21 +182,93 @@ export default function PreviewDialog({
             isPreviewMode={false}
           />
         </div>
-         <div className="p-0 bg-background border-t">
+         <div className={cn(
+          "bg-background border-t",
+          responsive.isMobile ? "p-0" : "p-0"
+        )}>
             <Tabs defaultValue="description" className="w-full">
-                <TabsList className="px-2 border-b w-full justify-start rounded-none bg-transparent">
-                    <TabsTrigger value="description"><Info className="mr-2 h-4 w-4" /> Açıklamalar</TabsTrigger>
-                    <TabsTrigger value="comments"><MessageSquare className="mr-2 h-4 w-4" /> Yorumlar</TabsTrigger>
-                    <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" /> Analizler</TabsTrigger>
+                <TabsList className={cn(
+                  "px-2 border-b w-full justify-start rounded-none bg-transparent",
+                  responsive.isMobile && "overflow-x-auto gap-2"
+                )}>
+                    <TabsTrigger 
+                      value="description"
+                      className={responsive.isMobile ? "text-xs gap-1" : ""}
+                    >
+                      <Info className={cn(
+                        "h-4 w-4",
+                        !responsive.isMobile && "mr-2"
+                      )} /> 
+                      {!responsive.isMobile && "Açıklamalar"}
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="comments"
+                      className={responsive.isMobile ? "text-xs gap-1" : ""}
+                    >
+                      <MessageSquare className={cn(
+                        "h-4 w-4",
+                        !responsive.isMobile && "mr-2"
+                      )} /> 
+                      {!responsive.isMobile && "Yorumlar"}
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="analytics"
+                      className={responsive.isMobile ? "text-xs gap-1" : ""}
+                    >
+                      <BarChart className={cn(
+                        "h-4 w-4",
+                        !responsive.isMobile && "mr-2"
+                      )} /> 
+                      {!responsive.isMobile && "Analizler"}
+                    </TabsTrigger>
                 </TabsList>
-                <TabsContent value="description" className="p-4 h-24 overflow-auto">
-                    <p className="text-sm text-muted-foreground">{item.content || 'Bu öğe için bir açıklama yok.'}</p>
+                <TabsContent 
+                  value="description" 
+                  className={cn(
+                    "overflow-auto",
+                    responsive.isMobile 
+                      ? "p-2 h-20"
+                      : "p-4 h-24"
+                  )}
+                >
+                    <p className={cn(
+                      "text-muted-foreground",
+                      responsive.isMobile ? "text-xs" : "text-sm"
+                    )}>
+                      {item.content || 'Bu öğe için bir açıklama yok.'}
+                    </p>
                 </TabsContent>
-                <TabsContent value="comments" className="p-4 h-24 overflow-auto">
-                    <p className="text-sm text-muted-foreground">Yorum özelliği yakında eklenecektir.</p>
+                <TabsContent 
+                  value="comments" 
+                  className={cn(
+                    "overflow-auto",
+                    responsive.isMobile 
+                      ? "p-2 h-20"
+                      : "p-4 h-24"
+                  )}
+                >
+                    <p className={cn(
+                      "text-muted-foreground",
+                      responsive.isMobile ? "text-xs" : "text-sm"
+                    )}>
+                      Yorum özelliği yakında eklenecektir.
+                    </p>
                 </TabsContent>
-                <TabsContent value="analytics" className="p-4 h-24 overflow-auto">
-                    <p className="text-sm text-muted-foreground">Analiz özelliği yakında eklenecektir.</p>
+                <TabsContent 
+                  value="analytics" 
+                  className={cn(
+                    "overflow-auto",
+                    responsive.isMobile 
+                      ? "p-2 h-20"
+                      : "p-4 h-24"
+                  )}
+                >
+                    <p className={cn(
+                      "text-muted-foreground",
+                      responsive.isMobile ? "text-xs" : "text-sm"
+                    )}>
+                      Analiz özelliği yakında eklenecektir.
+                    </p>
                 </TabsContent>
             </Tabs>
         </div>

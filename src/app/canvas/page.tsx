@@ -51,6 +51,8 @@ import CanvasSpaceControl from '@/components/canvas-space-control';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import TabBar from '@/components/tab-bar';
 import { useAppStore } from '@/lib/store';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import HeaderControlsMobile from '@/components/header-controls-mobile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import MiniGridPreview from '@/components/mini-grid-preview';
 import { Button } from '@/components/ui/button';
@@ -68,6 +70,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const { toast } = useToast();
     const router = useRouter();
     const supabase = createClient();
+    const responsive = useResponsiveLayout();
     const [isMounted, setIsMounted] = useState(false);
     const [allRawItems, setAllRawItems] = useLocalStorage<ContentItem[]>('canvasflow_items', initialContent);
     const itemsRef = useRef<ContentItem[]>(allRawItems);
@@ -118,26 +121,23 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         }
     }, [updateItems, toast, isMounted]);
 
-    // Reset all grid spans to 1x1 for equal sizing (one-time migration)
+    // Ensure all items start with 1x1 grid spans for equal sizing
     useEffect(() => {
-        const hasResetGridSpans = localStorage.getItem('canvasflow_grid_spans_reset');
-        if (!hasResetGridSpans) {
-            const needsReset = itemsRef.current.some(item => 
-                (item.gridSpanCol && item.gridSpanCol !== 1) || 
-                (item.gridSpanRow && item.gridSpanRow !== 1)
-            );
+        if (!isMounted) return;
+        
+        const hasNonEqualItems = itemsRef.current.some(item => 
+            (item.gridSpanCol && item.gridSpanCol !== 1) || 
+            (item.gridSpanRow && item.gridSpanRow !== 1)
+        );
 
-            if (needsReset) {
-                updateItems(prev => prev.map(item => ({
-                    ...item,
-                    gridSpanCol: 1,
-                    gridSpanRow: 1
-                })));
-                localStorage.setItem('canvasflow_grid_spans_reset', 'true');
-                toast({ title: "Düzen Güncellendi", description: "Tüm öğeler eşit boyuta getirildi." });
-            }
+        if (hasNonEqualItems) {
+            updateItems(prev => prev.map(item => ({
+                ...item,
+                gridSpanCol: 1,
+                gridSpanRow: 1
+            })));
         }
-    }, [updateItems, toast]);
+    }, [isMounted, updateItems]);
 
     const [isSyncing, setIsSyncing] = useState(false);
     const hasSyncedRef = useRef(false);
@@ -837,26 +837,44 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const [isBottomPanelCollapsed, setIsBottomPanelCollapsed] = useState(true);
     const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('canvasflow_sidebar_width', 320);
     const [rightSidebarWidth, setRightSidebarWidth] = useLocalStorage<number>('canvasflow_right_sidebar_width', 380);
+    
+    // Responsive sidebar widths based on breakpoint
+    const responsiveSidebarWidth = responsive.isMobile 
+      ? 0 // Hidden on mobile (drawer mode)
+      : responsive.isTablet 
+        ? 200 // Compact on tablet
+        : sidebarWidth; // User-adjustable on desktop
+    
+    const responsiveRightSidebarWidth = responsive.isMobile
+      ? 0 // Hidden on mobile (drawer mode)
+      : responsive.isTablet
+        ? 280 // Compact on tablet  
+        : rightSidebarWidth; // User-adjustable on desktop
     const [isResizing, setIsResizing] = useState(false);
     const [isRightResizing, setIsRightResizing] = useState(false);
 
     // Left sidebar resize handlers
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         setIsResizing(true);
     }, []);
 
     // Right sidebar resize handlers
     const handleRightMouseDown = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         setIsRightResizing(true);
     }, []);
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!isResizing) return;
-            const newWidth = e.clientX - 56; // 56px primary sidebar sabit genişlik
-            if (newWidth >= 200 && newWidth <= 600) {
+            const baseOffset = 56; // primary sidebar fixed width
+            const minWidth = responsive.isTablet ? 150 : 200; // smaller min on tablet
+            const maxWidth = responsive.isTablet ? 300 : 600; // smaller max on tablet
+            const newWidth = e.clientX - baseOffset;
+            if (newWidth >= minWidth && newWidth <= maxWidth) {
                 setSidebarWidth(newWidth);
             }
         };
@@ -872,13 +890,15 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isResizing, setSidebarWidth]);
+    }, [isResizing, setSidebarWidth, responsive.isTablet]);
 
     useEffect(() => {
         const handleRightMouseMove = (e: MouseEvent) => {
             if (!isRightResizing) return;
+            const minWidth = responsive.isTablet ? 200 : 280; // smaller min on tablet
+            const maxWidth = responsive.isTablet ? 400 : 700; // smaller max on tablet
             const newWidth = window.innerWidth - e.clientX;
-            if (newWidth >= 280 && newWidth <= 700) {
+            if (newWidth >= minWidth && newWidth <= maxWidth) {
                 setRightSidebarWidth(newWidth);
             }
         };
@@ -894,7 +914,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             document.removeEventListener('mousemove', handleRightMouseMove);
             document.removeEventListener('mouseup', handleRightMouseUp);
         };
-    }, [isRightResizing, setRightSidebarWidth]);
+    }, [isRightResizing, setRightSidebarWidth, responsive.isTablet]);
 
     const handleUserCardClick = useCallback((user: { id: string; title: string }) => {
         state.addChatPanel({
@@ -1200,7 +1220,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             toggleDevicesPanel={() => state.togglePanel('isDevicesPanelOpen')}
                         />
                         {state.isSecondLeftSidebarOpen && (
-                            <div className="border-r relative" style={{ width: `${sidebarWidth}px` }}>
+                            <div className="border-r relative" style={{ width: `${responsiveSidebarWidth}px` }}>
                                 <Sidebar className="w-full h-full">
                              <SecondarySidebar
                                     type={state.activeSecondaryPanel || 'library'}
@@ -1244,7 +1264,9 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                 <div
                                     onMouseDown={handleMouseDown}
                                     className={cn(
-                                        "w-1 hover:w-2 bg-transparent hover:bg-primary/20 cursor-col-resize transition-all absolute right-0 top-0 bottom-0 z-50",
+                                        "bg-transparent cursor-col-resize transition-all absolute right-0 top-0 bottom-0 z-50",
+                                        "w-1 hover:w-2 hover:bg-primary/20", // Desktop
+                                        "touch-target", // Mobile touch target (44px minimum)
                                         isResizing && "bg-primary/40 w-2"
                                     )}
                                 />
@@ -1318,7 +1340,9 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                             }
                                         }}
                                     />
-                                    <HeaderControls
+                                    {/* Desktop Header Controls */}
+                                    {responsive.isDesktop && (
+                                      <HeaderControls
                                         isFullscreen={isFullscreen} toggleFullscreen={() => { 
                                             if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } else { document.exitFullscreen(); }
                                         }}
@@ -1353,6 +1377,25 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                             }
                                         }}
                                     />
+                                    )}
+
+                                    {/* Mobile/Tablet Header Controls */}
+                                    {!responsive.isDesktop && (
+                                      <HeaderControlsMobile
+                                        isFullscreen={isFullscreen} toggleFullscreen={() => { 
+                                            if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } else { document.exitFullscreen(); }
+                                        }}
+                                        isUiHidden={isUiHidden} setIsUiHidden={setIsUiHidden} 
+                                        isStyleSettingsOpen={state.isStyleSettingsOpen}
+                                        toggleStyleSettingsPanel={() => state.togglePanel('isStyleSettingsOpen')}
+                                        gridSize={gridSize}
+                                        setGridSize={setGridSize}
+                                        layoutMode={activeView?.layoutMode === 'canvas' ? 'canvas' : 'grid'}
+                                        onSetLayoutMode={(mode) => activeView && updateItem(activeView.id, { layoutMode: mode })}
+                                        activeViewId={activeView?.id}
+                                        user={null}
+                                      />
+                                    )}
                               </div>
                               <div className={cn(
                                  "transition-all duration-300",

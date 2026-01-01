@@ -44,6 +44,7 @@ const predefinedMetrics = {
     size: { label: 'Boyut', icon: Ruler },
     weight: { label: 'Ağırlık', icon: Scale },
     waves: { label: 'Dalgalanma', icon: Waves },
+    price: { label: 'Fiyat', icon: TrendingUp },
 };
 
 const getMetricInput = (metricKey: string, item: ContentItem, onUpdate: (updates: Partial<ContentItem>) => void) => {

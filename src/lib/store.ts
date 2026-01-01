@@ -397,13 +397,7 @@ export const useAppStore = create<AppStore>()(
           navigationIndex: 0,
           undoRedoStack: [{ activeViewId: newId, timestamp: Date.now() }],
           undoRedoIndex: 0,
-          layoutMode: 'grid',
-          styles: {
-            gridColumns: 3,
-            gridRows: 1,
-            gap: 0,
-            padding: 0
-          }
+          layoutMode: 'grid'
         };
         set({ 
           tabs: [...tabs, newTab], 

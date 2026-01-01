@@ -130,7 +130,7 @@ export default function PrimarySidebar({
 
   return (
     <div className="flex min-h-0 relative">
-        <div className="w-14 flex flex-col items-center py-2 border-r bg-sidebar/60 backdrop-blur-md z-20 h-screen">
+        <div className="w-14 flex flex-col items-center py-2 border-r bg-sidebar/60 backdrop-blur-md z-20 h-screen hidden md:flex">
             {/* Fixed Header */}
              <Button variant="ghost" className="h-10 w-10 p-0" onClick={handleLogoClick}>
                 <AppLogo className="h-6 w-6 text-primary" />

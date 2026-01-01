@@ -14,6 +14,7 @@ import { Badge } from './ui/badge';
 import { SAMPLE_PROFILES, SAMPLE_ITEMS, getSampleItemsForUser, SAMPLE_COMMENTS } from '@/lib/sample-social-data';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { ContentItem } from '@/lib/initial-content';
 
 interface Profile {
   id: string;
@@ -27,13 +28,17 @@ interface Profile {
   badge?: string;
 }
 
-export function SocialPanel() {
+interface SocialPanelProps {
+  onOpenContent?: (item: ContentItem) => void;
+}
+
+export function SocialPanel({ onOpenContent }: SocialPanelProps = {}) {
   const { user } = useAppStore();
   const { toast } = useToast();
   
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('discover');
+  const [activeTab, setActiveTab] = useState('content');
 
   
   // Sample profiles - 12 adet
@@ -68,18 +73,37 @@ export function SocialPanel() {
     return <ProfileDetailView profile={selectedProfile} onBack={() => setSelectedProfile(null)} />;
   }
 
+  const handleContentClick = (item: any) => {
+    if (onOpenContent) {
+      const contentItem: ContentItem = {
+        id: item.id,
+        type: item.type || 'video',
+        title: item.title,
+        url: item.url,
+        thumbnail_url: item.thumbnail,
+        author_name: item.authorName,
+        viewCount: item.views,
+        likeCount: item.likes,
+        createdAt: item.createdAt,
+        updatedAt: item.createdAt,
+        parentId: null
+      };
+      onOpenContent(contentItem);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col gap-3">
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="discover" className="gap-2">
+          <TabsTrigger value="content" className="gap-2">
             <TrendingUp className="w-4 h-4" />
-            <span className="hidden sm:inline">Keşfet</span>
+            <span className="hidden sm:inline">İçerikler</span>
           </TabsTrigger>
-          <TabsTrigger value="trending" className="gap-2">
+          <TabsTrigger value="channels" className="gap-2">
             <Trophy className="w-4 h-4" />
-            <span className="hidden sm:inline">Trend</span>
+            <span className="hidden sm:inline">Kanallar</span>
           </TabsTrigger>
           <TabsTrigger value="followers" className="gap-2">
             <Users className="w-4 h-4" />
@@ -87,63 +111,72 @@ export function SocialPanel() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Discover Tab */}
-        <TabsContent value="discover" className="flex-1 flex flex-col min-h-0">
+        {/* Content Tab */}
+        <TabsContent value="content" className="flex-1 flex flex-col min-h-0">
+          <ScrollArea className="flex-1">
+            <div className="p-3 space-y-3">
+              {SAMPLE_ITEMS.slice(0, 12).map((item) => (
+                <Card
+                  key={item.id}
+                  className="hover:bg-accent/50 transition-colors cursor-pointer"
+                  onClick={() => handleContentClick(item)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex gap-3">
+                      {item.thumbnail && (
+                        <div className="w-24 h-16 rounded overflow-hidden flex-shrink-0 bg-muted">
+                          <img
+                            src={item.thumbnail}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-sm line-clamp-2 mb-1">{item.title}</h4>
+                        <p className="text-xs text-muted-foreground mb-2">{item.authorName}</p>
+                        <div className="flex gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            {item.views.toLocaleString('tr-TR')}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Heart className="w-3 h-3" />
+                            {item.likes.toLocaleString('tr-TR')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </TabsContent>
+
+        {/* Channels Tab */}
+        <TabsContent value="channels" className="flex-1 flex flex-col min-h-0">
           <div className="p-2 border-b">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Profil ara..."
+                placeholder="Kanal ara..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8 h-8"
               />
             </div>
           </div>
-          
           <ScrollArea className="flex-1">
             <div className="p-3 space-y-2">
-              {filteredProfiles.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>Profil bulunamadı</p>
-                </div>
-              ) : (
-                filteredProfiles.map((profile) => (
-                  <ProfileCard
-                    key={profile.id}
-                    profile={profile}
-                    onViewProfile={() => handleViewProfile(profile)}
-                    onFollow={() => handleFollowUser(profile.id)}
-                  />
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </TabsContent>
-
-        {/* Trending Tab */}
-        <TabsContent value="trending" className="flex-1 flex flex-col min-h-0">
-          <ScrollArea className="flex-1">
-            <div className="p-3 space-y-2">
-              {/* Top profilleri listelendirecek (en çok takipçi, en çok beğeni, en çok share) */}
-              {[...displayProfiles]
-                .sort((a, b) => b.followerCount - a.followerCount)
-                .slice(0, 8)
-                .map((profile, idx) => (
-                  <div key={profile.id} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                      <span className="font-bold text-lg">#{idx + 1}</span>
-                      <span>{profile.followerCount.toLocaleString('tr-TR')} Takipçi</span>
-                    </div>
-                    <ProfileCard
-                      profile={profile}
-                      onViewProfile={() => handleViewProfile(profile)}
-                      onFollow={() => handleFollowUser(profile.id)}
-                      showStats={true}
-                    />
-                  </div>
-                ))}
+              {filteredProfiles.map((profile) => (
+                <ProfileCard
+                  key={profile.id}
+                  profile={profile}
+                  onViewProfile={() => handleViewProfile(profile)}
+                  onFollow={() => handleFollowUser(profile.id)}
+                />
+              ))}
             </div>
           </ScrollArea>
         </TabsContent>

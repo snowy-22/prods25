@@ -2,62 +2,102 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
-import { Home, X, Plus, Settings, UserPlus, Shield, MonitorSmartphone } from "lucide-react";
+import { Home, X, Plus, Settings, UserPlus, Shield, MonitorSmartphone, ChevronRight, MoreVertical, Edit, Trash2, FolderOpen } from "lucide-react";
 import { ContentItem } from "@/lib/initial-content";
 import { getIconByName } from "@/lib/icons";
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
+import SpaceDetailView from './space-detail-view';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 
-const SpaceCard = ({ space, allItems }: { space: ContentItem, allItems: ContentItem[] }) => {
+const SpaceCard = ({ space, allItems, onSelect, onDelete }: { space: ContentItem, allItems: ContentItem[], onSelect: () => void, onDelete?: () => void }) => {
     const Icon = getIconByName(space.icon) as any;
     
     const assignedItems = allItems.filter(item => item.assignedSpaceId === space.id);
     const deviceCount = assignedItems.length;
+    const spaceTypeLabel = space.spaceType || 'other';
+
+    const handleContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        // Dropdown menu will handle this
+    };
 
     return (
-        <div className="border bg-card/50 rounded-lg overflow-hidden">
-            <div className="p-3 flex items-center justify-between bg-muted/50 border-b">
-                <div className="flex items-center gap-3">
+        <div className="border bg-card/50 rounded-lg overflow-hidden hover:bg-card/80 transition-colors" onContextMenu={handleContextMenu}>
+            <div className="p-3 flex items-center justify-between bg-muted/50 border-b cursor-pointer hover:bg-muted transition-colors" onClick={onSelect}>
+                <div className="flex items-center gap-3 flex-1">
                     {Icon && <Icon className="h-5 w-5 text-primary" />}
-                    <h3 className="font-semibold text-foreground">{space.title}</h3>
+                    <div>
+                        <h3 className="font-semibold text-foreground">{space.title}</h3>
+                        {space.spaceAbbreviation && !space.hideSpaceTypeInUI && (
+                            <p className="text-xs text-muted-foreground">{space.spaceAbbreviation}</p>
+                        )}
+                    </div>
                 </div>
-                <Badge variant={deviceCount > 0 ? "default" : "secondary"} className="font-mono text-xs">
-                    {deviceCount > 0 ? "AKTİF" : "PASİF"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6"
+                            >
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSelect(); }}>
+                                <FolderOpen className="h-4 w-4 mr-2" />
+                                Aç
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete?.(); }} className="text-destructive">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Sil
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </div>
             <div className="p-3 space-y-2">
                  <div className="flex justify-between items-center text-xs text-muted-foreground font-mono">
-                    <span>CİHAZ DURUMU</span>
-                    <span>{deviceCount} CİHAZ BAĞLI</span>
+                    <span>DURUM</span>
+                    <Badge variant={deviceCount > 0 ? "default" : "secondary"} className="font-mono text-xs">
+                        {deviceCount > 0 ? "AKTİF" : "PASİF"}
+                    </Badge>
                 </div>
-                <div className='space-y-1 pt-2'>
-                    {assignedItems.map(device => {
+                <div className='space-y-1 pt-2 max-h-20 overflow-y-auto'>
+                    {assignedItems.slice(0, 3).map(device => {
                         const DeviceIcon = getIconByName(device.icon) as any;
                         return (
-                            <div key={device.id} className="flex items-center justify-between p-1.5 rounded-md hover:bg-muted/50">
+                            <div key={device.id} className="flex items-center justify-between p-1 rounded text-xs hover:bg-muted/50">
                                 <div className="flex items-center gap-2">
-                                    {DeviceIcon && <DeviceIcon className="h-4 w-4 text-muted-foreground" />}
-                                    <span className="text-sm">{device.title}</span>
+                                    {DeviceIcon && <DeviceIcon className="h-3 w-3 text-muted-foreground" />}
+                                    <span>{device.title}</span>
                                 </div>
                                 <div className='w-2 h-2 rounded-full bg-green-500 animate-pulse'></div>
                             </div>
                         )
                     })}
+                    {assignedItems.length > 3 && (
+                        <p className="text-xs text-muted-foreground px-1">+{assignedItems.length - 3} daha...</p>
+                    )}
                 </div>
-            </div>
-            <Separator />
-            <div className="p-2 flex justify-end gap-1">
-                <Button variant="ghost" size="sm"><MonitorSmartphone className="mr-2 h-4 w-4"/> Cihaz Ekle</Button>
-                <Button variant="ghost" size="sm"><UserPlus className="mr-2 h-4 w-4"/> Kişi Ekle</Button>
-                <Button variant="ghost" size="sm"><Settings className="mr-2 h-4 w-4"/> Yönet</Button>
-                <Button variant="ghost" size="sm"><Shield className="mr-2 h-4 w-4"/> İzinler</Button>
             </div>
         </div>
     )
 }
+
 
 
 export default function SpacesPanel({ 
@@ -65,12 +105,34 @@ export default function SpacesPanel({
     spaces,
     allItems,
     onAddNewSpace,
+    onUpdateSpace,
+    onDeleteSpace,
 }: { 
     onClose: () => void,
     spaces: ContentItem[],
     allItems: ContentItem[],
     onAddNewSpace: () => void,
+    onUpdateSpace?: (spaceId: string, updates: Partial<ContentItem>) => void,
+    onDeleteSpace?: (spaceId: string) => void,
 }) {
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
+  const selectedSpace = spaces.find(s => s.id === selectedSpaceId);
+
+  if (selectedSpace) {
+    return (
+      <div className="w-[500px] border-l bg-card flex flex-col h-full">
+        <SpaceDetailView
+          space={selectedSpace}
+          allItems={allItems}
+          onClose={() => setSelectedSpaceId(null)}
+          onUpdate={(updates) => {
+            if (onUpdateSpace) onUpdateSpace(selectedSpace.id, updates);
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="w-[350px] border-l bg-card flex-shrink-0 flex flex-col">
         <div className="p-4 border-b flex items-center justify-between">
@@ -86,7 +148,13 @@ export default function SpacesPanel({
         <ScrollArea className="flex-1">
             <div className="p-2 space-y-2">
                 {spaces.map(space => (
-                    <SpaceCard key={space.id} space={space} allItems={allItems} />
+                    <SpaceCard 
+                        key={space.id} 
+                        space={space} 
+                        allItems={allItems} 
+                        onSelect={() => setSelectedSpaceId(space.id)} 
+                        onDelete={() => onDeleteSpace?.(space.id)}
+                    />
                 ))}
             </div>
         </ScrollArea>

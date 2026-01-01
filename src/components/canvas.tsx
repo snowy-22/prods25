@@ -13,6 +13,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, C
 import { Plus, Clipboard, Settings, Folder, Trash2 } from 'lucide-react';
 
 import { calculateLayout, LayoutMode } from '@/lib/layout-engine';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 const PlayerFrame = dynamic(() => import('./player-frame'), {
   loading: () => <Skeleton className="w-full h-full" />
@@ -130,8 +131,19 @@ const Canvas = memo(function Canvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [carouselCenterIndex, setCarouselCenterIndex] = useState(0);
+  const responsive = useResponsiveLayout();
 
-  // normalize legacy layout values to supported ones - MUST be before useEffect
+  // Calculate responsive grid size based on breakpoint
+  const getResponsiveGridSize = () => {
+    if (responsive.isMobile) {
+      return Math.max(gridSize * 0.75, 80); // 75% on mobile, min 80px
+    } else if (responsive.isTablet) {
+      return Math.max(gridSize * 0.9, 120); // 90% on tablet, min 120px
+    }
+    return gridSize; // Full size on desktop
+  };
+
+  const responsiveGridSize = getResponsiveGridSize();
   const normalizedLayoutMode: LayoutMode = layoutMode === 'canvas' ? 'canvas' : 'grid';
 
   // Canvas moduna özel kısayollar
@@ -334,8 +346,8 @@ const Canvas = memo(function Canvas({
                     style={{ 
                       padding: `${padding}px`, 
                       gap: `${gap}px`, 
-                      gridTemplateColumns: normalizedLayoutMode === 'grid' ? `repeat(auto-fill, minmax(${gridSize}px, 1fr))` : undefined,
-                      gridAutoRows: normalizedLayoutMode === 'grid' ? `${gridSize}px` : undefined,
+                      gridTemplateColumns: normalizedLayoutMode === 'grid' ? `repeat(auto-fill, minmax(${responsiveGridSize}px, 1fr))` : undefined,
+                      gridAutoRows: normalizedLayoutMode === 'grid' ? `${responsiveGridSize}px` : undefined,
                       height: normalizedLayoutMode !== 'grid' ? '100%' : undefined
                     }}
                   >
@@ -360,7 +372,7 @@ const Canvas = memo(function Canvas({
                           >
                             {(provided, snapshot) => (
                               <motion.div
-                                layout
+                                layout={normalizedLayoutMode === 'grid'}
                                 initial={false}
                                 animate={{ 
                                   opacity: 1, 
@@ -370,23 +382,30 @@ const Canvas = memo(function Canvas({
                                 }}
                                 transition={{ 
                                   type: "tween",
-                                  duration: 0.2,
+                                  duration: normalizedLayoutMode === 'grid' ? 0.2 : 0,
                                   ease: "easeOut"
                                 }}
                                 ref={provided.innerRef}
-                                {...provided.draggableProps as any}
-                                {...(isPreviewMode ? {} : (provided.dragHandleProps as any))}
+                                {...(normalizedLayoutMode === 'grid' ? provided.draggableProps as any : {})}
+                                {...(isPreviewMode || normalizedLayoutMode === 'canvas' ? {} : (provided.dragHandleProps as any))}
                                 className={cn(
                                   "relative group",
                                   snapshot.isDragging && "z-50",
                                   (snapshot.isDragging && !snapshot.draggingOver) && "ring-4 ring-destructive rounded-lg",
-                                  layoutCalc.className
+                                  layoutCalc.className,
+                                  normalizedLayoutMode === 'canvas' && "cursor-move"
                                 )}
                                 style={{
                                   ...provided.draggableProps.style,
-                                  // Override draggable styles if not in grid mode to allow our custom positioning
-                                  ...(normalizedLayoutMode !== 'grid' ? { transform: 'none !important', position: 'absolute' } : {}),
-                                  ...(snapshot.isDragging ? {} : layoutCalc.styles)
+                                  ...(normalizedLayoutMode === 'canvas' ? { 
+                                    position: 'absolute',
+                                    left: layoutCalc.styles.left,
+                                    top: layoutCalc.styles.top,
+                                    width: layoutCalc.styles.width,
+                                    height: layoutCalc.styles.height,
+                                    zIndex: layoutCalc.styles.zIndex
+                                  } : {}),
+                                  ...(snapshot.isDragging && normalizedLayoutMode === 'grid' ? {} : layoutCalc.styles)
                                 }}
                               >
                                 {renderItem(item)}

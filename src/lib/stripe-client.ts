@@ -10,7 +10,7 @@ export const isStripeAvailable = !!stripeSecretKey;
 
 export const stripe = stripeSecretKey 
   ? new Stripe(stripeSecretKey, {
-      apiVersion: '2025-01-27.acacia',
+      apiVersion: '2025-02-24.acacia',
       typescript: true,
     })
   : null;
@@ -27,9 +27,7 @@ export async function createCheckoutSession(
   }>,
   metadata: Record<string, string> = {}
 ) {
-  if (!isStripeAvailable || !stripe) {
-    throw new Error('Stripe is not configured');
-  }
+  if (!stripe) throw new Error('Stripe not initialized');
 
   try {
     // Convert items to Stripe line items
@@ -66,9 +64,7 @@ export async function createCheckoutSession(
  * Retrieve checkout session details
  */
 export async function getCheckoutSession(sessionId: string) {
-  if (!isStripeAvailable || !stripe) {
-    throw new Error('Stripe is not configured');
-  }
+  if (!stripe) throw new Error('Stripe not initialized');
 
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -87,9 +83,7 @@ export async function createPaymentIntent(
   customerId: string,
   metadata: Record<string, string> = {}
 ) {
-  if (!isStripeAvailable || !stripe) {
-    throw new Error('Stripe is not configured');
-  }
+  if (!stripe) throw new Error('Stripe not initialized');
 
   try {
     const intent = await stripe.paymentIntents.create({
@@ -115,9 +109,7 @@ export async function confirmPaymentIntent(
   intentId: string,
   paymentMethodId: string
 ) {
-  if (!isStripeAvailable || !stripe) {
-    throw new Error('Stripe is not configured');
-  }
+  if (!stripe) throw new Error('Stripe not initialized');
 
   try {
     const intent = await stripe.paymentIntents.confirm(intentId, {
@@ -139,9 +131,7 @@ export async function getOrCreateCustomer(
   email: string,
   name: string
 ) {
-  if (!isStripeAvailable || !stripe) {
-    throw new Error('Stripe is not configured');
-  }
+  if (!stripe) throw new Error('Stripe not initialized');
 
   try {
     // Search for existing customer with this email
@@ -180,6 +170,8 @@ export async function createInvoice(
   }>,
   metadata: Record<string, string> = {}
 ) {
+  if (!stripe) throw new Error('Stripe not initialized');
+  
   try {
     // Create invoice
     const invoice = await stripe.invoices.create({
@@ -216,6 +208,8 @@ export async function refundPayment(
   chargeId: string,
   amount?: number // optional partial refund in cents
 ) {
+  if (!stripe) throw new Error('Stripe not initialized');
+  
   try {
     const refund = await stripe.refunds.create({
       charge: chargeId,
@@ -238,6 +232,8 @@ export function verifyWebhookSignature(
   signature: string,
   secret: string
 ): any {
+  if (!stripe) throw new Error('Stripe not initialized');
+  
   try {
     const event = stripe.webhooks.constructEvent(body, signature, secret);
     return event;

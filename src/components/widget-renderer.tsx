@@ -48,6 +48,12 @@ const ScreenshotWidget = dynamic(() => import('./widgets/screenshot-widget'), { 
 const ScreenRecorderWidget = dynamic(() => import('./widgets/screen-recorder-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const QRCodeWidget = dynamic(() => import('./widgets/qrcode-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const ColorPickerWidget = dynamic(() => import('./widgets/color-picker-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+
+// E-Commerce Widgets
+const ProductCatalogWidget = dynamic(() => import('./widgets/ecommerce/product-catalog-widget').then(mod => ({ default: mod.ProductCatalogWidget })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const StockManagementWidget = dynamic(() => import('./widgets/ecommerce/stock-management-widget').then(mod => ({ default: mod.StockManagementWidget })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const SalesCardWidget = dynamic(() => import('./widgets/ecommerce/sales-card-widget').then(mod => ({ default: mod.SalesCardWidget })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const AdvancedTableWidget = dynamic(() => import('./widgets/ecommerce/advanced-table-widget').then(mod => ({ default: mod.AdvancedTableWidget })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const ClipboardManagerWidget = dynamic(() => import('./widgets/clipboard-manager-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const GradientGeneratorWidget = dynamic(() => import('./widgets/gradient-generator-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const LoremIpsumGeneratorWidget = dynamic(() => import('./widgets/lorem-ipsum-generator-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
@@ -59,6 +65,12 @@ const PurchaseWidget = dynamic(() => import('./widgets/purchase-widget'), { ssr:
 const AchievementsWidget = dynamic(() => import('./widgets/achievements-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const AwardCardWidget = dynamic(() => import('./widgets/award-card-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const TrainingModuleWidget = dynamic(() => import('./widgets/training-module-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const SixSWidget = dynamic(() => import('./widgets/six-s-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const KaizenPlatformWidget = dynamic(() => import('./widgets/kaizen-platform-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const AgileCalendarWidget = dynamic(() => import('./widgets/agile-calendar-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const FinancialCalculatorWidget = dynamic(() => import('./financial-calculator'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const OrganizationChartWidget = dynamic(() => import('./widgets/organization-chart-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const BusinessAnalysisFormWidget = dynamic(() => import('./widgets/business-analysis-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const NewTabScreen = dynamic(() => import('./new-tab-screen').then(m => ({ default: m.NewTabScreen })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 
 const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
@@ -136,9 +148,20 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   reservation: ReservationWidget,
   purchase: PurchaseWidget,
   achievements: AchievementsWidget,
+  
+  // E-Commerce Widgets
+  'product-catalog': ProductCatalogWidget,
+  'stock-management': StockManagementWidget,
+  'sales-card': SalesCardWidget,
+  'advanced-table': AdvancedTableWidget,
   'award-card': AwardCardWidget,
   'training-module': TrainingModuleWidget,
-  'new-tab': NewTabScreen,
+    'six-s': SixSWidget,
+    'kaizen-platform': KaizenPlatformWidget,
+    'agile-calendar': AgileCalendarWidget,
+  'financial-calculator': FinancialCalculatorWidget,
+  'organization-chart': OrganizationChartWidget,
+  'business-analysis': BusinessAnalysisFormWidget,
 };
 
 const WidgetRendererBase = ({ item, ...props }: { item: ContentItem } & any) => {
