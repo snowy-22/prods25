@@ -40,7 +40,7 @@ export function NewTabScreen() {
       {/* Logo / Branding */}
       <div className="mb-12 text-center">
         <h1 className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-2">
-          CanvasFlow
+          tv25.app
         </h1>
         <p className="text-slate-400 text-lg">Dijital alanınızı keşfedin</p>
       </div>

@@ -196,7 +196,7 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
         <DialogHeader>
           <DialogTitle>{isSignup ? 'Yeni Hesap Oluştur' : 'Giriş Yap'}</DialogTitle>
           <DialogDescription>
-            {isSignup ? 'CanvasFlow dünyasına katılın.' : 'Hesabınıza erişmek için giriş yapın.'}
+            {isSignup ? 'tv25.app dünyasına katılın.' : 'Hesabınıza erişmek için giriş yapın.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>

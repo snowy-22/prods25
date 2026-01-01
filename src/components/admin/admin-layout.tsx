@@ -84,7 +84,7 @@ export function AdminLayout({
               <ShieldCheck className="w-6 h-6 text-blue-600" />
               <div>
                 <h1 className="text-lg font-bold text-slate-900">
-                  CanvasFlow Admin
+                  tv25.app Admin
                 </h1>
                 <p className="text-xs text-slate-500">Panel</p>
               </div>
@@ -157,7 +157,7 @@ export function AdminLayout({
       <footer className="mt-12 border-t border-slate-200 bg-slate-50 py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-600">
           <p>
-            CanvasFlow Admin © {new Date().getFullYear()}. All rights reserved.
+            tv25.app © {new Date().getFullYear()}. All rights reserved.
           </p>
         </div>
       </footer>

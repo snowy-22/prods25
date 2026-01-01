@@ -73,7 +73,7 @@ export default function HomePage() {
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-8 p-4">
         <div className="text-center space-y-4">
             <AppLogo className="h-32 w-32 mx-auto drop-shadow-2xl text-primary" />
-            <h1 className="text-4xl sm:text-5xl font-bold">CanvasFlow'a Hoş Geldiniz</h1>
+            <h1 className="text-4xl sm:text-5xl font-bold">tv25.app'e Hoş Geldiniz</h1>
             <p className="text-muted-foreground text-lg max-w-xl mx-auto">
               Sınırsız bir kanvas üzerinde fikirlerinizi hayata geçirin
             </p>

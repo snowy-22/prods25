@@ -547,7 +547,7 @@ export const initialContent: ContentItem[] = [
         itemImageUrl: 'https://pbs.twimg.com/profile_images/1782015034379399168/k2s7i0-6_400x400.jpg',
         styles: { width: '300px', height: '400px' }
     },
-    { id: 'welcome-folder', type: 'folder', title: 'Hoş Geldiniz', icon: 'folder', createdAt: now, updatedAt: now, parentId: 'root', content: "CanvasFlow'a hoş geldiniz!", order: 2, styles: { width: '400px', height: '300px' } },
+    { id: 'welcome-folder', type: 'folder', title: 'Hoş Geldiniz', icon: 'folder', createdAt: now, updatedAt: now, parentId: 'root', content: "tv25.app'e hoş geldiniz!", order: 2, styles: { width: '400px', height: '300px' } },
     { id: 'social-examples', type: 'folder', title: 'Sosyal Medya Örnekleri', icon: 'folder', createdAt: now, updatedAt: now, parentId: 'root', order: 3, styles: { width: '800px', height: '600px' }, content: 'Instagram, Facebook, Spotify, Twitch, Kick örnekleri' },
     // Example items inside the Social Media Examples folder
     { id: 'ex-youtube-lofi', type: 'video', title: 'YouTube Lofi Girl (Autoplay/Mute)', icon: 'youtube', url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk', createdAt: now, updatedAt: now, parentId: 'social-examples' },
