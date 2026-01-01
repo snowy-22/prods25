@@ -11,7 +11,8 @@ import {
   Split, KanbanSquare, Focus, Filter, Workflow, BookOpen, Wand2, Navigation, Rss, MonitorSmartphone, Laptop, Smartphone, Tablet, Lightbulb, Shield, Gamepad as GamepadIcon,
   Contact, QrCode, BrainCircuit, Waves, Utensils, Speaker, Trophy, Dumbbell, Trash2, GitBranch as Fishbone, Bot, Layout, Palette,
   AlarmClock, Timer, Hourglass, SunMoon, CaseSensitive, BatteryCharging, Ruler, Star, Coffee,
-  Bell, Bookmark, Share2, CheckSquare, FileText, PlayCircle, ListTodo, CloudSun, Twitter, Instagram, Youtube, MessageSquare, Users as UsersIcon, Github, Layers
+  Bell, Bookmark, Share2, CheckSquare, FileText, PlayCircle, ListTodo, CloudSun, Twitter, Instagram, Youtube, MessageSquare, Users as UsersIcon, Github, Layers,
+  Activity, Package, Package2, Monitor, Paintbrush, Table as TableIcon
 } from 'lucide-react';
 import React from 'react';
 import { PharmacyLogo } from '@/components/icons/pharmacy-logo';
@@ -169,6 +170,18 @@ export const iconComponents = {
   users: UsersIcon,
   tabs: Layers,
   search: Globe,
+  activity: Activity,
+  qrcode: QrCode,
+  zap: Zap,
+  paintbrush: Paintbrush,
+  package: Package,
+  'package-2': Package2,
+  monitor: Monitor,
+  table: TableIcon,
+  'dollar-sign': DollarSign,
+  'file-text': FileText,
+  'clipboard-list': List,
+  'bar-chart-2': BarChart,
 };
 
 export type IconName = keyof typeof iconComponents;

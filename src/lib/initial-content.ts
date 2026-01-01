@@ -479,9 +479,9 @@ export const widgetTemplates: Record<string, Omit<ContentItem, 'id' | 'createdAt
         { type: 'screen-recorder', title: 'Ekran Kaydı', icon: 'video' },
         { type: 'qrcode', title: 'QR Kod Üretici', icon: 'qrcode' },
         { type: 'color-picker', title: 'Renk Seçici', icon: 'palette' },
-        { type: 'clipboard-manager', title: 'Pano Yöneticisi', icon: 'clipboardList' },
+        { type: 'clipboard-manager', title: 'Pano Yöneticisi', icon: 'list' },
         { type: 'gradient-generator', title: 'Gradient Üretici', icon: 'paintbrush' },
-        { type: 'lorem-ipsum', title: 'Lorem Ipsum Üretici', icon: 'fileText' },
+        { type: 'lorem-ipsum', title: 'Lorem Ipsum Üretici', icon: 'file-text' },
         { type: 'speed-test', title: 'İnternet Hız Testi', icon: 'zap' },
         { type: 'performance-monitor', title: 'Sistem Performans', icon: 'activity' },
     ],
@@ -522,8 +522,8 @@ export const widgetTemplates: Record<string, Omit<ContentItem, 'id' | 'createdAt
     ],
     "E-Ticaret": [
       { type: 'product-catalog', title: 'Ürün Kataloğu', icon: 'package' },
-      { type: 'stock-management', title: 'Stok Hareketleri', icon: 'package2' },
-      { type: 'sales-card', title: 'Satış Kartları', icon: 'dollarSign' },
+      { type: 'stock-management', title: 'Stok Hareketleri', icon: 'package-2' },
+      { type: 'sales-card', title: 'Satış Kartları', icon: 'dollar-sign' },
       { type: 'advanced-table', title: 'Gelişmiş Tablo', icon: 'table' },
     ]
 };
@@ -633,7 +633,7 @@ export const initialContent: ContentItem[] = [
         id: 'business-analysis-example', 
         type: 'business-analysis', 
         title: 'İş Analizi Formu', 
-        icon: 'barChart2', 
+        icon: 'bar-chart-2', 
         content: 'Proje ve iş analizi raporlarını yönetin',
         createdAt: now, 
         updatedAt: now, 

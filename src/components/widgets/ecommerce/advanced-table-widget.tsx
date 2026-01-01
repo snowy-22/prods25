@@ -73,8 +73,8 @@ export function AdvancedTableWidget({ item, onUpdate }: AdvancedTableWidgetProps
     }
   };
 
-  const filteredData = data.filter(row =>
-    Object.values(row).some(value =>
+  const filteredData = data.filter((row: any) =>
+    Object.values(row).some((value: any) =>
       String(value).toLowerCase().includes(searchQuery.toLowerCase())
     )
   );
@@ -175,7 +175,7 @@ export function AdvancedTableWidget({ item, onUpdate }: AdvancedTableWidgetProps
           <Table>
             <TableHeader>
               <TableRow>
-                {columns.map((column) => (
+                {columns.map((column: any) => (
                   <TableHead key={column.id}>
                     {column.sortable ? (
                       <Button
@@ -201,9 +201,9 @@ export function AdvancedTableWidget({ item, onUpdate }: AdvancedTableWidgetProps
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedData.map((row, rowIndex) => (
+              {paginatedData.map((row: any, rowIndex: number) => (
                 <TableRow key={rowIndex}>
-                  {columns.map((column) => (
+                  {columns.map((column: any) => (
                     <TableCell key={column.id}>
                       {renderCell(row, column)}
                     </TableCell>
