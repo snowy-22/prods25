@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/providers/auth-provider';
 import { createClient } from '@/lib/supabase/client';
+import { useAppStore } from '@/lib/store';
 
 const loginSchema = z.object({
     username: z.string().optional(),
@@ -35,6 +37,8 @@ type AuthDialogProps = {
 export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthDialogProps) {
   const { toast } = useToast();
   const { signIn, signUp, signInWithOAuth } = useAuth();
+  const router = useRouter();
+  const { setUser, setUsername, setTabs } = useAppStore();
   const [isResetSent, setIsResetSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const supabase = createClient();
@@ -149,17 +153,46 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
     }
   }
 
-  const handleGuestLogin = () => {
-    const guestUsername = `misafir-${Math.random().toString(36).substring(2, 8)}`;
-    
-    toast({
-      title: "Misafir Girişi",
-      description: "CanvasFlow'u misafir olarak keşfediyorsunuz. Verileriniz cihazınızda saklanır.",
-    });
-    
-    onAuthSuccess(guestUsername);
-    setAction(null);
-  };
+  const handleGuestLogin = async () => {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/auth/guest', { method: 'POST' });
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Misafir oturumu oluşturulamadı');
+      }
+      
+      // Store guest session data
+      localStorage.setItem('guestToken', data.session.sessionToken);
+      localStorage.setItem('guestUsername', data.session.guestUsername);
+      localStorage.setItem('guestExpires', data.session.expiresAt);
+      
+      // Set username in store
+      setUsername(data.session.guestUsername);
+      
+      // Load guest canvas template
+      if (data.session.canvasData && data.session.canvasData.tabs) {
+        setTabs(data.session.canvasData.tabs);
+      }
+      
+      toast({ 
+        title: "Misafir girişi başarılı!", 
+        description: "24 saatlik geçici erişim sağlandı." 
+      });
+      
+      setAction(null);
+      router.push('/canvas');
+    } catch (error: any) {
+      toast({ 
+        title: "Hata", 
+        description: error.message || "Misafir girişi yapılamadı.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
   
   return (
     <Dialog open={!!action} onOpenChange={handleOpenChange}>
@@ -271,30 +304,33 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
             </svg>
             GitHub ile Giriş
           </Button>
-          
-          {/* Guest Login */}
-          <div className="relative my-2">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-background px-2 text-muted-foreground">kayıt olmadan</span>
-            </div>
-          </div>
-          
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full"
-            onClick={handleGuestLogin}
-            disabled={isSubmitting}
-          >
-            <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            Misafir Olarak Devam Et
-          </Button>
         </div>
+
+        {/* Guest Login */}
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="bg-background px-2 text-muted-foreground">veya</span>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full"
+          onClick={handleGuestLogin}
+          disabled={isSubmitting}
+        >
+          <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          Misafir Olarak Devam Et
+        </Button>
+        <p className="text-xs text-center text-muted-foreground mt-2">
+          Misafir oturumlar 24 saat sonra silinir
+        </p>
       </DialogContent>
     </Dialog>
   );

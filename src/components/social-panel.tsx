@@ -7,11 +7,13 @@ import { Input } from './ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ScrollArea } from './ui/scroll-area';
-import { Users, Building2, UserPlus, UserMinus, Search, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { Users, Building2, UserPlus, UserMinus, Search, ExternalLink, CheckCircle2, Zap, Radio } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { useAppStore } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from './ui/badge';
+import { useSocialBroadcast, type BroadcastEvent } from '@/hooks/use-social-broadcast';
+import { ProfilePage } from './profile-page';
 
 interface Profile {
   id: string;
@@ -37,8 +39,9 @@ interface Organization {
 }
 
 export function SocialPanel() {
-  const { user } = useAppStore();
+  const { user, openInNewTab, setLayoutMode } = useAppStore();
   const { toast } = useToast();
+  const { isConnected, broadcastEvents } = useSocialBroadcast();
   
   const [followers, setFollowers] = useState<Profile[]>([]);
   const [following, setFollowing] = useState<Profile[]>([]);
@@ -47,13 +50,33 @@ export function SocialPanel() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
+  const [showBroadcastFeed, setShowBroadcastFeed] = useState(false);
 
+  // Setup realtime subscriptions
   useEffect(() => {
     if (user) {
       loadFollowers();
       loadFollowing();
       loadOrganizations();
       loadMyOrganizations();
+
+      // Subscribe to realtime updates
+      const followSubscription = supabase
+        .channel(`followers:${user.id}`)
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'follows',
+          filter: `following_id=eq.${user.id}`
+        }, () => {
+          loadFollowers();
+        })
+        .subscribe();
+
+      return () => {
+        followSubscription.unsubscribe();
+      };
     }
   }, [user]);
 
@@ -271,230 +294,296 @@ export function SocialPanel() {
   };
 
   return (
-    <Card className="w-full h-full flex flex-col">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Sosyal
-        </CardTitle>
-        <div className="flex gap-2 mt-2">
-          <Input
-            placeholder="Kullanıcı ara..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              searchUsers(e.target.value);
-            }}
-            className="flex-1"
+    <>
+      {selectedProfile && (
+        <div className="absolute inset-0 z-50">
+          <ProfilePage
+            userId={selectedProfile}
+            onClose={() => setSelectedProfile(null)}
           />
-          <Button variant="ghost" size="icon">
-            <Search className="h-4 w-4" />
-          </Button>
         </div>
-      </CardHeader>
-      
-      <CardContent className="flex-1 overflow-hidden p-0">
-        {searchQuery && (
-          <ScrollArea className="h-full px-4 pb-4">
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold mb-2">Arama Sonuçları</h3>
-              {isSearching ? (
-                <p className="text-sm text-muted-foreground">Aranıyor...</p>
-              ) : searchResults.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sonuç bulunamadı</p>
-              ) : (
-                searchResults.map((profile) => (
-                  <div key={profile.id} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={profile.avatar_url} />
-                        <AvatarFallback>{profile.username?.[0]?.toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{profile.full_name || profile.username}</p>
-                        <p className="text-xs text-muted-foreground truncate">@{profile.username}</p>
+      )}
+
+      <Card className="w-full h-full flex flex-col">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Sosyal
+            {isConnected && (
+              <Badge variant="default" className="ml-auto text-xs flex items-center gap-1">
+                <Radio className="h-3 w-3 animate-pulse" />
+                Canlı
+              </Badge>
+            )}
+          </CardTitle>
+          <div className="flex gap-2 mt-2">
+            <Input
+              placeholder="Kullanıcı ara..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                searchUsers(e.target.value);
+              }}
+              className="flex-1"
+            />
+            <Button
+              variant={showBroadcastFeed ? "default" : "ghost"}
+              size="icon"
+              onClick={() => setShowBroadcastFeed(!showBroadcastFeed)}
+              title="Canlı Akış"
+            >
+              <Zap className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="flex-1 overflow-hidden p-0">
+          {/* Live Broadcast Feed */}
+          {showBroadcastFeed && (
+            <ScrollArea className="h-full px-4 pb-4">
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Radio className="h-4 w-4 animate-pulse text-red-500" />
+                  Canlı Aktivite
+                </h3>
+                {broadcastEvents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Henüz aktivite yok</p>
+                ) : (
+                  broadcastEvents.map((event, idx) => (
+                    <div
+                      key={idx}
+                      className="p-2 bg-muted/30 rounded-lg border-l-2 border-primary/50 hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        // Open as content group in canvas
+                        if (event.target.type === 'user') {
+                          setSelectedProfile(event.target.id);
+                        }
+                      }}
+                    >
+                      <div className="flex items-start gap-2">
+                        <Avatar className="h-6 w-6 flex-shrink-0">
+                          <AvatarImage src={event.actor.avatar_url} />
+                          <AvatarFallback>{event.actor.username[0]?.toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-foreground">
+                            <span className="font-semibold">{event.actor.username}</span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">{event.message}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(event.timestamp).toLocaleTimeString('tr-TR')}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    {profile.id !== user?.id && (
-                      <Button
-                        variant={isFollowing(profile.id) ? "outline" : "default"}
-                        size="sm"
-                        onClick={() => isFollowing(profile.id) ? unfollowUser(profile.id) : followUser(profile.id)}
-                      >
-                        {isFollowing(profile.id) ? <UserMinus className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                      </Button>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          )}
+
+          {!showBroadcastFeed && (
+            <>
+              {searchQuery && (
+                <ScrollArea className="h-full px-4 pb-4">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold mb-2">Arama Sonuçları</h3>
+                    {isSearching ? (
+                      <p className="text-sm text-muted-foreground">Aranıyor...</p>
+                    ) : searchResults.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Sonuç bulunamadı</p>
+                    ) : (
+                      searchResults.map((profile) => (
+                        <div
+                          key={profile.id}
+                          className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg cursor-pointer"
+                          onClick={() => setSelectedProfile(profile.id)}
+                        >
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src={profile.avatar_url} />
+                              <AvatarFallback>{profile.username?.[0]?.toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{profile.full_name || profile.username}</p>
+                              <p className="text-xs text-muted-foreground truncate">@{profile.username}</p>
+                            </div>
+                          </div>
+                          {profile.id !== user?.id && (
+                            <Button
+                              variant={isFollowing(profile.id) ? "outline" : "default"}
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                isFollowing(profile.id) ? unfollowUser(profile.id) : followUser(profile.id);
+                              }}
+                            >
+                              {isFollowing(profile.id) ? <UserMinus className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                            </Button>
+                          )}
+                        </div>
+                      ))
                     )}
                   </div>
-                ))
+                </ScrollArea>
               )}
-            </div>
-          </ScrollArea>
-        )}
-        
-        {!searchQuery && (
-          <Tabs defaultValue="following" className="h-full flex flex-col">
-            <TabsList className="w-full grid grid-cols-3 mx-4 mb-2" style={{ width: 'calc(100% - 2rem)' }}>
-              <TabsTrigger value="following">Takip ({following.length})</TabsTrigger>
-              <TabsTrigger value="followers">Takipçi ({followers.length})</TabsTrigger>
-              <TabsTrigger value="organizations">Organizasyonlar ({organizations.length})</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="following" className="flex-1 m-0">
-              <ScrollArea className="h-full px-4">
-                <div className="space-y-2 pb-4">
-                  {following.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">Henüz kimseyi takip etmiyorsunuz</p>
-                  ) : (
-                    following.map((profile) => (
-                      <div key={profile.id} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={profile.avatar_url} />
-                            <AvatarFallback>{profile.username?.[0]?.toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{profile.full_name || profile.username}</p>
-                            <p className="text-xs text-muted-foreground truncate">@{profile.username}</p>
-                            {profile.bio && <p className="text-xs text-muted-foreground truncate mt-1">{profile.bio}</p>}
-                            <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
-                              <span>{profile.follower_count} takipçi</span>
-                              <span>{profile.following_count} takip</span>
+
+              {!searchQuery && (
+                <Tabs defaultValue="following" className="h-full flex flex-col">
+                  <TabsList className="w-full grid grid-cols-3 mx-4 mb-2" style={{ width: 'calc(100% - 2rem)' }}>
+                    <TabsTrigger value="following">Takip ({following.length})</TabsTrigger>
+                    <TabsTrigger value="followers">Takipçi ({followers.length})</TabsTrigger>
+                    <TabsTrigger value="organizations">Org ({organizations.length})</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="following" className="flex-1 m-0">
+                    <ScrollArea className="h-full px-4">
+                      <div className="space-y-2 pb-4">
+                        {following.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-8">Henüz kimseyi takip etmiyorsunuz</p>
+                        ) : (
+                          following.map((profile) => (
+                            <div
+                              key={profile.id}
+                              className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg cursor-pointer"
+                              onClick={() => setSelectedProfile(profile.id)}
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={profile.avatar_url} />
+                                  <AvatarFallback>{profile.username?.[0]?.toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{profile.full_name || profile.username}</p>
+                                  <p className="text-xs text-muted-foreground truncate">@{profile.username}</p>
+                                </div>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  unfollowUser(profile.id);
+                                }}
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </Button>
                             </div>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => unfollowUser(profile.id)}>
-                          <UserMinus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-            
-            <TabsContent value="followers" className="flex-1 m-0">
-              <ScrollArea className="h-full px-4">
-                <div className="space-y-2 pb-4">
-                  {followers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">Henüz takipçiniz yok</p>
-                  ) : (
-                    followers.map((profile) => (
-                      <div key={profile.id} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={profile.avatar_url} />
-                            <AvatarFallback>{profile.username?.[0]?.toUpperCase()}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{profile.full_name || profile.username}</p>
-                            <p className="text-xs text-muted-foreground truncate">@{profile.username}</p>
-                            {profile.bio && <p className="text-xs text-muted-foreground truncate mt-1">{profile.bio}</p>}
-                            <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
-                              <span>{profile.follower_count} takipçi</span>
-                              <span>{profile.following_count} takip</span>
-                            </div>
-                          </div>
-                        </div>
-                        {!isFollowing(profile.id) && (
-                          <Button variant="default" size="sm" onClick={() => followUser(profile.id)}>
-                            <UserPlus className="h-4 w-4" />
-                          </Button>
+                          ))
                         )}
                       </div>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-            
-            <TabsContent value="organizations" className="flex-1 m-0">
-              <ScrollArea className="h-full px-4">
-                <div className="space-y-4 pb-4">
-                  {myOrganizations.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                        <Building2 className="h-4 w-4" />
-                        Organizasyonlarım
-                      </h3>
-                      <div className="space-y-2">
-                        {myOrganizations.map((org) => (
-                          <div key={org.id} className="p-3 border rounded-lg hover:bg-muted/50">
-                            <div className="flex items-start gap-3">
-                              {org.avatar_url && (
-                                <Avatar className="h-12 w-12">
-                                  <AvatarImage src={org.avatar_url} />
-                                  <AvatarFallback>{org.display_name[0]}</AvatarFallback>
-                                </Avatar>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium">{org.display_name}</p>
-                                  {org.is_verified && <CheckCircle2 className="h-4 w-4 text-primary" />}
-                                </div>
-                                <p className="text-xs text-muted-foreground">@{org.username}</p>
-                                {org.description && (
-                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{org.description}</p>
-                                )}
-                                <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                                  <span>{org.member_count} üye</span>
-                                  <span>{org.follower_count} takipçi</span>
-                                </div>
-                              </div>
-                              <Button variant="ghost" size="icon">
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    </ScrollArea>
+                  </TabsContent>
                   
-                  {organizations.length === 0 && myOrganizations.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-8">Henüz organizasyon takip etmiyorsunuz</p>
-                  ) : organizations.length > 0 && (
-                    <div>
-                      <h3 className="text-sm font-semibold mb-2">Takip Ettiğim Organizasyonlar</h3>
-                      <div className="space-y-2">
-                        {organizations.map((org) => (
-                          <div key={org.id} className="p-3 border rounded-lg hover:bg-muted/50">
-                            <div className="flex items-start gap-3">
-                              {org.avatar_url && (
-                                <Avatar className="h-12 w-12">
-                                  <AvatarImage src={org.avatar_url} />
-                                  <AvatarFallback>{org.display_name[0]}</AvatarFallback>
+                  <TabsContent value="followers" className="flex-1 m-0">
+                    <ScrollArea className="h-full px-4">
+                      <div className="space-y-2 pb-4">
+                        {followers.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-8">Henüz takipçiniz yok</p>
+                        ) : (
+                          followers.map((profile) => (
+                            <div
+                              key={profile.id}
+                              className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg cursor-pointer"
+                              onClick={() => setSelectedProfile(profile.id)}
+                            >
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <Avatar className="h-10 w-10">
+                                  <AvatarImage src={profile.avatar_url} />
+                                  <AvatarFallback>{profile.username?.[0]?.toUpperCase()}</AvatarFallback>
                                 </Avatar>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium">{org.display_name}</p>
-                                  {org.is_verified && <CheckCircle2 className="h-4 w-4 text-primary" />}
-                                  <Badge variant="outline" className="text-xs">{org.organization_type}</Badge>
-                                </div>
-                                <p className="text-xs text-muted-foreground">@{org.username}</p>
-                                {org.description && (
-                                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{org.description}</p>
-                                )}
-                                <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                                  <span>{org.member_count} üye</span>
-                                  <span>{org.follower_count} takipçi</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{profile.full_name || profile.username}</p>
+                                  <p className="text-xs text-muted-foreground truncate">@{profile.username}</p>
                                 </div>
                               </div>
-                              <Button variant="outline" size="sm" onClick={() => unfollowOrganization(org.id)}>
-                                Takipten Çık
-                              </Button>
+                              {!isFollowing(profile.id) && (
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    followUser(profile.id);
+                                  }}
+                                >
+                                  <UserPlus className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+                  
+                  <TabsContent value="organizations" className="flex-1 m-0">
+                    <ScrollArea className="h-full px-4">
+                      <div className="space-y-4 pb-4">
+                        {myOrganizations.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Benim Org</h3>
+                            <div className="space-y-2">
+                              {myOrganizations.map((org) => (
+                                <div key={org.id} className="p-2 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                                  <div className="flex items-start gap-2">
+                                    {org.avatar_url && (
+                                      <Avatar className="h-10 w-10 flex-shrink-0">
+                                        <AvatarImage src={org.avatar_url} />
+                                        <AvatarFallback>{org.display_name[0]}</AvatarFallback>
+                                      </Avatar>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1">
+                                        <p className="text-sm font-medium">{org.display_name}</p>
+                                        {org.is_verified && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">@{org.username}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        ))}
+                        )}
+
+                        {organizations.length === 0 && myOrganizations.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-8">Org yok</p>
+                        ) : organizations.length > 0 && (
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Takip Edilen</h3>
+                            <div className="space-y-2">
+                              {organizations.map((org) => (
+                                <div key={org.id} className="p-2 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                                  <div className="flex items-start gap-2">
+                                    {org.avatar_url && (
+                                      <Avatar className="h-10 w-10 flex-shrink-0">
+                                        <AvatarImage src={org.avatar_url} />
+                                        <AvatarFallback>{org.display_name[0]}</AvatarFallback>
+                                      </Avatar>
+                                    )}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1">
+                                        <p className="text-sm font-medium">{org.display_name}</p>
+                                        {org.is_verified && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                                        <Badge variant="outline" className="text-xs">{org.organization_type}</Badge>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">@{org.username}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </TabsContent>
-          </Tabs>
-        )}
-      </CardContent>
-    </Card>
+                    </ScrollArea>
+                  </TabsContent>
+                </Tabs>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 }
