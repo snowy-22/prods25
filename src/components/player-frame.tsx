@@ -328,6 +328,19 @@ const PlayerFrameComponent = ({
   const { toast } = useToast();
   const openInNewTab = useAppStore(s => s.openInNewTab);
 
+  // Determine if save button should be shown
+  // Hide save button for personal library and own lists
+  // Show save button for external sources (social, messages, profiles, external canvas links)
+  const isPersonalLibraryItem = () => {
+    // Personal library items: in root or personal folders
+    const personalContainers = ['root', 'saved-items', 'awards-folder', 'spaces-folder', 'devices-folder', 'trash-folder'];
+    return personalContainers.includes(item.parentId || '') || 
+           (item.type === 'list' && !item.metadata?.isExternal) ||
+           (item.type === 'player' && item.parentId === 'root');
+  };
+
+  const shouldShowSaveButton = !isPersonalLibraryItem();
+
   useEffect(() => {
     const currentRef = ref.current;
     if (!currentRef) return;
@@ -564,7 +577,7 @@ const PlayerFrameComponent = ({
                                             <MessageCircle className="h-4 w-4"/>
                                         </Button>
                                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onShare(item) }}><Share2 className="h-4 w-4" /></Button>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onSaveItem(item) }}><Save className="h-4 w-4" /></Button>
+                                        {shouldShowSaveButton && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onSaveItem(item) }}><Save className="h-4 w-4" /></Button>}
                                       </div>
                                   </div>
                             </div>
@@ -637,9 +650,11 @@ const PlayerFrameComponent = ({
                                         </PopoverContent>
                                      </Popover>
 
-                                     <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => { e.stopPropagation(); onSaveItem(item); }}>
-                                        <Bookmark className={cn("h-4 w-4", item.parentId === 'saved-items' && "fill-primary text-primary")} />
-                                     </Button>
+                                     {shouldShowSaveButton && (
+                                       <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => { e.stopPropagation(); onSaveItem(item); }}>
+                                          <Bookmark className={cn("h-4 w-4", item.parentId === 'saved-items' && "fill-primary text-primary")} />
+                                       </Button>
+                                     )}
                                 </div>
                               )}
                           </div>
