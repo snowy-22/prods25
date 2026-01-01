@@ -15,7 +15,7 @@ interface QRCodeWidgetProps {
 }
 
 export default function QRCodeWidget({ size = 'medium' }: QRCodeWidgetProps) {
-  const [text, setText] = useState('https://canvasflow.app');
+  const [text, setText] = useState('https://tv25.app');
   const [qrSize, setQrSize] = useState(256);
   const [qrColor, setQrColor] = useState('#000000');
   const [bgColor, setBgColor] = useState('#ffffff');
