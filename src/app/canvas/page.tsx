@@ -64,6 +64,8 @@ import { createClient } from '@/lib/supabase/client';
 import { LayoutMode } from '@/lib/layout-engine';
 import { useAuth } from '@/providers/auth-provider';
 import { useRealtimeSync } from '@/hooks/use-realtime-sync';
+import { BottomControlBar } from '@/components/bottom-control-bar';
+import { MiniMapOverlay } from '@/components/mini-map-overlay';
 
 
 const MainContentInternal = ({ username }: { username: string | null }) => {
@@ -835,8 +837,64 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const [isSpaceControlOpen, setIsSpaceControlOpen] = useState(false);
     const [gridSize, setGridSize] = useLocalStorage('canvas-grid-size', 280);
     const [isBottomPanelCollapsed, setIsBottomPanelCollapsed] = useState(true);
+    const [isMiniMapOpen, setIsMiniMapOpen] = useLocalStorage<boolean>('canvas_minimap_open', false);
+    const [miniMapSize, setMiniMapSize] = useLocalStorage<'s' | 'm' | 'l' | 'xl'>('canvas_minimap_size', 'm');
     const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('canvasflow_sidebar_width', 320);
     const [rightSidebarWidth, setRightSidebarWidth] = useLocalStorage<number>('canvasflow_right_sidebar_width', 380);
+    const [viewportRect, setViewportRect] = useState<{ top: number; height: number } | undefined>(undefined);
+    const canvasScrollRef = useRef<HTMLDivElement>(null);
+    
+    // Dinamik bottom panel height - tab sayısına göre (responsive)
+    const bottomPanelHeight = useMemo(() => {
+        const baseHeight = 180; // Base content height
+        const tabBarHeight = responsive.isMobile ? 36 : 40; // Tab bar
+        const controlBarHeight = responsive.isMobile ? 32 : 32; // Control bar
+        return baseHeight + tabBarHeight + controlBarHeight;
+    }, [responsive.isMobile]);
+    
+    // Track canvas scroll for minimap viewport indicator
+    useEffect(() => {
+        const scrollContainer = canvasScrollRef.current;
+        if (!scrollContainer) return;
+
+        const updateViewport = () => {
+            const scrollTop = scrollContainer.scrollTop;
+            const scrollHeight = scrollContainer.scrollHeight;
+            const clientHeight = scrollContainer.clientHeight;
+            
+            if (scrollHeight <= clientHeight) {
+                setViewportRect(undefined);
+                return;
+            }
+
+            const top = scrollTop / scrollHeight;
+            const height = clientHeight / scrollHeight;
+            setViewportRect({ top, height });
+        };
+
+        scrollContainer.addEventListener('scroll', updateViewport);
+        window.addEventListener('resize', updateViewport);
+        updateViewport();
+
+        return () => {
+            scrollContainer.removeEventListener('scroll', updateViewport);
+            window.removeEventListener('resize', updateViewport);
+        };
+    }, [activeViewId]);
+
+    // Handle minimap item click: scroll to item and select it
+    const handleMiniMapItemClick = useCallback((item: ContentItem) => {
+        // Select the item
+        state.setSelectedItem(item, { ctrlKey: false, shiftKey: false } as any, activeViewChildren.map(i => i.id));
+        
+        // Scroll to item in canvas
+        if (canvasScrollRef.current) {
+            const itemElement = document.querySelector(`[data-item-id="${item.id}"]`);
+            if (itemElement) {
+                itemElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    }, [state, activeViewChildren]);
     
     // Responsive sidebar widths based on breakpoint
     const responsiveSidebarWidth = responsive.isMobile 
@@ -852,6 +910,16 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         : rightSidebarWidth; // User-adjustable on desktop
     const [isResizing, setIsResizing] = useState(false);
     const [isRightResizing, setIsRightResizing] = useState(false);
+
+    // Sync minimap defaults from active view
+    useEffect(() => {
+        if (activeView?.minimapDefaultOpen !== undefined) {
+            setIsMiniMapOpen(activeView.minimapDefaultOpen);
+        }
+        if (activeView?.minimapSize) {
+            setMiniMapSize(activeView.minimapSize as 's' | 'm' | 'l' | 'xl');
+        }
+    }, [activeView?.minimapDefaultOpen, activeView?.minimapSize, setIsMiniMapOpen, setMiniMapSize]);
 
     // Left sidebar resize handlers
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -872,7 +940,8 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             if (!isResizing) return;
             const baseOffset = 56; // primary sidebar fixed width
             const minWidth = responsive.isTablet ? 150 : 200; // smaller min on tablet
-            const maxWidth = responsive.isTablet ? 300 : 600; // smaller max on tablet
+            const viewportMax = Math.max(320, (window.innerWidth || 1200) - 420); // leave room for canvas/right
+            const maxWidth = Math.min(responsive.isTablet ? 300 : 600, viewportMax);
             const newWidth = e.clientX - baseOffset;
             if (newWidth >= minWidth && newWidth <= maxWidth) {
                 setSidebarWidth(newWidth);
@@ -1419,7 +1488,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                               </div>
                          </div>
                          
-                         <div className="flex-1 min-h-0 relative overflow-y-auto overflow-x-hidden">
+                         <div ref={canvasScrollRef} className="flex-1 min-h-0 relative overflow-y-auto overflow-x-hidden">
                             {state.selectedItemIds.length > 0 && (
                                 <div className="absolute top-3 right-3 z-40 flex items-center gap-2 px-3 py-2 rounded-full bg-background/90 border shadow-lg backdrop-blur-md">
                                     <span className="text-xs font-semibold">{state.selectedItemIds.length} öğe seçili</span>
@@ -1491,29 +1560,62 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             onMouseEnter={() => isUiHidden && setIsBottomBarHovered(true)}
                             onMouseLeave={() => isUiHidden && setIsBottomBarHovered(false)}
                          >
+                            <MiniMapOverlay
+                                items={activeViewChildren}
+                                isOpen={isMiniMapOpen}
+                                onToggle={setIsMiniMapOpen}
+                                size={activeView?.minimapSize as any || (activeView as any)?.coverPreset || miniMapSize}
+                                onSizeChange={setMiniMapSize}
+                                maxItems={(activeView as any)?.coverMaxItems ?? 20}
+                                blurFallback={(activeView as any)?.coverBlurFallback ?? true}
+                                boldTitle={(activeView as any)?.coverBoldTitle ?? false}
+                                onItemClick={handleMiniMapItemClick}
+                                selectedItemIds={state.selectedItemIds}
+                                viewportRect={viewportRect}
+                            />
                             <Tabs defaultValue="description" className="w-full">
-                                <div className="flex justify-between items-center pr-2">
-                                    <TabsList className="px-2 border-b-0 w-full justify-start rounded-none bg-transparent">
-                                        <TabsTrigger value="description"><Info className="mr-2 h-4 w-4" /> Açıklamalar</TabsTrigger>
-                                        <TabsTrigger value="comments"><MessageSquare className="mr-2 h-4 w-4" /> Yorumlar</TabsTrigger>
-                                        <TabsTrigger value="analytics"><BarChart className="mr-2 h-4 w-4" /> Analizler</TabsTrigger>
+                                {/* Bottom Control Bar - Tabs sol, Controls sağ */}
+                                <div className={cn(
+                                    "flex gap-2 border-b bg-muted/40",
+                                    responsive.isMobile || responsive.isTablet 
+                                        ? "flex-col px-2 py-1" 
+                                        : "flex-row items-center px-3 py-1.5 justify-between"
+                                )}>
+                                    {/* Sol Taraf: Açıklamalar/Yorumlar/Analizler Tabs */}
+                                    <TabsList className={cn(
+                                        "border-b-0 bg-transparent px-1 order-first",
+                                        responsive.isMobile || responsive.isTablet 
+                                            ? "w-full justify-start h-8" 
+                                            : "h-7"
+                                    )}>
+                                        <TabsTrigger value="description" className="text-xs h-full"><Info className="mr-1 h-3 w-3" /> Açıklamalar</TabsTrigger>
+                                        <TabsTrigger value="comments" className="text-xs h-full"><MessageSquare className="mr-1 h-3 w-3" /> Yorumlar</TabsTrigger>
+                                        <TabsTrigger value="analytics" className="text-xs h-full"><BarChart className="mr-1 h-3 w-3" /> Analizler</TabsTrigger>
                                     </TabsList>
-                                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsBottomPanelCollapsed(!isBottomPanelCollapsed)}>
-                                        {isBottomPanelCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                    </Button>
+
+                                    {/* Sağ Taraf: Navigasyon Araçları */}
+                                    <BottomControlBar 
+                                        isCollapsed={isBottomPanelCollapsed} 
+                                        onToggleCollapse={setIsBottomPanelCollapsed}
+                                        gridSize={gridSize}
+                                        onGridSizeChange={setGridSize}
+                                        showMiniMapToggle
+                                        isMiniMapOpen={isMiniMapOpen}
+                                        onToggleMiniMap={setIsMiniMapOpen}
+                                    />
                                 </div>
                                 {!isBottomPanelCollapsed && (
-                                    <>
-                                        <TabsContent value="description" className="p-4 h-32 overflow-auto">
+                                    <div className="relative" style={{ height: bottomPanelHeight - (responsive.isMobile ? 68 : 48) }}>
+                                        <TabsContent value="description" className="p-4 h-full overflow-auto">
                                             <p className="text-sm text-muted-foreground">{activeTab.content || 'Bu görünüm için bir açıklama yok.'}</p>
                                         </TabsContent>
-                                        <TabsContent value="comments" className="p-4 h-32 overflow-auto">
+                                        <TabsContent value="comments" className="p-4 h-full overflow-auto">
                                             <p className="text-sm text-muted-foreground">Yorum özelliği yakında eklenecektir.</p>
                                         </TabsContent>
-                                        <TabsContent value="analytics" className="p-4 h-32 overflow-auto">
+                                        <TabsContent value="analytics" className="p-4 h-full overflow-auto">
                                             <p className="text-sm text-muted-foreground">Analiz özelliği yakında eklenecektir.</p>
                                         </TabsContent>
-                                    </>
+                                    </div>
                                 )}
                             </Tabs>
                         </div>
@@ -1718,7 +1820,7 @@ export default function CanvasPage() {
     
     if (!storeUsername && typeof window !== 'undefined') {
       try {
-        const stored = localStorage.getItem('canvasflow-storage');
+        const stored = localStorage.getItem('tv25-storage');
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed.state?.username) {

@@ -16,7 +16,7 @@ import { Input } from "./ui/input";
 import Image from "next/image";
 
 const AddDeviceMenu = ({ sessionId }: { sessionId: string }) => {
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`canvasflow:remote?session=${sessionId}`)}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`tv25:remote?session=${sessionId}`)}`;
     return (
         <PopoverContent className="w-80 p-0 bg-popover/80 backdrop-blur-lg border-border/50">
             <Tabs defaultValue="list">

@@ -1,6 +1,6 @@
 {
-  "name": "CanvasFlow - Sınırsız Dijital Kanvas",
-  "short_name": "CanvasFlow",
+  "name": "tv25 - Sınırsız Dijital Kanvas",
+  "short_name": "tv25",
   "description": "Fikirlerinizi organize edin, projelerinizi yönetin, yaratıcılığınızı keşfedin.",
   "start_url": "/",
   "scope": "/",
@@ -54,7 +54,7 @@
     {
       "name": "Yeni Tab Aç",
       "short_name": "Yeni Tab",
-      "description": "CanvasFlow'da yeni bir tab açın",
+      "description": "tv25'te yeni bir tab açın",
       "url": "/canvas?action=new-tab",
       "icons": [
         {

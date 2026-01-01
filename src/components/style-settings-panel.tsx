@@ -77,6 +77,12 @@ export default function StyleSettingsPanel({
   const [openAccordions, setOpenAccordions] = useState<string[]>(accordionItems);
   const scale = activeView.scale || 100;
   const setScale = (newScale: number) => onUpdate({ scale: newScale });
+    const coverPreset = (activeView as any)?.coverPreset ?? 'm';
+    const coverMaxItems = (activeView as any)?.coverMaxItems ?? 10;
+    const coverBlurFallback = (activeView as any)?.coverBlurFallback ?? false;
+    const coverBoldTitle = (activeView as any)?.coverBoldTitle ?? false;
+    const minimapDefaultOpen = (activeView as any)?.minimapDefaultOpen ?? false;
+    const minimapSize = (activeView as any)?.minimapSize ?? 'm';
 
 
   const applyTheme = useCallback((preset: ThemePreset) => {
@@ -235,6 +241,56 @@ export default function StyleSettingsPanel({
                                     <Button variant='ghost' size="icon" className='h-8 w-8' onClick={() => setScale(Math.max(50, scale - 5))}><ZoomOut className="h-4 w-4" /></Button>
                                     <Slider value={[scale]} onValueChange={(value) => setScale(value[0])} min={50} max={150} step={5} />
                                     <Button variant='ghost' size="icon" className='h-8 w-8' onClick={() => setScale(Math.min(150, scale + 5))}><ZoomIn className="h-4 w-4" /></Button>
+                                </div>
+                            </div>
+                        </div>
+                        <Separator/>
+                        <div className="space-y-4">
+                            <h4 className="text-xs font-semibold text-muted-foreground">KAPAK & MINI MAP</h4>
+                            <div className="grid grid-cols-1 gap-3">
+                                <div className="space-y-1">
+                                    <Label>Kapak Boyutu (S/M/L/XL)</Label>
+                                    <ToggleGroup type="single" value={coverPreset} onValueChange={(val) => val && onUpdate({ coverPreset: val })} className="grid grid-cols-4 gap-1">
+                                        <ToggleGroupItem value="s">S</ToggleGroupItem>
+                                        <ToggleGroupItem value="m">M</ToggleGroupItem>
+                                        <ToggleGroupItem value="l">L</ToggleGroupItem>
+                                        <ToggleGroupItem value="xl">XL</ToggleGroupItem>
+                                    </ToggleGroup>
+                                </div>
+                                <div className="space-y-1">
+                                    <Label>Kapakta Gösterilecek İçerik Sayısı ({coverMaxItems})</Label>
+                                    <Slider value={[coverMaxItems]} min={4} max={10} step={1} onValueChange={([v]) => onUpdate({ coverMaxItems: v })} />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label>Blur Fallback</Label>
+                                        <p className="text-xs text-muted-foreground">Kapakta görsel yoksa yumuşak blur arka plan kullan.</p>
+                                    </div>
+                                    <Switch checked={coverBlurFallback} onCheckedChange={(val) => onUpdate({ coverBlurFallback: val })} />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label>Kalın Klasör Başlığı</Label>
+                                        <p className="text-xs text-muted-foreground">Kapak yazısını vurgula.</p>
+                                    </div>
+                                    <Switch checked={coverBoldTitle} onCheckedChange={(val) => onUpdate({ coverBoldTitle: val })} />
+                                </div>
+                                <Separator />
+                                <div className="space-y-1">
+                                    <Label>Mini Map Boyutu</Label>
+                                    <ToggleGroup type="single" value={minimapSize} onValueChange={(val) => val && onUpdate({ minimapSize: val })} className="grid grid-cols-4 gap-1">
+                                        <ToggleGroupItem value="s">S</ToggleGroupItem>
+                                        <ToggleGroupItem value="m">M</ToggleGroupItem>
+                                        <ToggleGroupItem value="l">L</ToggleGroupItem>
+                                        <ToggleGroupItem value="xl">XL</ToggleGroupItem>
+                                    </ToggleGroup>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label>Mini Map Varsayılan Açık</Label>
+                                        <p className="text-xs text-muted-foreground">Bu görünüm açıldığında mini map otomatik açılsın.</p>
+                                    </div>
+                                    <Switch checked={minimapDefaultOpen} onCheckedChange={(val) => onUpdate({ minimapDefaultOpen: val })} />
                                 </div>
                             </div>
                         </div>

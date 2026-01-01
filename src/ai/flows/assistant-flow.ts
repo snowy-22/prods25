@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileoverview A versatile AI assistant flow for the CanvasFlow application.
+* @fileoverview A versatile AI assistant flow for the tv25 application.
  * This flow can use tools to perform actions like searching the web, YouTube, or scraping web pages.
  * It's designed as a simple agent that can loop through tool calls to achieve a goal.
  */
@@ -208,7 +208,7 @@ const assistantFlow = ai.defineFlow(
   },
   async (input) => {
     let history = [...input.history];
-    const systemPrompt = `You are a powerful and friendly AI assistant for the CanvasFlow application.
+    const systemPrompt = `You are a powerful and friendly AI assistant for the tv25 application.
 Your role is to be helpful and provide accurate information, and to guide the user through the application's features.
 You can use the available tools to perform actions and gather information.
 When asked to find content (like a video or article) and add it to the canvas, you MUST use a two-step process:

@@ -16,7 +16,7 @@ export function useRealtimeSync(enabled: boolean = true) {
     const supabase = createClient();
     
     // Create a broadcast channel for multi-tab sync
-    const broadcastChannel = new BroadcastChannel('canvasflow-sync');
+    const broadcastChannel = new BroadcastChannel('tv25-sync');
     
     // Listen to changes from other browser tabs
     broadcastChannel.onmessage = (event) => {

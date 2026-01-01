@@ -185,8 +185,16 @@ export const useAppStore = create<AppStore>()(
       setUser: (user) => set({ user }),
       setUsername: (username) => set({ username }),
       setActiveTab: (activeTabId) => {
+        const { tabs } = get();
+        const activeTab = tabs.find(t => t.id === activeTabId);
+        const isLibraryTab = activeTab && (activeTab.id === 'root' || activeTab.type === 'root');
+
         get().recordTabAccess(activeTabId);
-        set({ activeTabId });
+        set({ 
+          activeTabId,
+          isSecondLeftSidebarOpen: !!isLibraryTab,
+          activeSecondaryPanel: isLibraryTab ? 'library' : get().activeSecondaryPanel
+        });
       },
       setTabs: (tabs) => set({ tabs }),
       setIsUiHidden: (isUiHidden) => set({ isUiHidden }),
@@ -597,7 +605,7 @@ export const useAppStore = create<AppStore>()(
       setCustomStartupContent: (content) => set({ customStartupContent: content }),
     }),
     {
-      name: 'canvasflow-storage',
+      name: 'tv25-storage',
       version: 2,
       migrate: (persistedState: any, _version: number) => {
         // Ensure search dialog does not auto-open after rehydration

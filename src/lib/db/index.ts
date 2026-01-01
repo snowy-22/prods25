@@ -1,6 +1,6 @@
 import { AppData, UserProfile, Canvas, CanvasItem } from './schema';
 
-const STORAGE_KEY = 'canvasflow_data_v2';
+const STORAGE_KEY = 'tv25_data_v2';
 
 export const localDB = {
   saveData: (data: AppData) => {

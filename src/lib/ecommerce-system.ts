@@ -205,7 +205,7 @@ export class ECommerceBlockchain {
     });
 
     const signature = crypto
-      .createHmac('sha256', process.env.BLOCKCHAIN_SECRET || 'canvasflow-ecommerce-secret')
+      .createHmac('sha256', process.env.BLOCKCHAIN_SECRET || 'tv25-ecommerce-secret')
       .update(hash)
       .digest('hex');
 
@@ -231,7 +231,7 @@ export class ECommerceBlockchain {
       }
 
       const expectedSignature = crypto
-        .createHmac('sha256', process.env.BLOCKCHAIN_SECRET || 'canvasflow-ecommerce-secret')
+        .createHmac('sha256', process.env.BLOCKCHAIN_SECRET || 'tv25-ecommerce-secret')
         .update(current.hash)
         .digest('hex');
 

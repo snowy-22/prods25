@@ -7,10 +7,10 @@ import { LogTracker } from '@/components/log-tracker';
 import { VercelAnalytics } from '@/components/vercel-analytics';
 
 export const metadata: Metadata = {
-  title: 'CanvasFlow - Sınırsız Dijital Kanvas',
+  title: 'tv25 - Sınırsız Dijital Kanvas',
   description: 'Fikirlerinizi organize edin, projelerinizi yönetin, yaratıcılığınızı keşfedin.',
   keywords: ['canvas', 'dijital kanvas', 'proje yönetimi', 'not alma', 'organizasyon'],
-  authors: [{ name: 'CanvasFlow' }],
+  authors: [{ name: 'tv25' }],
   viewport: {
     width: 'device-width',
     initialScale: 1,
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: 'CanvasFlow',
+    title: 'tv25',
     description: 'Fikirleriniz için sınırsız bir kanvas',
     type: 'website',
     images: [
@@ -38,14 +38,14 @@ export const metadata: Metadata = {
         url: '/favicon.svg',
         width: 192,
         height: 192,
-        alt: 'CanvasFlow Logo',
+        alt: 'tv25 Logo',
       },
     ],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'CanvasFlow',
+    title: 'tv25',
     startupImage: [
       {
         url: '/apple-touch-icon.png',
@@ -75,7 +75,7 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="CanvasFlow" />
+        <meta name="apple-mobile-web-app-title" content="tv25" />
         
         {/* Safe Area Support (notched phones) */}
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=yes, minimum-scale=1, maximum-scale=5" />

@@ -112,11 +112,11 @@ export function ReferralSettingsPanel({ userId, className }: ReferralSettingsPan
     if (!referralCode?.code) return;
 
     const link = `${window.location.origin}/signup?ref=${referralCode.code}`;
-    const text = `CanvasFlow'a katıl! Referans kodum: ${referralCode.code}`;
+    const text = `tv25'e katıl! Referans kodum: ${referralCode.code}`;
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'CanvasFlow Davetiyesi', text, url: link });
+        await navigator.share({ title: 'tv25 Davetiyesi', text, url: link });
         toast({ title: '✅ Paylaşıldı!' });
       } catch (error) {
         console.log('Share cancelled');

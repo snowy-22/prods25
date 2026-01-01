@@ -16,7 +16,7 @@ export default function ProfileCardWidget({ item, username }: ProfileCardWidgetP
             <AvatarFallback>{username ? username.charAt(0) : 'P'}</AvatarFallback>
         </Avatar>
         <h2 className="text-2xl font-bold mt-4">{username || 'Kullanıcı'}</h2>
-        <p className="text-muted-foreground">{item.content || "CanvasFlow Meraklısı"}</p>
+        <p className="text-muted-foreground">{item.content || "tv25 Meraklısı"}</p>
     </div>
   );
 }

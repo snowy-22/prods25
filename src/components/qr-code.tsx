@@ -203,7 +203,7 @@ export function QRCodeShareCard({
       canvas.toBlob((blob) => {
         if (blob) {
           const link = document.createElement('a');
-          link.download = `canvasflow-referral-${referralCode}.png`;
+          link.download = `tv25-referral-${referralCode}.png`;
           link.href = URL.createObjectURL(blob);
           link.click();
           URL.revokeObjectURL(link.href);
@@ -222,7 +222,7 @@ export function QRCodeShareCard({
     <Card className={className}>
       <CardContent className="p-6 space-y-4">
         <div className="text-center space-y-2">
-          <h3 className="font-bold text-lg">CanvasFlow'a Katıl!</h3>
+          <h3 className="font-bold text-lg">tv25'e Katıl!</h3>
           {username && (
             <p className="text-sm text-muted-foreground">
               {username} seni davet ediyor

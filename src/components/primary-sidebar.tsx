@@ -100,7 +100,7 @@ export default function PrimarySidebar({
     const userProfileItem = useMemo(() => allItems?.find(item => item.id === 'user-profile'), [allItems]);
     const savedItems = useMemo(() => allItems?.find(item => item.id === 'saved-items'), [allItems]);
 
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`canvasflow:remote?session=${sessionId}`)}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`tv25:remote?session=${sessionId}`)}`;
 
 
     const handleShowAwardsInLibrary = (checked: boolean) => {
@@ -331,17 +331,45 @@ export default function PrimarySidebar({
                              </ScrollArea>
                         </PopoverContent>
                     </Popover>
+                </div>
 
-                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                         <Button variant="ghost" size="icon" className='h-10 w-10'>
-                            <Avatar className='h-9 w-9'>
-                                <AvatarImage src={`https://avatar.vercel.sh/${username}.png`} alt={username} />
-                                <AvatarFallback>
-                                    <UserCog />
-                                </AvatarFallback>
-                            </Avatar>
+            {/* Fixed Bottom: Ayarlar ve Profil */}
+            <div className="flex flex-col gap-2 mt-auto pb-2">
+                <Separator className="my-1" />
+                
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className='h-10 w-10' 
+                            onClick={() => toggleSettingsDialog('integrations')}
+                        >
+                            <Settings className="h-5 w-5" />
                         </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                        <p>Ayarlar</p>
+                    </TooltipContent>
+                </Tooltip>
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" className='h-10 w-10'>
+                                    <Avatar className='h-9 w-9'>
+                                        <AvatarImage src={`https://avatar.vercel.sh/${username}.png`} alt={username} />
+                                        <AvatarFallback>
+                                            <UserCog />
+                                        </AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">
+                                <p>{username}</p>
+                            </TooltipContent>
+                        </Tooltip>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-64 mb-2 p-2" side="right" align="end">
                         <DropdownMenuLabel>{username}</DropdownMenuLabel>
@@ -361,10 +389,6 @@ export default function PrimarySidebar({
                                  <DropdownMenuItem onClick={() => userProfileItem && onShare(userProfileItem)}>
                                     <Share className="mr-2 h-4 w-4" />
                                     <span>Profili Paylaş</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => toggleSettingsDialog('integrations')}>
-                                    <Settings className="mr-2 h-4 w-4" />
-                                    <span>Ayarlar</span>
                                 </DropdownMenuItem>
                                 
                                 <DropdownMenuSub>

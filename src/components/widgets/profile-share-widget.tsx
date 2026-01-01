@@ -11,12 +11,12 @@ interface ProfileShareWidgetProps {
 }
 
 export default function ProfileShareWidget({ item, username }: ProfileShareWidgetProps) {
-    const profileUrl = `https://canvasflow.app/user/${username}`;
+    const profileUrl = `https://tv25.app/user/${username}`;
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(profileUrl)}`;
 
     const handleShare = (platform: 'twitter' | 'facebook' | 'linkedin') => {
         let shareUrl = '';
-        const text = encodeURIComponent(`CanvasFlow profilime göz at: ${username}`);
+        const text = encodeURIComponent(`tv25 profilime göz at: ${username}`);
         const url = encodeURIComponent(profileUrl);
 
         switch(platform) {

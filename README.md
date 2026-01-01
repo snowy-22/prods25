@@ -1,6 +1,6 @@
-# CanvasFlow
+# tv25
 
-CanvasFlow, kullanıcıların çeşitli web içeriklerini ve araç takımlarını organize etmelerine olanak tanıyan dinamik bir dijital tuval uygulamasıdır.
+tv25, kullanıcıların çeşitli web içeriklerini ve araç takımlarını organize etmelerine olanak tanıyan dinamik bir dijital tuval uygulamasıdır.
 
 ## Geliştirme
 

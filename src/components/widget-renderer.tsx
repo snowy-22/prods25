@@ -71,6 +71,8 @@ const AgileCalendarWidget = dynamic(() => import('./widgets/agile-calendar-widge
 const FinancialCalculatorWidget = dynamic(() => import('./financial-calculator'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const OrganizationChartWidget = dynamic(() => import('./widgets/organization-chart-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const BusinessAnalysisFormWidget = dynamic(() => import('./widgets/business-analysis-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const SpeedTestWidget = dynamic(() => import('./widgets/speed-test').then(mod => ({ default: mod.SpeedTest })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const PerformanceMonitorWidget = dynamic(() => import('./widgets/performance-monitor').then(mod => ({ default: mod.PerformanceMonitor })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const NewTabScreen = dynamic(() => import('./new-tab-screen').then(m => ({ default: m.NewTabScreen })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 
 const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
@@ -162,11 +164,16 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'financial-calculator': FinancialCalculatorWidget,
   'organization-chart': OrganizationChartWidget,
   'business-analysis': BusinessAnalysisFormWidget,
+  'speed-test': SpeedTestWidget,
+  'performance-monitor': PerformanceMonitorWidget,
 };
 
-const WidgetRendererBase = ({ item, ...props }: { item: ContentItem } & any) => {
+const WidgetRendererBase = ({ item, allItems, activeViewId, ...props }: { item: ContentItem, allItems?: ContentItem[], activeViewId?: string | null } & any) => {
     const isPreview = props.isPreview || false;
     const isSuspended = props.isSuspended || false;
+    
+    // Get active view for cover settings
+    const activeView = allItems?.find(i => i.id === activeViewId);
     
     // Handle player type specifically to render active child
     if (item.type === 'player' && item.children && item.children.length > 0) {
@@ -174,7 +181,7 @@ const WidgetRendererBase = ({ item, ...props }: { item: ContentItem } & any) => 
         const activeChild = item.children[index];
         // Prevent infinite recursion if child is same as parent (basic check)
         if (activeChild && activeChild.id !== item.id) {
-            return <WidgetRenderer item={activeChild} {...props} />;
+            return <WidgetRenderer item={activeChild} allItems={allItems} activeViewId={activeViewId} {...props} />;
         }
     }
 
@@ -208,10 +215,19 @@ const WidgetRendererBase = ({ item, ...props }: { item: ContentItem } & any) => 
     const width = item.styles?.width ? parseInt(item.styles.width as string) : 0;
     const size = width > 800 ? 'large' : width > 400 ? 'medium' : 'small';
 
+    // For container types (folders), pass cover settings from activeView
+    const isContainer = ['folder', 'list', 'inventory', 'space', 'devices', 'saved-items', 'awards-folder', 'spaces-folder', 'devices-folder', 'trash-folder', 'item', 'player'].includes(item.type);
+    const coverProps = isContainer ? {
+        size: activeView?.coverPreset || 'm',
+        maxItems: activeView?.coverMaxItems || 10,
+        blurFallback: activeView?.coverBlurFallback ?? false,
+        boldTitle: activeView?.coverBoldTitle ?? false,
+    } : {};
+
     if (!Component) {
-        return <WebsitePreview item={item} size={size} {...props} isSuspended={isSuspended} />;
+        return <WebsitePreview item={item} size={size} {...props} {...coverProps} isSuspended={isSuspended} />;
     }
-    return <Component item={item} size={size} {...props} />;
+    return <Component item={item} size={size} {...props} {...coverProps} />;
 };
 
 export const WidgetRenderer = React.memo(WidgetRendererBase);

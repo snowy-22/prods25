@@ -31,7 +31,7 @@ interface ShareDialogProps {
 const SocialPreviewCard = ({ item, description }: { item: ContentItem, description: string }) => {
     if (!item) return null;
 
-    const domain = item.url ? new URL(item.url).hostname : 'canvasflow.app';
+    const domain = item.url ? new URL(item.url).hostname : 'tv25.app';
 
     return (
         <Card className="w-full overflow-hidden border">

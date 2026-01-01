@@ -4,6 +4,7 @@
 
 import React, { useState, useMemo, memo, useRef, ChangeEvent, KeyboardEvent, Fragment, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { motion, PanInfo } from 'framer-motion';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -363,11 +364,50 @@ const notificationIcons: Record<NotificationType, React.ElementType> = {
     share: Share2,
 };
 
-const NotificationCard = memo(function NotificationCard({ notification }: { notification: Notification }) {
+const NotificationCard = memo(function NotificationCard({ 
+    notification, 
+    onDismiss 
+}: { 
+    notification: Notification;
+    onDismiss?: (id: string) => void;
+}) {
     const Icon = notificationIcons[notification.type];
+    const [isDismissed, setIsDismissed] = useState(false);
+
+    const handleDismiss = () => {
+        setIsDismissed(true);
+        setTimeout(() => {
+            onDismiss?.(notification.id);
+        }, 300);
+    };
+
+    const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+        // Swipe threshold: 100px to left or right
+        if (Math.abs(info.offset.x) > 100) {
+            handleDismiss();
+        }
+    };
+
     return (
-        <div className="flex items-start gap-3 p-3 text-sm hover:bg-accent rounded-lg group">
-            <div className="relative">
+        <motion.div 
+            className="flex items-start gap-3 p-3 text-sm hover:bg-accent rounded-lg group cursor-grab active:cursor-grabbing"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleDragEnd}
+            initial={{ opacity: 1, x: 0 }}
+            animate={{ 
+                opacity: isDismissed ? 0 : 1,
+                x: isDismissed ? -300 : 0,
+                height: isDismissed ? 0 : 'auto'
+            }}
+            transition={{ 
+                opacity: { duration: 0.3 },
+                x: { duration: 0.3 },
+                height: { duration: 0.3, delay: isDismissed ? 0.15 : 0 }
+            }}
+        >
+            <div className="relative pointer-events-none">
                 <Avatar className="h-8 w-8">
                     <AvatarImage src={notification.user.avatar} />
                     <AvatarFallback>{notification.user.name.charAt(0)}</AvatarFallback>
@@ -380,14 +420,19 @@ const NotificationCard = memo(function NotificationCard({ notification }: { noti
                     )} />
                 </div>
             </div>
-            <div className='flex-1'>
+            <div className='flex-1 pointer-events-none'>
                 <p dangerouslySetInnerHTML={{ __html: notification.content }} />
-                <p className="text-xs text-muted-foreground">{notification.time}</p>
+                <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto"
+                onClick={handleDismiss}
+            >
                 <X className="h-4 w-4" />
             </Button>
-        </div>
+        </motion.div>
     )
 });
 
@@ -964,6 +1009,10 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
     
     const [widgetSearchQuery, setWidgetSearchQuery] = useState('');
     const [isWidgetSearchOpen, setIsWidgetSearchOpen] = useState(false);
+    
+    // Library panel controls - must be at top level for Rules of Hooks
+    const [isLibraryExpanded, setIsLibraryExpanded] = useState(false);
+    const [showLibraryDetails, setShowLibraryDetails] = useState(true);
 
 
     const {
@@ -1174,6 +1223,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
         case 'spaces':
         case 'devices':
             const { onSetClipboard, onPaste, clipboard, onShowInfo, onShare, onRenameItem, onTogglePinItem, onNewFolder, onNewList, onNewPlayer, onNewCalendar, onNewSpace, onNewDevice, expandedItems, onToggleExpansion, setActiveDevice, activeDeviceId, setDraggedItem, onDeleteItem, onLibraryDrop } = props;
+            
             return (
               <div className="h-full flex flex-col bg-card/60 backdrop-blur-md hidden lg:flex" data-testid={`${props.type}-panel`}>
                                 <div className="p-3 border-b flex items-center justify-between h-16">
@@ -1190,6 +1240,28 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     >
                         {libraryViewMode === 'list' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
                     </Button>
+                    {type === 'library' && (
+                        <>
+                            <Button
+                                variant={showLibraryDetails ? 'secondary' : 'ghost'}
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setShowLibraryDetails(!showLibraryDetails)}
+                                title="Detayları Göster/Gizle"
+                            >
+                                <Info className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant={isLibraryExpanded ? 'secondary' : 'ghost'}
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setIsLibraryExpanded(!isLibraryExpanded)}
+                                title={isLibraryExpanded ? 'Küçült' : 'Genişlet'}
+                            >
+                                {isLibraryExpanded ? <ChevronRight className="h-4 w-4" /> : <ChevronRight className="h-4 w-4 rotate-180" />}
+                            </Button>
+                        </>
+                    )}
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -1595,22 +1667,57 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                 </div>
             );
         case 'notifications':
+            const [activeNotifications, setActiveNotifications] = useState(notifications);
+            
+            const handleDismissNotification = (id: string) => {
+                setActiveNotifications(prev => prev.filter(n => n.id !== id));
+            };
+            
+            const handleMarkAllRead = () => {
+                // Clear all notifications
+                setActiveNotifications([]);
+            };
+            
             return (
                  <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="notifications-panel">
                     <div className="p-3 border-b flex items-center justify-between h-16">
-                        <h2 className="font-bold text-lg px-2 flex items-center gap-2"><Bell /> Bildirimler</h2>
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <Bell /> Bildirimler
+                            {activeNotifications.length > 0 && (
+                                <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                                    {activeNotifications.length}
+                                </span>
+                            )}
+                        </h2>
                          <div className="flex items-center gap-1">
-                             <Button variant="ghost" size="sm"><CheckCheck className="mr-2 h-4 w-4"/>Tümünü Oku</Button>
+                             <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={handleMarkAllRead}
+                                disabled={activeNotifications.length === 0}
+                             >
+                                <CheckCheck className="mr-2 h-4 w-4"/>Tümünü Temizle
+                             </Button>
                              <Button variant="ghost" size="icon"><Settings className="h-4 w-4"/></Button>
                          </div>
                     </div>
                     <ScrollArea className='flex-1 p-1'>
-                        {notifications.map((n, index) => (
-                           <Fragment key={n.id}>
-                             <NotificationCard notification={n} />
-                             {index < notifications.length - 1 && <Separator className="mx-2" />}
-                           </Fragment>
-                        ))}
+                        {activeNotifications.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
+                                <Bell className="h-12 w-12 mb-4 opacity-20" />
+                                <p className="text-sm">Bildiriminiz yok</p>
+                            </div>
+                        ) : (
+                            activeNotifications.map((n, index) => (
+                               <Fragment key={n.id}>
+                                 <NotificationCard 
+                                    notification={n} 
+                                    onDismiss={handleDismissNotification}
+                                 />
+                                 {index < activeNotifications.length - 1 && <Separator className="mx-2" />}
+                               </Fragment>
+                            ))
+                        )}
                     </ScrollArea>
                 </div>
             );

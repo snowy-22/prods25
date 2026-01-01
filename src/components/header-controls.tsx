@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Slider } from './ui/slider';
 import { PlayerModeDialog } from './player-mode-dialog';
+import { SmartRemote } from './smart-remote';
 
 import { LayoutMode } from '@/lib/layout-engine';
 
@@ -102,20 +103,7 @@ export default function HeaderControls({
 
   return (
     <div className="flex items-center gap-2">
-      {/* Grid Slider - Desktop only */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono bg-muted/30 backdrop-blur-md px-3 py-1.5 rounded-md h-9 min-w-fit">
-        <LayoutGrid className="h-4 w-4 shrink-0" />
-        <Slider
-          value={[gridSize]}
-          min={100}
-          max={800}
-          step={10}
-          onValueChange={(val) => setGridSize(val[0])}
-          className="w-32"
-        />
-        <span className="text-xs font-semibold ml-1 min-w-fit">{gridSize}px</span>
-      </div>
-
+      {/* Grid slider moved to bottom control bar */}
       <div className="flex items-center bg-muted/30 p-1 rounded-lg gap-1">
         <TooltipProvider>
           {/* UI Toggle */}
@@ -145,6 +133,10 @@ export default function HeaderControls({
                 {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
               </Button>
             </TooltipTrigger>
+                        {/* Smart Remote */}
+                        <SmartRemote />
+
+                        <div className="w-px h-4 bg-border mx-1" />
             <TooltipContent>{isFullscreen ? 'Tam Ekrandan Çık' : 'Tam Ekran'}</TooltipContent>
           </Tooltip>
 

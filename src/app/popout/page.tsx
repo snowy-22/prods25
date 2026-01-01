@@ -15,7 +15,7 @@ function PopoutContent() {
   const itemId = searchParams.get('itemId');
   const layoutMode = (searchParams.get('layoutMode') as LayoutMode) || 'grid';
   
-  const [allRawItems] = useLocalStorage<ContentItem[]>('canvasflow_items', initialContent);
+  const [allRawItems] = useLocalStorage<ContentItem[]>('tv25_items', initialContent);
   const supabase = createClient();
   const setUser = useAppStore(s => s.setUser);
   const setUsername = useAppStore(s => s.setUsername);

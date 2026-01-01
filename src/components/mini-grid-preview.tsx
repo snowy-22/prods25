@@ -6,20 +6,45 @@ import { cn } from '@/lib/utils';
 import { Folder, List } from 'lucide-react';
 import { getIconByName } from '@/lib/icons';
 
+type SizePreset = 'small' | 'medium' | 'large' | 's' | 'm' | 'l' | 'xl';
+
 interface MiniGridPreviewProps {
   item: ContentItem;
   maxItems?: number;
   onLoad?: () => void;
-  size?: 'small' | 'medium' | 'large';
+  size?: SizePreset;
+  showTitle?: boolean;
+  blurFallback?: boolean;
+  boldTitle?: boolean;
 }
 
-const MiniGridPreview: React.FC<MiniGridPreviewProps> = ({ item, maxItems = 9, onLoad, size = 'medium' }) => {
+const sizeConfig: Record<SizePreset, { cols: number; rows: number }> = {
+  small: { cols: 3, rows: 3 },
+  medium: { cols: 3, rows: 3 },
+  large: { cols: 4, rows: 3 },
+  s: { cols: 2, rows: 2 },
+  m: { cols: 3, rows: 3 },
+  l: { cols: 4, rows: 3 },
+  xl: { cols: 4, rows: 4 },
+};
+
+const MiniGridPreview: React.FC<MiniGridPreviewProps> = ({ 
+  item, 
+  maxItems = 9, 
+  onLoad, 
+  size = 'medium',
+  showTitle = true,
+  blurFallback = false,
+  boldTitle = false
+}) => {
   useEffect(() => {
     onLoad?.();
   }, [onLoad]);
   
   const children = item.children || [];
-  const itemsToShow = children.slice(0, maxItems);
+  const { cols, rows } = sizeConfig[size] || sizeConfig.medium;
+  const gridSlots = cols * rows;
+  const itemsToShow = children.slice(0, Math.min(maxItems, gridSlots));
 
   const hasCover = !!item.coverImage;
   const hasLogo = !!item.logo;
@@ -27,6 +52,9 @@ const MiniGridPreview: React.FC<MiniGridPreviewProps> = ({ item, maxItems = 9, o
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-muted group">
+      {blurFallback && !hasCover && (
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/10 to-secondary/30 blur-2xl opacity-70" />
+      )}
       {/* Cover Image */}
       {hasCover && (
         <div className="absolute inset-0 z-0">
@@ -46,7 +74,14 @@ const MiniGridPreview: React.FC<MiniGridPreviewProps> = ({ item, maxItems = 9, o
           className={cn(
             'absolute inset-0 z-10 grid w-full h-full transition-opacity duration-300',
             hasCover ? 'opacity-40 group-hover:opacity-60' : 'opacity-100',
-            'grid-cols-3 grid-rows-3'
+            {
+              'grid-cols-2': cols === 2,
+              'grid-cols-3': cols === 3,
+              'grid-cols-4': cols === 4,
+              'grid-rows-2': rows === 2,
+              'grid-rows-3': rows === 3,
+              'grid-rows-4': rows === 4,
+            }
           )}
         >
           {itemsToShow.map((child, index) => {
@@ -74,8 +109,8 @@ const MiniGridPreview: React.FC<MiniGridPreviewProps> = ({ item, maxItems = 9, o
               </div>
             );
           })}
-          {itemsToShow.length < 9 &&
-            Array.from({ length: 9 - itemsToShow.length }).map((_, filler) => (
+          {itemsToShow.length < gridSlots &&
+            Array.from({ length: gridSlots - itemsToShow.length }).map((_, filler) => (
               <div key={`filler-${item.id}-${filler}`} className="relative w-full h-full overflow-hidden border border-white/5 bg-background/40" />
             ))}
         </div>
@@ -103,9 +138,9 @@ const MiniGridPreview: React.FC<MiniGridPreviewProps> = ({ item, maxItems = 9, o
       )}
       
       {/* Title Overlay (Optional, but good for context) */}
-      {!hasLogo && (
-          <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent z-30">
-              <p className="text-[10px] font-bold text-white truncate">{item.title}</p>
+          {showTitle && !hasLogo && (
+            <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent z-30">
+              <p className={cn("text-[10px] text-white truncate", boldTitle ? "font-extrabold" : "font-semibold")}>{item.title}</p>
               {item.author_name && <p className="text-[8px] text-white/70 truncate">{item.author_name}</p>}
           </div>
       )}

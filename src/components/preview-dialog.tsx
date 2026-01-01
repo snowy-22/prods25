@@ -147,7 +147,7 @@ export default function PreviewDialog({
               )}
             </div>
         </div>
-        <div className='flex-1 min-h-0 bg-background/50 overflow-hidden'>
+        <div className='flex-1 min-h-0 bg-background/50 overflow-hidden h-full'>
           <Canvas
             items={isContainer ? (item.children || []) : [item]}
             allItems={isContainer ? (item.children || []) : context.items}

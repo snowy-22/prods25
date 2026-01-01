@@ -10,7 +10,7 @@ export default function Loading() {
       </div>
       <div className="mt-8 flex flex-col items-center gap-2">
         <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600 animate-pulse">
-            CanvasFlow
+            tv25
         </h2>
         <div className="flex gap-1">
             <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>

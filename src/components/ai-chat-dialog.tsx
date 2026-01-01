@@ -55,7 +55,7 @@ const exampleMessages: Record<string, Message[]> = {
         { role: 'model', content: [{ text: "Bu listeye bir göz at: <a href='#' class='text-primary underline'>Spor Kanalları</a>" }] }
     ],
     'asistan': [
-        { role: 'model', content: [{ text: "Merhaba! Ben CanvasFlow asistanınız. Size nasıl yardımcı olabilirim?" }] }
+        { role: 'model', content: [{ text: "Merhaba! Ben tv25 asistanınız. Size nasıl yardımcı olabilirim?" }] }
     ],
     'gelistiriciler': [
         { role: 'user', content: [{ text: "Yeni sürüm dağıtıma hazır. `main` branch'ini merge ediyorum." }] },

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { CSSProperties, memo, useRef, useState, useEffect, useCallback, Suspense, DragEvent } from 'react';
+import React, { CSSProperties, memo, useRef, useState, useEffect, useCallback, useMemo, Suspense, DragEvent } from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ContentItem, PatternSettings, Alignment, GridSizingMode, ItemType, ItemLayout } from '@/lib/initial-content';
@@ -143,7 +143,7 @@ const Canvas = memo(function Canvas({
     return gridSize; // Full size on desktop
   };
 
-  const responsiveGridSize = getResponsiveGridSize();
+  const responsiveGridSize = useMemo(() => getResponsiveGridSize(), [gridSize, responsive.isMobile, responsive.isTablet]);
   const normalizedLayoutMode: LayoutMode = layoutMode === 'canvas' ? 'canvas' : 'grid';
 
   // Canvas moduna özel kısayollar
@@ -177,10 +177,10 @@ const Canvas = memo(function Canvas({
 
   const canvasScale = (scale || 100) / 100;
   // Use proper scaling approach - avoid transform scale for better rendering
-  const scaledWrapperStyle = canvasScale !== 1 ? {
+  const scaledWrapperStyle = useMemo(() => canvasScale !== 1 ? {
     zoom: canvasScale,
     // Only use transform scale if absolutely necessary, otherwise use zoom
-  } : undefined;
+  } : undefined, [canvasScale]);
 
   const renderItem = useCallback((item: ContentItem) => {
     const isSelected = selectedItemIds.includes(item.id);
@@ -216,6 +216,7 @@ const Canvas = memo(function Canvas({
           onSaveItem={onSaveItem}
           activeAnimation={activeAnimation}
           layoutMode={normalizedLayoutMode as any}
+          data-item-id={item.id}
         >
             <Suspense fallback={<Skeleton className="w-full h-full" />}>
               <WidgetRenderer 
@@ -245,22 +246,22 @@ const Canvas = memo(function Canvas({
     );
   }
 
-  const canvasStyle: CSSProperties = {
+  const canvasStyle: CSSProperties = useMemo(() => ({
     ...background,
-  };
+  }), [background]);
   
-  const patternStyle: CSSProperties = {
+  const patternStyle: CSSProperties = useMemo(() => ({
     '--pattern-color': patternSettings.color,
     '--pattern-line-width': `${patternSettings.lineWidth}px`,
     '--pattern-size': `${patternSettings.dotSize}mm`,
-  } as CSSProperties;
+  } as CSSProperties), [patternSettings]);
 
-  const webglBackgroundClass = cn(
+  const webglBackgroundClass = useMemo(() => cn(
       'absolute inset-0 w-full h-full',
       background?.backgroundSize === 'contain' ? 'object-contain' : 'object-cover'
-  );
+  ), [background?.backgroundSize]);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     if (isPreviewMode) {
       e.preventDefault();
       e.stopPropagation();
@@ -268,9 +269,9 @@ const Canvas = memo(function Canvas({
     }
     e.preventDefault();
     e.stopPropagation();
-  };
+  }, [isPreviewMode]);
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     if (isPreviewMode) {
       e.preventDefault();
       e.stopPropagation();
@@ -292,16 +293,16 @@ const Canvas = memo(function Canvas({
         }
       }
     }
-  };
+  }, [isPreviewMode, onAddItem, activeViewId]);
 
-  const selectedItems = items.filter((item) => selectedItemIds.includes(item.id));
-  const deletableSelectedItems = selectedItems.filter((item) => item.isDeletable !== false);
+  const selectedItems = useMemo(() => items.filter((item) => selectedItemIds.includes(item.id)), [items, selectedItemIds]);
+  const deletableSelectedItems = useMemo(() => selectedItems.filter((item) => item.isDeletable !== false), [selectedItems]);
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = useCallback(() => {
     if (isPreviewMode || deletableSelectedItems.length === 0) return;
     deletableSelectedItems.forEach((item) => deleteItem(item.id));
     onFocusCleared();
-  };
+  }, [isPreviewMode, deletableSelectedItems, deleteItem, onFocusCleared]);
 
   return (
     <div 
@@ -407,6 +408,7 @@ const Canvas = memo(function Canvas({
                                   } : {}),
                                   ...(snapshot.isDragging && normalizedLayoutMode === 'grid' ? {} : layoutCalc.styles)
                                 }}
+                                data-item-id={item.id}
                               >
                                 {renderItem(item)}
                               </motion.div>
