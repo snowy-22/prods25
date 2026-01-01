@@ -10,11 +10,38 @@ export const metadata: Metadata = {
   description: 'Fikirlerinizi organize edin, projelerinizi yönetin, yaratıcılığınızı keşfedin.',
   keywords: ['canvas', 'dijital kanvas', 'proje yönetimi', 'not alma', 'organizasyon'],
   authors: [{ name: 'CanvasFlow' }],
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/apple-touch-icon.png',
+    other: {
+      rel: 'icon',
+      url: '/favicon.svg',
+      type: 'image/svg+xml',
+    },
+  },
   openGraph: {
     title: 'CanvasFlow',
     description: 'Fikirleriniz için sınırsız bir kanvas',
     type: 'website',
+    images: [
+      {
+        url: '/favicon.svg',
+        width: 192,
+        height: 192,
+        alt: 'CanvasFlow Logo',
+      },
+    ],
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'CanvasFlow',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

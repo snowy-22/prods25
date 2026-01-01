@@ -1550,39 +1550,6 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     </div>
                 </div>
             );
-                                                <div>
-                                                    <p className="font-bold text-lg">{(userProfileItem.likeCount || 0) + 123}</p>
-                                                    <p className="text-xs text-muted-foreground">Takipçi</p>
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-lg">{(userProfileItem.commentCount || 0) + 45}</p>
-                                                    <p className="text-xs text-muted-foreground">Takip</p>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold mb-2">Herkese Açık Koleksiyonlar</h3>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                    {publicCollections.map(item => (
-                                                        <Card key={item.id} className="cursor-pointer hover:border-primary" onClick={() => onSetView?.(item)}>
-                                                            <div className="aspect-video bg-muted rounded-t-lg overflow-hidden">
-                                                                <MiniGridPreview item={item} onLoad={() => {}} />
-                                                            </div>
-                                                            <div className="p-2">
-                                                                <CardTitle className="text-sm truncate">{item.title}</CardTitle>
-                                                                <CardDescription className="text-xs line-clamp-1">{item.content}</CardDescription>
-                                                            </div>
-                                                        </Card>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </ScrollArea>
-                            </TabsContent>
-                        </Tabs>
-                    </div>
-                </div>
-            );
         case 'messages':
             return (
                 <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="messages-panel">

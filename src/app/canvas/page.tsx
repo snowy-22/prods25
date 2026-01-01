@@ -62,7 +62,6 @@ import { createClient } from '@/lib/supabase/client';
 import { LayoutMode } from '@/lib/layout-engine';
 import { useAuth } from '@/providers/auth-provider';
 import { useRealtimeSync } from '@/hooks/use-realtime-sync';
-import { useRealtimeSync } from '@/hooks/use-realtime-sync';
 
 
 const MainContentInternal = ({ username }: { username: string | null }) => {
@@ -158,9 +157,6 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const state = useAppStore();
     const setUsername = useAppStore(s => s.setUsername);
     const setUser = useAppStore(s => s.setUser);
-    
-    // Enable realtime sync across browser tabs and sessions
-    const { broadcastItemUpdate, broadcastItemAdd, broadcastItemDelete } = useRealtimeSync(true);
     
     // Enable realtime sync across browser tabs and sessions
     const { broadcastItemUpdate, broadcastItemAdd, broadcastItemDelete } = useRealtimeSync(true);
@@ -409,13 +405,15 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             state.pushUndoRedo(activeTab.id, activeTab.activeViewId);
         }
 
+        // Broadcast to other browser tabs in real-time
+        if (typeof broadcastItemUpdate === 'function') {
+            broadcastItemUpdate(state.activeTabId, itemId, updates);
+        }
+
         updateItems(prevItems =>
             prevItems.map(item =>
                 item.id === itemId
                     ? { ...item, ...updates, updatedAt: new Date().toISOString() }
-        
-        // Broadcast to other browser tabs in real-time
-        broadcastItemUpdate(state.activeTabId, itemId, updates);
                     : item
             )
         );
