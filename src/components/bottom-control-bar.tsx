@@ -65,12 +65,12 @@ export function BottomControlBar({
       </Button>
 
       {/* Middle Section: Size Preset Buttons + Slider */}
-      <div className="flex items-center gap-1.5 flex-1 max-w-2xl">
+      <div className="flex items-center gap-2 flex-1 max-w-none">
         {/* Zoom Out Button */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7"
+          className="h-7 w-7 flex-shrink-0"
           onClick={handleZoomOut}
           disabled={currentPreset === 'S'}
           title="Küçült"
@@ -79,7 +79,7 @@ export function BottomControlBar({
         </Button>
         
         {/* Size Preset Buttons */}
-        <div className="flex items-center gap-1 border rounded-md p-0.5 bg-background/50">
+        <div className="flex items-center gap-1 border rounded-md p-0.5 bg-background/50 flex-shrink-0">
           {sizes.map(size => (
             <Button
               key={size}
@@ -96,33 +96,45 @@ export function BottomControlBar({
           ))}
         </div>
 
-        {/* Fine-tune Slider */}
+        {/* Fine-tune Slider - Expanded */}
         <div className="flex items-center gap-2 flex-1">
-          <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
+          <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
           <Slider
             value={[gridSize]}
             min={100}
             max={800}
             step={10}
             onValueChange={(val) => onGridSizeChange(val[0])}
-            className="flex-1"
+            className="flex-1 min-w-[200px]"
           />
-          <span className="text-xs font-mono text-muted-foreground min-w-[50px]">
+          <span className="text-xs font-mono text-muted-foreground min-w-[50px] flex-shrink-0">
             {gridSize}px
           </span>
         </div>
         
-        {/* Zoom In Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={handleZoomIn}
-          disabled={currentPreset === 'XL'}
-          title="Büyüt"
-        >
-          <ZoomIn className="h-3.5 w-3.5" />
-        </Button>
+        {/* Zoom Buttons Together on Right */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={handleZoomOut}
+            disabled={currentPreset === 'S'}
+            title="Küçült"
+          >
+            <ZoomOut className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={handleZoomIn}
+            disabled={currentPreset === 'XL'}
+            title="Büyüt"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       {/* Right Section: MiniMap */}

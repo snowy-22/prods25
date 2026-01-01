@@ -353,10 +353,10 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                     return sortDirection === 'asc' ? (a.itemCount || 0) - (b.itemCount || 0) : (b.itemCount || 0) - (a.itemCount || 0);
                 }
                 if (sortOption === 'platformViews') {
-                    return sortDirection === 'asc' ? (a.platformViewCount || 0) - (b.platformViewCount || 0) : (b.platformViewCount || 0) - (a.platformViewCount || 0);
+                    return sortDirection === 'asc' ? (a.viewCount || 0) - (b.viewCount || 0) : (b.viewCount || 0) - (a.viewCount || 0);
                 }
                 if (sortOption === 'platformLikes') {
-                    return sortDirection === 'asc' ? (a.platformLikeCount || 0) - (b.platformLikeCount || 0) : (b.platformLikeCount || 0) - (a.platformLikeCount || 0);
+                    return sortDirection === 'asc' ? (a.likeCount || 0) - (b.likeCount || 0) : (b.likeCount || 0) - (a.likeCount || 0);
                 }
                 if (sortOption === 'sourceViews') {
                     return sortDirection === 'asc' ? (a.viewCount || 0) - (b.viewCount || 0) : (b.viewCount || 0) - (a.viewCount || 0);
@@ -911,15 +911,18 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const [isResizing, setIsResizing] = useState(false);
     const [isRightResizing, setIsRightResizing] = useState(false);
 
-    // Sync minimap defaults from active view
+    // Sync minimap defaults from active view (using metadata)
     useEffect(() => {
-        if (activeView?.minimapDefaultOpen !== undefined) {
-            setIsMiniMapOpen(activeView.minimapDefaultOpen);
+        const minimapDefaultOpen = (activeView?.metadata as any)?.minimapDefaultOpen;
+        const minimapSize = (activeView?.metadata as any)?.minimapSize;
+        
+        if (minimapDefaultOpen !== undefined) {
+            setIsMiniMapOpen(minimapDefaultOpen);
         }
-        if (activeView?.minimapSize) {
-            setMiniMapSize(activeView.minimapSize as 's' | 'm' | 'l' | 'xl');
+        if (minimapSize) {
+            setMiniMapSize(minimapSize as 's' | 'm' | 'l' | 'xl');
         }
-    }, [activeView?.minimapDefaultOpen, activeView?.minimapSize, setIsMiniMapOpen, setMiniMapSize]);
+    }, [activeView?.metadata, setIsMiniMapOpen, setMiniMapSize]);
 
     // Left sidebar resize handlers
     const handleMouseDown = useCallback((e: React.MouseEvent) => {

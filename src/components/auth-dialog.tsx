@@ -51,9 +51,12 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
   
   const form = useForm({
     resolver: zodResolver(formSchema),
-    defaultValues: {
+    defaultValues: isSignup ? {
       username: "",
+      email: authData?.email || "",
+      password: "",
       referralCode: "",
+    } : {
       email: authData?.email || "",
       password: "",
     },

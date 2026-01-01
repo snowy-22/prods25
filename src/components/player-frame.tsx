@@ -150,7 +150,7 @@ const ItemStyleSettings = ({ item, onUpdateItem }: { item: ContentItem, onUpdate
                             <input
                                 type="color"
                                 value={(item as any).interactionColor || '#60a5fa'}
-                                onChange={(e) => onUpdateItem(item.id, { interactionColor: e.target.value })}
+                                onChange={(e) => onUpdateItem(item.id, { interactionColor: e.target.value } as any)}
                                 className="h-6 w-14 rounded cursor-pointer bg-transparent"
                             />
                             <span className="text-[10px] text-muted-foreground">Kalınlık</span>
@@ -160,7 +160,7 @@ const ItemStyleSettings = ({ item, onUpdateItem }: { item: ContentItem, onUpdate
                                 min={1}
                                 max={8}
                                 step={1}
-                                onValueChange={([v]) => onUpdateItem(item.id, { interactionWidth: v })}
+                                onValueChange={([v]) => onUpdateItem(item.id, { interactionWidth: v } as any)}
                             />
                         </div>
                         <div className="flex items-center gap-3">
@@ -171,7 +171,7 @@ const ItemStyleSettings = ({ item, onUpdateItem }: { item: ContentItem, onUpdate
                                 min={0}
                                 max={100}
                                 step={5}
-                                onValueChange={([v]) => onUpdateItem(item.id, { interactionGlow: v / 100 })}
+                                onValueChange={([v]) => onUpdateItem(item.id, { interactionGlow: v / 100 } as any)}
                             />
                             <span className="text-[10px] text-muted-foreground w-10 text-right">{Math.round(((item as any).interactionGlow ?? 0.3) * 100)}%</span>
                         </div>

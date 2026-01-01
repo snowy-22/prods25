@@ -10,7 +10,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { getIconByName } from '@/lib/icons';
 import { 
   Home, Monitor, Tablet, Smartphone, Tv, 
-  Chrome, Edge, Firefox, Safari, Globe,
+  Chrome, Globe,
   Circle, X, Settings, Eye, EyeOff, MonitorPlay
 } from 'lucide-react';
 

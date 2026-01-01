@@ -238,14 +238,7 @@ const Canvas = memo(function Canvas({
     );
   }, [selectedItemIds, baseFrameStyles, borderRadius, frameEffect, frameColor, frameWidth, frameStyle, allItems, widgetTemplates, onUpdateItem, onNewItemInPlayer, onSetView, onAddItem, activeViewId, username, deleteItem, copyItem, isPlayerHeaderVisible, isPlayerSettingsVisible, onShare, onShowInfo, onPreviewItem, onItemClick, onSaveItem, activeAnimation, isPreviewMode, isSuspended, activeView?.pointerFrameEnabled, activeView?.audioTrackerEnabled, activeView?.virtualizerMode, activeView?.visualizerMode, scale]);
   
-  if (isLoading || internalIsLoading) {
-    return (
-      <div className="flex h-full w-full items-center justify-center bg-transparent">
-        <AppLogo className="h-16 w-16 text-primary" />
-      </div>
-    );
-  }
-
+  // All hooks must be defined before any conditional returns
   const canvasStyle: CSSProperties = useMemo(() => ({
     ...background,
   }), [background]);
@@ -303,6 +296,15 @@ const Canvas = memo(function Canvas({
     deletableSelectedItems.forEach((item) => deleteItem(item.id));
     onFocusCleared();
   }, [isPreviewMode, deletableSelectedItems, deleteItem, onFocusCleared]);
+
+  // Conditional loading check after all hooks
+  if (isLoading || internalIsLoading) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-transparent">
+        <AppLogo className="h-16 w-16 text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div 
