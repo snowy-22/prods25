@@ -48,6 +48,7 @@ const ScreenshotWidget = dynamic(() => import('./widgets/screenshot-widget'), { 
 const ScreenRecorderWidget = dynamic(() => import('./widgets/screen-recorder-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const ScreenRecorderAdvancedWidget = dynamic(() => import('./widgets/screen-recorder-advanced').then(m => ({ default: m.ScreenRecorderWidget })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const PCMonitorWidget = dynamic(() => import('./widgets/pc-monitor-widget').then(m => ({ default: m.PCMonitorWidget })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const RecordingStudioWidget = dynamic(() => import('./widgets/recording-studio').then(m => ({ default: m.RecordingStudio })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const QRCodeWidget = dynamic(() => import('./widgets/qrcode-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const ColorPickerWidget = dynamic(() => import('./widgets/color-picker-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 
@@ -142,6 +143,7 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'screen-recorder': ScreenRecorderWidget,
   'screen-recorder-advanced': ScreenRecorderAdvancedWidget,
   'pc-monitor': PCMonitorWidget,
+  'recording-studio': RecordingStudioWidget,
   qrcode: QRCodeWidget,
   'color-picker': ColorPickerWidget,
   'clipboard-manager': ClipboardManagerWidget,
