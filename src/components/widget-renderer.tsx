@@ -46,6 +46,7 @@ const SwotWidget = dynamic(() => import('./widgets/swot-widget'), { ssr: false, 
 const FishboneWidget = dynamic(() => import('./widgets/fishbone-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const ScreenshotWidget = dynamic(() => import('./widgets/screenshot-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const ScreenRecorderWidget = dynamic(() => import('./widgets/screen-recorder-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const ScreenRecorderAdvancedWidget = dynamic(() => import('./widgets/screen-recorder-advanced').then(m => ({ default: m.ScreenRecorderWidget })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const QRCodeWidget = dynamic(() => import('./widgets/qrcode-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const ColorPickerWidget = dynamic(() => import('./widgets/color-picker-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 
@@ -138,6 +139,7 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   fishbone: FishboneWidget,
   screenshot: ScreenshotWidget,
   'screen-recorder': ScreenRecorderWidget,
+  'screen-recorder-advanced': ScreenRecorderAdvancedWidget,
   qrcode: QRCodeWidget,
   'color-picker': ColorPickerWidget,
   'clipboard-manager': ClipboardManagerWidget,
