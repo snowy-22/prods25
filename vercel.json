@@ -6,7 +6,7 @@
   "framework": "nextjs",
   "regions": ["iad1"],
   "env": {
-    "NEXT_PUBLIC_APP_URL": "https://tv25.org"
+    "NEXT_PUBLIC_APP_URL": "https://www.tv25.org"
   },
   "functions": {
     "app/api/**/*.ts": {
