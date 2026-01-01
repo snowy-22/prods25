@@ -735,13 +735,14 @@ const PlayerFrameComponent = ({
                                         Ekle
                                     </Button>
                                 </div>
-                                <div className="flex items-center gap-2 bg-background/80 backdrop-blur-md border px-2 py-1 rounded-full text-[11px] shadow">
+                                <div className="flex flex-wrap items-center justify-center gap-1 bg-background/80 backdrop-blur-md border px-3 py-2 rounded-xl text-[11px] shadow-lg max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
+                                    <span className="w-full text-center text-xs font-semibold text-muted-foreground mb-1 sm:mb-0 sm:w-auto">Oynatıcı Ekle:</span>
                                     {[{ icon: Play, label: 'Oynatıcı' }, { icon: Puzzle, label: 'Araç' }, { icon: List, label: 'Liste' }, { icon: Folder, label: 'Klasör' }, { icon: Upload, label: 'Yükle' }, { icon: Camera, label: 'Tarama' }].map(({ icon: IconComp, label }) => (
                                         <Button
                                             key={label}
                                             variant="ghost"
                                             size="sm"
-                                            className="h-7 px-2 gap-1 text-[11px]"
+                                            className="h-7 px-2 gap-1 text-[11px] hover:bg-primary/20 transition-colors"
                                             onClick={() => {
                                                 const url = window.prompt(`${label} için URL ekleyin`);
                                                 if (url) {
@@ -749,8 +750,8 @@ const PlayerFrameComponent = ({
                                                 }
                                             }}
                                         >
-                                            <IconComp className="h-4 w-4" />
-                                            {label}
+                                            <IconComp className="h-4 w-4 flex-shrink-0" />
+                                            <span className="hidden sm:inline">{label}</span>
                                         </Button>
                                     ))}
                                 </div>
