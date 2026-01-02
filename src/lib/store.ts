@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 import { ContentItem } from './initial-content';
 import { User } from '@supabase/supabase-js';
 import { Message, Conversation, Group, Call, GroupMember, PermissionLevel, PrivateAccount, MessageSearchFilter } from './messaging-types';
+import { HueBridge, HueLight, HueScene, HueSync } from './hue-types';
 
 export type SearchPanelState = {
   isOpen: boolean;
@@ -99,6 +100,15 @@ interface AppStore {
   currentGroupId?: string;
   currentConversationId?: string;
   privateAccounts: Record<string, PrivateAccount>;
+
+  // Philips Hue Integration (Personal API)
+  hueBridges: HueBridge[];
+  hueLights: HueLight[];
+  hueScenes: HueScene[];
+  hueSyncs: HueSync[];
+  selectedBridgeId?: string;
+  hueIsLoading: boolean;
+  hueError?: string;
 
   // Actions
   setUser: (user: User | null) => void;
@@ -218,6 +228,13 @@ export const useAppStore = create<AppStore>()(
       messages: {},
       calls: [],
       privateAccounts: {},
+
+      // Hue defaults
+      hueBridges: [],
+      hueLights: [],
+      hueScenes: [],
+      hueSyncs: [],
+      hueIsLoading: false,
 
       setUser: (user) => set({ user }),
       setUsername: (username) => set({ username }),
@@ -763,6 +780,58 @@ export const useAppStore = create<AppStore>()(
       }),
       setCurrentConversation: (conversationId) => set({ currentConversationId: conversationId }),
       setCurrentGroup: (groupId) => set({ currentGroupId: groupId }),
+
+      // Hue Actions
+      addHueBridge: (bridge) => set((state) => ({
+        hueBridges: [...state.hueBridges, bridge]
+      })),
+      updateHueBridge: (bridgeId, updates) => set((state) => ({
+        hueBridges: state.hueBridges.map(b => 
+          b.id === bridgeId ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b
+        )
+      })),
+      removeHueBridge: (bridgeId) => set((state) => ({
+        hueBridges: state.hueBridges.filter(b => b.id !== bridgeId),
+        hueLights: state.hueLights.filter(l => l.bridgeId !== bridgeId),
+        hueScenes: state.hueScenes.filter(s => s.bridgeId !== bridgeId),
+        hueSyncs: state.hueSyncs.filter(sy => sy.bridgeId !== bridgeId)
+      })),
+      setSelectedBridgeId: (bridgeId) => set({ selectedBridgeId: bridgeId }),
+      addHueLight: (light) => set((state) => ({
+        hueLights: [...state.hueLights, light]
+      })),
+      updateHueLight: (lightId, updates) => set((state) => ({
+        hueLights: state.hueLights.map(l => 
+          l.id === lightId ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l
+        )
+      })),
+      removeHueLight: (lightId) => set((state) => ({
+        hueLights: state.hueLights.filter(l => l.id !== lightId)
+      })),
+      addHueScene: (scene) => set((state) => ({
+        hueScenes: [...state.hueScenes, scene]
+      })),
+      updateHueScene: (sceneId, updates) => set((state) => ({
+        hueScenes: state.hueScenes.map(s => 
+          s.id === sceneId ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
+        )
+      })),
+      removeHueScene: (sceneId) => set((state) => ({
+        hueScenes: state.hueScenes.filter(s => s.id !== sceneId)
+      })),
+      addHueSync: (sync) => set((state) => ({
+        hueSyncs: [...state.hueSyncs, sync]
+      })),
+      updateHueSync: (syncId, updates) => set((state) => ({
+        hueSyncs: state.hueSyncs.map(sy => 
+          sy.id === syncId ? { ...sy, ...updates, updatedAt: new Date().toISOString() } : sy
+        )
+      })),
+      removeHueSync: (syncId) => set((state) => ({
+        hueSyncs: state.hueSyncs.filter(sy => sy.id !== syncId)
+      })),
+      setHueLoading: (loading) => set({ hueIsLoading: loading }),
+      setHueError: (error) => set({ hueError: error }),
     }),
     {
       name: 'tv25-storage',

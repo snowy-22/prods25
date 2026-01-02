@@ -1,109 +1,172 @@
 /**
- * Philips Hue API Endpoint
- * GET /api/hue/lights - Tüm ışıkları getir
- * POST /api/hue/lights/{id}/toggle - Işığı aç/kapat
- * POST /api/hue/lights/{id}/brightness - Parlaklığı değiştir
- * POST /api/hue/lights/{id}/color - Rengi değiştir
+ * Philips Hue API Routes
+ * Personal bridge management and light control
+ * All data stored in encrypted personal database
+ * 
+ * POST /api/hue - Discover, link, or control bridge
+ * GET /api/hue - Get user's bridges and lights
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import PhilipsHueClient from '@/lib/hue/client';
+import {
+  discoverHueBridge,
+  linkHueBridge,
+  getHueLights,
+  setLightState,
+  saveBridgeLights,
+  getUserBridges,
+  getUserLights,
+  deleteBridge,
+} from '@/lib/hue-service';
+import { createClient } from '@supabase/supabase-js';
 
-// Singleton instance
-let hueClient: PhilipsHueClient | null = null;
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-function getHueClient(): PhilipsHueClient | null {
-  if (!hueClient) {
-    const bridgeIP = process.env.NEXT_PUBLIC_HUE_BRIDGE_IP;
-    const apiKey = process.env.HUE_API_KEY;
-
-    if (!bridgeIP || !apiKey) {
-      console.error('Hue Bridge IP veya API Key tanımlanmamış');
-      return null;
-    }
-
-    hueClient = new PhilipsHueClient({
-      bridgeIP,
-      apiKey,
-    });
-  }
-  return hueClient;
-}
-
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const hue = getHueClient();
-    if (!hue) {
+    const { action, ...payload } = await req.json();
+
+    // Get user from auth header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json(
-        { error: 'Hue Bridge yapılandırılmamış' },
-        { status: 500 }
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    const isConnected = await hue.checkConnection();
-    if (!isConnected) {
+    // Extract token (format: Bearer token)
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
       return NextResponse.json(
-        { error: 'Hue Bridge\'e bağlanılamıyor' },
-        { status: 503 }
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
       );
     }
 
-    const lights = await hue.getLights();
-    const groups = await hue.getGroups();
-    const scenes = await hue.getScenes();
+    const userId = user.id;
 
-    return NextResponse.json({
-      connected: true,
-      lights: Array.from(lights.values()),
-      groups: Array.from(groups.values()),
-      scenes: Array.from(scenes.values()),
-    });
+    // Handle different actions
+    switch (action) {
+      case 'discover':
+        return NextResponse.json(
+          await discoverHueBridge(payload.ipAddress, payload.port)
+        );
+
+      case 'link':
+        return NextResponse.json(
+          await linkHueBridge(
+            userId,
+            payload.bridgeId,
+            payload.ipAddress,
+            payload.port
+          )
+        );
+
+      case 'get-lights':
+        const lightsResponse = await getHueLights(
+          payload.bridgeId,
+          payload.username,
+          payload.ipAddress,
+          payload.port
+        );
+
+        if (lightsResponse.success) {
+          // Save lights to database
+          await saveBridgeLights(userId, payload.bridgeId, lightsResponse.data);
+        }
+
+        return NextResponse.json(lightsResponse);
+
+      case 'set-light-state':
+        return NextResponse.json(
+          await setLightState(
+            payload.lightId,
+            payload.state,
+            payload.username,
+            payload.ipAddress,
+            payload.port
+          )
+        );
+
+      case 'save-lights':
+        return NextResponse.json(
+          await saveBridgeLights(userId, payload.bridgeId, payload.lights)
+        );
+
+      case 'get-bridges':
+        return NextResponse.json(
+          await getUserBridges(userId)
+        );
+
+      case 'get-user-lights':
+        return NextResponse.json(
+          await getUserLights(userId, payload.bridgeId)
+        );
+
+      case 'delete-bridge':
+        return NextResponse.json(
+          await deleteBridge(userId, payload.bridgeId)
+        );
+
+      default:
+        return NextResponse.json(
+          { success: false, error: 'Unknown action' },
+          { status: 400 }
+        );
+    }
   } catch (error) {
-    console.error('Hue API hatası:', error);
+    console.error('Hue API error:', error);
     return NextResponse.json(
-      { error: 'İç sunucu hatası' },
+      { success: false, error: `Server error: ${String(error)}` },
       { status: 500 }
     );
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    const hue = getHueClient();
-    if (!hue) {
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
       return NextResponse.json(
-        { error: 'Hue Bridge yapılandırılmamış' },
-        { status: 500 }
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
       );
     }
 
-    const body = await req.json();
-    const { lightId, action } = body;
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    let result = false;
-
-    switch (action) {
-      case 'toggle':
-        result = await hue.setLightState(lightId, { on: body.on });
-        break;
-      case 'brightness':
-        result = await hue.setBrightness(lightId, body.brightness);
-        break;
-      case 'color':
-        result = await hue.setColor(lightId, body.hue, body.saturation);
-        break;
-      default:
-        return NextResponse.json(
-          { error: 'Bilinmeyen action' },
-          { status: 400 }
-        );
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
+      );
     }
 
-    return NextResponse.json({ success: result });
+    const userId = user.id;
+    const bridgeId = req.nextUrl.searchParams.get('bridgeId');
+
+    // Get user's bridges and lights
+    const bridges = await getUserBridges(userId);
+    const lights = await getUserLights(userId, bridgeId || undefined);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        bridges: bridges.data,
+        lights: lights.data,
+      },
+    });
   } catch (error) {
-    console.error('Hue API hatası:', error);
+    console.error('Hue API error:', error);
     return NextResponse.json(
-      { error: 'İç sunucu hatası' },
+      { success: false, error: `Server error: ${String(error)}` },
       { status: 500 }
     );
   }
