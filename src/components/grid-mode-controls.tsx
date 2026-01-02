@@ -14,11 +14,14 @@ import {
   VolumeX,
   SkipForward,
   SkipBack,
-  Gauge
+  Gauge,
+  MonitorPlay
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GridModeState } from '@/lib/layout-engine';
 import { GridModeInfo } from './integration-info-button';
+import { SmartPlayerPanel } from './smart-player-panel';
+import { ContentItem } from '@/lib/initial-content';
 
 type GridModeControlsProps = {
   gridState: GridModeState;
@@ -36,6 +39,7 @@ type GridModeControlsProps = {
   onSkipForward?: () => void;
   onSkipBack?: () => void;
   onChangeSpeed?: (speed: number) => void;
+  activeMediaItem?: ContentItem | null;
 };
 
 const GridModeControls = memo(function GridModeControls({
@@ -53,7 +57,8 @@ const GridModeControls = memo(function GridModeControls({
   onUnmuteAll,
   onSkipForward,
   onSkipBack,
-  onChangeSpeed
+  onChangeSpeed,
+  activeMediaItem = null
 }: GridModeControlsProps) {
   const isVertical = gridState.type === 'vertical';
   const isSquare = gridState.type === 'square';
@@ -64,6 +69,9 @@ const GridModeControls = memo(function GridModeControls({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  
+  // Smart Player Panel state
+  const [isSmartPlayerOpen, setIsSmartPlayerOpen] = useState(false);
   
   // Calculate items per page dynamically
   const rowsPerPage = isSquare ? gridState.columns : 1;
@@ -260,6 +268,31 @@ const GridModeControls = memo(function GridModeControls({
       {/* Spacer */}
       <div className="flex-1" />
 
+      {/* Smart Player Button - Before Video Controls */}
+      <AnimatePresence mode="wait">
+        {hasVideoItems && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsSmartPlayerOpen(!isSmartPlayerOpen)}
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 rounded-md transition-all border border-slate-700/50",
+              isSmartPlayerOpen
+                ? "bg-gradient-to-r from-purple-500/80 to-pink-500/80 text-white shadow-lg shadow-purple-500/30"
+                : "bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800/80"
+            )}
+            title="Akıllı Oynatıcı Panelini Aç/Kapat"
+          >
+            <MonitorPlay className="w-4 h-4" />
+            <span className="text-xs font-medium">Akıllı Oynatıcı</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       {/* Right Section: Smart Video Player Controls */}
       <AnimatePresence mode="wait">
         {hasVideoItems && (
@@ -359,6 +392,13 @@ const GridModeControls = memo(function GridModeControls({
           <Info className="w-4 h-4" />
         </motion.button>
       </GridModeInfo>
+
+      {/* Smart Player Panel */}
+      <SmartPlayerPanel
+        isOpen={isSmartPlayerOpen}
+        onClose={() => setIsSmartPlayerOpen(false)}
+        activeMediaItem={activeMediaItem}
+      />
     </div>
   );
 });

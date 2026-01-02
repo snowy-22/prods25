@@ -1044,6 +1044,7 @@ export const useAppStore = create<AppStore>()(
         isSecondLeftSidebarOpen: state.isSecondLeftSidebarOpen,
         activeSecondaryPanel: state.activeSecondaryPanel,
         gridModeState: state.gridModeState,
+        expandedItems: state.expandedItems,
         // Do not persist isOpen to avoid auto-opening on first load
         searchPanelState: {
           isDraggable: state.searchPanelState.isDraggable,

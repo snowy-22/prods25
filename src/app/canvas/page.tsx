@@ -48,6 +48,7 @@ import ShortcutsDialog from '../../components/shortcuts-dialog';
 import SpacesPanel from '@/components/spaces-panel';
 import DevicesPanel from '@/components/devices-panel';
 import CanvasSpaceControl from '@/components/canvas-space-control';
+import { NewTabScreen } from '@/components/new-tab-screen';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import TabBar from '@/components/tab-bar';
 import { useAppStore } from '@/lib/store';
@@ -273,16 +274,27 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         if (state.username !== username) {
           setUsername(username);
         }
-        // Initialize tabs if empty
+        // Initialize tabs if empty based on startup behavior
         if (state.tabs.length === 0) {
           const currentItems = allRawItems.length > 0 ? allRawItems : initialContent;
-          const rootItem = currentItems.find(i => i.id === 'root') || currentItems[0];
-          if (rootItem) {
-            state.openInNewTab(rootItem, currentItems);
+          
+          // Check startup behavior setting
+          if (state.startupBehavior === 'new-tab' || state.startupBehavior === 'chrome-style') {
+            // Create chrome-style new tab
+            state.createNewTab();
+          } else if (state.startupBehavior === 'custom' && state.customStartupContent) {
+            // Open custom startup content
+            state.openInNewTab(state.customStartupContent, currentItems);
+          } else {
+            // Default: Open root library (last-session behavior)
+            const rootItem = currentItems.find(i => i.id === 'root') || currentItems[0];
+            if (rootItem) {
+              state.openInNewTab(rootItem, currentItems);
+            }
           }
         }
       }
-    }, [username, state.username, setUsername, state.tabs.length, state.openInNewTab, allRawItems]);
+    }, [username, state.username, setUsername, state.tabs.length, state.openInNewTab, state.createNewTab, state.startupBehavior, state.customStartupContent, allRawItems]);
 
     // Fix invalid activeTabId
     useEffect(() => {
@@ -1510,7 +1522,9 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                     <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => state.clearSelection()}>Temizle</Button>
                                 </div>
                             )}
-                            {isSingleItemView ? (
+                            {activeTab?.type === 'new-tab' ? (
+                                <NewTabScreen />
+                            ) : isSingleItemView ? (
                                 <WebsitePreview item={activeTab} onLoad={() => {}} />
                             ) : (
                                 <Canvas
