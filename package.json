@@ -2,6 +2,12 @@
   "name": "tv25",
   "version": "1.0.0",
   "private": true,
+  "sideEffects": [
+    "*.css",
+    "*.scss",
+    "./src/app/globals.css",
+    "./src/ai/**/*"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

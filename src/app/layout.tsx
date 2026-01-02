@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { AppProvider } from '@/providers/app-provider';
@@ -6,19 +6,22 @@ import { AuthProvider } from '@/providers/auth-provider';
 import { LogTracker } from '@/components/log-tracker';
 import { VercelAnalytics } from '@/components/vercel-analytics';
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover', // For notched phones
+  themeColor: '#000000',
+};
+
 export const metadata: Metadata = {
   title: 'tv25 - Sınırsız Dijital Kanvas',
   description: 'Fikirlerinizi organize edin, projelerinizi yönetin, yaratıcılığınızı keşfedin.',
   keywords: ['canvas', 'dijital kanvas', 'proje yönetimi', 'not alma', 'organizasyon'],
   authors: [{ name: 'tv25' }],
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    minimumScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-    viewportFit: 'cover', // For notched phones
-  },
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   icons: {
     icon: '/favicon.svg',
     shortcut: '/favicon.svg',
@@ -60,7 +63,6 @@ export const metadata: Metadata = {
     email: false,
   },
   manifest: '/manifest.json',
-  themeColor: '#000000',
 };
 
 export default function RootLayout({

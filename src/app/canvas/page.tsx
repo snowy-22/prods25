@@ -1468,7 +1468,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                         toggleStyleSettingsPanel={() => state.togglePanel('isStyleSettingsOpen')}
                                         gridSize={gridSize}
                                         setGridSize={setGridSize}
-                                        layoutMode={activeView?.layoutMode === 'canvas' ? 'canvas' : 'grid'}
+                                        layoutMode={activeView?.layoutMode || 'grid'}
                                         onSetLayoutMode={(mode) => activeView && updateItem(activeView.id, { layoutMode: mode })}
                                         activeViewId={activeView?.id}
                                         canUndo={(activeTab?.undoRedoIndex || 0) > 0}
@@ -1507,7 +1507,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                         toggleStyleSettingsPanel={() => state.togglePanel('isStyleSettingsOpen')}
                                         gridSize={gridSize}
                                         setGridSize={setGridSize}
-                                        layoutMode={activeView?.layoutMode === 'canvas' ? 'canvas' : 'grid'}
+                                        layoutMode={activeView?.layoutMode || 'grid'}
                                         onSetLayoutMode={(mode) => activeView && updateItem(activeView.id, { layoutMode: mode })}
                                         activeViewId={activeView?.id}
                                         user={null}
@@ -1553,7 +1553,8 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                     items={activeViewChildren}
                                     allItems={sidebarItems}
                                     activeView={activeView}
-                                    layoutMode={activeView?.layoutMode === 'canvas' ? 'canvas' : 'grid'}
+                                    layoutMode={activeView?.layoutMode || 'grid'}
+                                    onSetLayoutMode={(mode) => activeView && updateItem(activeView.id, { layoutMode: mode })}
                                     onUpdateItem={updateItem}
                                     onAddItem={addItemToView}
                                     onPaste={() => {

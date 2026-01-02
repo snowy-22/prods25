@@ -45,8 +45,25 @@ export function calculateLayout(
     options?: LayoutOptions
 ): LayoutCalculation {
     
-    // Grid Mode: Responsive ızgara düzeninde organize edilmiş içerik
-    if (mode === 'grid') {
+    // Grid Vertical Mode: Single column vertical flow
+    if (mode === 'grid-vertical') {
+        return {
+            styles: {
+                gridColumn: 'span 1',
+                gridRow: 'auto',
+                aspectRatio: 'unset',
+                position: 'relative',
+                width: '100%',
+                height: 'auto',
+                zIndex: 1,
+                minHeight: '160px',
+                maxHeight: 'none'
+            }
+        };
+    }
+
+    // Grid Square Mode: Equal columns and responsive grid
+    if (mode === 'grid-square' || mode === 'grid') {
         // Responsive threshold: container genişliğine göre maksimum span hesapla
         const baseGridSize = 280;
         const gap = 24;

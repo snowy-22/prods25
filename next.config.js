@@ -7,7 +7,16 @@ const nextConfig = {
     } : false,
   },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion', '@supabase/supabase-js'],
+    optimizePackageImports: [
+      'lucide-react', 
+      'framer-motion', 
+      '@supabase/supabase-js',
+      'react-icons/fa',
+      'react-icons/fa6',
+      'react-icons/md',
+      'react-icons/hi',
+      '@radix-ui/react-icons',
+    ],
     serverActions: {
       bodySizeLimit: '2mb',
     },

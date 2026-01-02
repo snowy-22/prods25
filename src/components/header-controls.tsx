@@ -20,7 +20,9 @@ import {
   Redo2,
   Menu,
   BarChart, 
-  LogOut 
+  LogOut,
+  AlignVerticalJustifyCenter,
+  Grid3x3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -164,6 +166,35 @@ export default function HeaderControls({
           )}
 
           <div className="w-px h-4 bg-border mx-1" />
+
+          {/* Layout Mode Toggle */}
+          {layoutMode && layoutMode !== 'canvas' && onSetLayoutMode && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={layoutMode === 'grid-vertical' ? 'default' : 'ghost'}
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={() => {
+                    if (layoutMode === 'grid' || layoutMode === 'grid-square') {
+                      onSetLayoutMode('grid-vertical');
+                    } else {
+                      onSetLayoutMode('grid-square');
+                    }
+                  }}
+                >
+                  {layoutMode === 'grid-vertical' ? (
+                    <AlignVerticalJustifyCenter className="h-4 w-4" />
+                  ) : (
+                    <Grid3x3 className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {layoutMode === 'grid-vertical' ? 'Dikey Mod' : 'Kare Mod'}
+              </TooltipContent>
+            </Tooltip>
+          )}
 
           {/* Style Settings */}
           <Tooltip>

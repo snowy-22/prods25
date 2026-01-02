@@ -58,6 +58,7 @@ type CanvasProps = {
   onOpenInNewTab?: (item: ContentItem) => void;
   gridSize: number;
   layoutMode?: LayoutMode;
+  onSetLayoutMode?: (mode: LayoutMode) => void;
   isPreviewMode?: boolean;
   isSuspended?: boolean;
 };
@@ -93,6 +94,7 @@ const Canvas = memo(function Canvas({
   onSaveItem,
   gridSize,
   layoutMode = 'grid',
+  onSetLayoutMode,
   isPreviewMode = false,
   isSuspended = false,
 }: CanvasProps) {
@@ -499,15 +501,19 @@ const Canvas = memo(function Canvas({
                     ref={provided.innerRef}
                     className={cn(
                       'transition-all duration-500 relative w-full min-h-full select-none',
-                      normalizedLayoutMode === 'grid' ? 'grid' : 'block',
-                      snapshot.isDraggingOver && normalizedLayoutMode === 'grid' && "bg-primary/5 ring-2 ring-primary/20 ring-inset rounded-lg"
+                      (normalizedLayoutMode === 'grid' || normalizedLayoutMode === 'grid-square' || normalizedLayoutMode === 'grid-vertical') ? 'grid' : 'block',
+                      snapshot.isDraggingOver && normalizedLayoutMode !== 'canvas' && "bg-primary/5 ring-2 ring-primary/20 ring-inset rounded-lg"
                     )}
                     style={{ 
                       padding: `${padding}px`, 
                       gap: `${gap}px`, 
-                      gridTemplateColumns: normalizedLayoutMode === 'grid' ? `repeat(auto-fill, minmax(${responsiveGridSize}px, 1fr))` : undefined,
-                      gridAutoRows: normalizedLayoutMode === 'grid' ? `${responsiveGridSize}px` : undefined,
-                      height: normalizedLayoutMode !== 'grid' ? '100%' : undefined
+                      gridTemplateColumns: 
+                        normalizedLayoutMode === 'grid-vertical' ? '1fr' :
+                        (normalizedLayoutMode === 'grid' || normalizedLayoutMode === 'grid-square') ? `repeat(auto-fill, minmax(${responsiveGridSize}px, 1fr))` : undefined,
+                      gridAutoRows: 
+                        normalizedLayoutMode === 'grid-vertical' ? 'auto' :
+                        (normalizedLayoutMode === 'grid' || normalizedLayoutMode === 'grid-square') ? `${responsiveGridSize}px` : undefined,
+                      height: normalizedLayoutMode === 'canvas' ? '100%' : undefined
                     }}
                   >
                     <AnimatePresence mode="popLayout">
@@ -527,11 +533,11 @@ const Canvas = memo(function Canvas({
                             key={item.id}
                             draggableId={item.id}
                             index={index}
-                            isDragDisabled={isPreviewMode || item.isDeletable === false || normalizedLayoutMode !== 'grid'}
+                            isDragDisabled={isPreviewMode || item.isDeletable === false || normalizedLayoutMode === 'canvas'}
                           >
                             {(provided, snapshot) => (
                               <motion.div
-                                layout={normalizedLayoutMode === 'grid'}
+                                layout={normalizedLayoutMode !== 'canvas'}
                                 initial={false}
                                 animate={{ 
                                   opacity: 1, 
