@@ -29,6 +29,7 @@ import { Switch } from './ui/switch';
 import { useAppStore } from '@/lib/store';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { MacroEditorDialog } from './dialogs/macro-editor';
 
 
 interface SettingsDialogProps {
@@ -568,6 +569,8 @@ function ShortcutsManagementPanel() {
   const [activeSubTab, setActiveSubTab] = useState<'keyboard' | 'gestures' | 'macros' | 'player-controls'>('keyboard');
   const [editingShortcutId, setEditingShortcutId] = useState<string | null>(null);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [macroEditorOpen, setMacroEditorOpen] = useState(false);
+  const [selectedMacroId, setSelectedMacroId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Keyboard shortcut editing
@@ -846,7 +849,9 @@ function ShortcutsManagementPanel() {
                     updatedAt: new Date().toISOString(),
                   };
                   addMacro(newMacro);
-                  toast({ title: 'Makro Eklendi', description: 'Makro editörünü açarak eylemler ekleyin' });
+                  setSelectedMacroId(newMacro.id);
+                  setMacroEditorOpen(true);
+                  toast({ title: 'Makro Oluşturuldu', description: 'Makro editörü açılıyor...' });
                 }}>
                   <Plus className="w-4 h-4 mr-2" />
                   Yeni Makro
@@ -886,7 +891,14 @@ function ShortcutsManagementPanel() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedMacroId(macro.id);
+                          setMacroEditorOpen(true);
+                        }}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button
@@ -1013,6 +1025,13 @@ function ShortcutsManagementPanel() {
           )}
         </div>
       </ScrollArea>
+
+      {/* Macro Editor Dialog */}
+      <MacroEditorDialog
+        isOpen={macroEditorOpen}
+        onOpenChange={setMacroEditorOpen}
+        macroId={selectedMacroId || undefined}
+      />
     </div>
   );
 }
