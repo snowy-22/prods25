@@ -17,7 +17,7 @@ import {
   Call,
   CallStatus,
 } from '@/lib/messaging-types';
-import { MessageCircle2, Users, Search, Phone, Video, Clock, Send } from 'lucide-react';
+import { MessageCircle, Users, Search, Phone, Video, Clock, Send } from 'lucide-react';
 import { GroupManagement } from './group-management';
 
 interface MessagingPanelProps {
@@ -115,7 +115,7 @@ export function MessagingPanel({
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
         <TabsList className="grid w-full grid-cols-4 rounded-none border-b">
           <TabsTrigger value="direct" className="gap-2">
-            <MessageCircle2 className="h-4 w-4" />
+            <MessageCircle className="h-4 w-4" />
             <span className="hidden sm:inline">Direkt</span>
           </TabsTrigger>
           <TabsTrigger value="groups" className="gap-2">

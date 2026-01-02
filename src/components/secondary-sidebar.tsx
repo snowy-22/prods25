@@ -9,7 +9,9 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { ContentItem, SortDirection, SortOption, widgetTemplates, RatingEvent, ItemType } from '@/lib/initial-content';
+import { useAppStore } from '@/lib/store';
 import { SocialPanel } from './social-panel';
+import { MessagingPanel } from './messaging/messaging-panel';
 import {
   ThumbsUp,
   Save,
@@ -64,8 +66,7 @@ import {
   Flame,
   BrainCircuit,
   Calendar,
-  MessageSquare,
-  MessageSquarePlus,
+    MessageSquare,
   UserPlus,
   CheckCheck,
   GanttChart,
@@ -1032,6 +1033,44 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
         selectedItemIds,
         username,
     } = props;
+
+    const {
+        user,
+        conversations,
+        groups,
+        messages,
+        calls,
+        createGroup,
+        updateGroup,
+        removeGroupMember,
+        updateMemberRole,
+        addMessage,
+        searchMessages,
+        startCall,
+        setCurrentConversation,
+        setCurrentGroup,
+        currentConversationId,
+        currentGroupId,
+    } = useAppStore((state) => ({
+        user: state.user,
+        conversations: state.conversations,
+        groups: state.groups,
+        messages: state.messages,
+        calls: state.calls,
+        createGroup: state.createGroup,
+        updateGroup: state.updateGroup,
+        removeGroupMember: state.removeGroupMember,
+        updateMemberRole: state.updateMemberRole,
+        addMessage: state.addMessage,
+        searchMessages: state.searchMessages,
+        startCall: state.startCall,
+        setCurrentConversation: state.setCurrentConversation,
+        setCurrentGroup: state.setCurrentGroup,
+        currentConversationId: state.currentConversationId,
+        currentGroupId: state.currentGroupId,
+    }));
+
+    const currentUserId = user?.id ?? 'guest';
   
     const handleSetView = useCallback((item: ContentItem | null, event?: React.MouseEvent | React.TouchEvent) => {
         if(onSetView) {
@@ -1196,15 +1235,6 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
       { id: '4', type: 'message', user: { name: 'Can', avatar: 'https://robohash.org/can.png'}, content: `size bir mesaj gönderdi.`, time: 'dün' },
       { id: '5', type: 'share', user: { name: 'Elif', avatar: 'https://robohash.org/elif.png'}, content: `sizinle <b>Sunum</b> listesini paylaştı.`, time: '2 gün önce' },
     ];
-
-    const pinnedMessages = [ { id: 'asistan', name: 'Asistan', lastMessage: 'Size nasıl yardımcı olabilirim?', avatar: '', type: 'bot' as const }];
-    const recentMessages = (socialUsers || []).map(u => ({ 
-        id: (u.name || u.title || 'user').toLowerCase().replace(/\s+/g, '-'), 
-        name: u.name || u.title || 'User', 
-        lastMessage: 'Harika görünüyor!', 
-        avatar: u.avatar || u.title, 
-        type: 'user' as const 
-    }));
 
     const columnOptions = [
         { id: 'items', label: 'Öğe Sayısı'},
@@ -1628,43 +1658,24 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             );
         case 'messages':
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="messages-panel">
-                    <div className="p-3 border-b flex items-center justify-between h-16">
-                        <h2 className="font-bold text-lg px-2 flex items-center gap-2"><MessageSquare /> Sohbetler</h2>
-                        <Button variant="ghost" size="icon"><MessageSquarePlus className="h-5 w-5"/></Button>
-                    </div>
-                    <Tabs defaultValue="chats" className="flex-1 flex flex-col min-h-0">
-                        <TabsList className="flex flex-wrap w-full mx-2 w-[calc(100%-16px)] mt-2 gap-1">
-                            <TabsTrigger value="chats" className="flex-1 min-w-[120px]">Mesajlar</TabsTrigger>
-                            <TabsTrigger value="calls" className="flex-1 min-w-[120px]">Aramalar</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="chats" className="flex-1 min-h-0 mt-0">
-                            <ScrollArea className='h-full p-2'>
-                                <div className='space-y-1'>
-                                    <h3 className="text-xs font-semibold text-muted-foreground px-2 mb-1">Sabitlenenler</h3>
-                                    {pinnedMessages.map(msg => <MessagePreviewCard key={msg.id} message={msg} onClick={() => onUserCardClick?.({id: msg.id, title: msg.name} as any)} isPinned={true} />)}
-                                    <Separator className='my-3' />
-                                    <h3 className="text-xs font-semibold text-muted-foreground px-2 mb-1">Son Sohbetler</h3>
-                                    {recentMessages.map(msg => <MessagePreviewCard key={msg.id} message={msg} onClick={() => onUserCardClick?.({id: msg.id, title: msg.name} as any)} isPinned={false} />)}
-                                </div>
-                            </ScrollArea>
-                        </TabsContent>
-                        <TabsContent value="calls" className="flex-1 min-h-0 mt-0">
-                            <ScrollArea className='h-full p-4'>
-                                <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-50">
-                                    <div className="p-4 rounded-full bg-muted">
-                                        <MonitorSmartphone className="h-8 w-8" />
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold">Arama Geçmişi Boş</p>
-                                        <p className="text-xs text-muted-foreground">Henüz bir sesli veya görüntülü arama yapmadınız.</p>
-                                    </div>
-                                    <Button variant="outline" size="sm">Yeni Arama Başlat</Button>
-                                </div>
-                            </ScrollArea>
-                        </TabsContent>
-                    </Tabs>
-                </div>
+                <MessagingPanel
+                    conversations={conversations}
+                    groups={groups}
+                    messages={messages}
+                    calls={calls}
+                    currentUserId={currentUserId}
+                    currentConversationId={currentConversationId}
+                    currentGroupId={currentGroupId}
+                    onAddMessage={addMessage}
+                    onSearchMessages={searchMessages}
+                    onCreateGroup={createGroup}
+                    onUpdateGroup={updateGroup}
+                    onRemoveGroupMember={removeGroupMember}
+                    onUpdateMemberRole={updateMemberRole}
+                    onStartCall={startCall}
+                    onSetCurrentConversation={setCurrentConversation}
+                    onSetCurrentGroup={setCurrentGroup}
+                />
             );
         case 'notifications':
             const [activeNotifications, setActiveNotifications] = useState(notifications);
