@@ -3,14 +3,15 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ContentItem } from '@/lib/initial-content';
-import { Map, X, GripVertical } from 'lucide-react';
+import { ContentItem, PlayerControlGroup } from '@/lib/initial-content';
+import { Map, X, GripVertical, Pin, PinOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { getIconByName } from '@/lib/icons';
 
 interface MiniMapOverlayProps {
   items: ContentItem[];
+  playerControlGroups?: PlayerControlGroup[];
   isOpen: boolean;
   onToggle: (open: boolean) => void;
   canvasWidth?: number;
@@ -23,10 +24,12 @@ interface MiniMapOverlayProps {
   maxItems?: number;
   blurFallback?: boolean;
   boldTitle?: boolean;
+  onToggleControlPin?: (groupId: string, pinned: boolean) => void;
 }
 
 export function MiniMapOverlay({
   items,
+  playerControlGroups = [],
   isOpen,
   onToggle,
   canvasWidth = 1920,
@@ -39,6 +42,7 @@ export function MiniMapOverlay({
   maxItems = 20,
   blurFallback = true,
   boldTitle = false,
+  onToggleControlPin,
 }: MiniMapOverlayProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [mapWidth, setMapWidth] = useState(240); // Responsive mini map width
@@ -201,6 +205,44 @@ export function MiniMapOverlay({
               />
             );
           })}
+
+          {/* Pinned Player Control Groups as mini overlays */}
+          {playerControlGroups
+            .filter(g => g.isPinnedToMiniMap)
+            .map((group) => {
+              const controlX = ((group.position?.x || 0) * canvasScale);
+              const controlY = ((group.position?.y || 0) * canvasScale);
+              
+              return (
+                <motion.div
+                  key={`control-${group.id}`}
+                  className="absolute bg-emerald-500/30 border border-emerald-500/60 rounded hover:bg-emerald-500/40 transition-colors cursor-pointer group"
+                  style={{
+                    left: `${controlX}px`,
+                    top: `${controlY}px`,
+                    width: '24px',
+                    height: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  whileHover={{ scale: 1.15 }}
+                  title={`${group.name} (Player Controls)`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleControlPin?.(group.id, false);
+                  }}
+                >
+                  <Pin className="h-3 w-3 text-emerald-600 group-hover:opacity-100" />
+                  <motion.div
+                    className="absolute -top-8 left-1/2 -translate-x-1/2 bg-emerald-900/90 text-emerald-50 text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-50"
+                    whileHover={{ opacity: 1 }}
+                  >
+                    {group.name}
+                  </motion.div>
+                </motion.div>
+              );
+            })}
         </div>
 
         {/* Items List (scrollable) */}

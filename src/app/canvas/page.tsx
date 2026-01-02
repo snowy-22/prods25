@@ -1556,8 +1556,10 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                          >
                             <MiniMapOverlay
                                 items={activeViewChildren}
+                                playerControlGroups={state.playerControlGroups}
                                 isOpen={isMiniMapOpen}
                                 onToggle={setIsMiniMapOpen}
+                                onToggleControlPin={(groupId, pinned) => state.togglePlayerControlMiniMapPin(groupId, pinned)}
                                 size={activeView?.minimapSize as any || (activeView as any)?.coverPreset || miniMapSize}
                                 onSizeChange={setMiniMapSize}
                                 maxItems={(activeView as any)?.coverMaxItems ?? 20}
