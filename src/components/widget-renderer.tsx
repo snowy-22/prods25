@@ -22,6 +22,7 @@ const CurrencyConverterWidget = dynamic(() => import('./widgets/currency-convert
 const UnitConverterWidget = dynamic(() => import('./widgets/unit-converter-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const CurrencyRatesWidget = dynamic(() => import('./widgets/currency-rates-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const PlayerControlsWidget = dynamic(() => import('./widgets/player-controls-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const MacroPadWidget = dynamic(() => import('./widgets/macro-pad-widget').then(m => ({ default: m.MacroPadWidget })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const NavigationWidget = dynamic(() => import('./widgets/navigation-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const MediaHubWidget = dynamic(() => import('./widgets/media-hub-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const AiImageWidget = dynamic(() => import('./widgets/ai-image-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
@@ -119,6 +120,8 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   unitConverter: UnitConverterWidget,
   currencyRates: CurrencyRatesWidget,
   playerControls: PlayerControlsWidget,
+  'player-controls-widget': PlayerControlsWidget,
+  'macro-pad': MacroPadWidget,
   navigation: NavigationWidget,
   mediaHub: MediaHubWidget,
   aiImage: AiImageWidget,

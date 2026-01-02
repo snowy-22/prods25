@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ContentItem } from './initial-content';
+import { ContentItem, KeyboardShortcut, Gesture, MacroDefinition, MacroPadLayout, PlayerControlGroup } from './initial-content';
 import { User } from '@supabase/supabase-js';
 import { Message, Conversation, Group, Call, GroupMember, PermissionLevel, PrivateAccount, MessageSearchFilter } from './messaging-types';
 import { HueBridge, HueLight, HueScene, HueSync } from './hue-types';
@@ -193,6 +193,46 @@ interface AppStore {
   unblockUser: (userId: string) => void;
   setCurrentConversation: (conversationId: string) => void;
   setCurrentGroup: (groupId: string) => void;
+
+  // Keyboard Shortcuts, Macros & Gestures
+  keyboardShortcuts: KeyboardShortcut[];
+  gestures: Gesture[];
+  macros: MacroDefinition[];
+  macroPadLayouts: MacroPadLayout[];
+  playerControlGroups: PlayerControlGroup[];
+  activeMacroPadLayoutId?: string;
+
+  // Keyboard Shortcuts Actions
+  addKeyboardShortcut: (shortcut: KeyboardShortcut) => void;
+  updateKeyboardShortcut: (shortcutId: string, updates: Partial<KeyboardShortcut>) => void;
+  removeKeyboardShortcut: (shortcutId: string) => void;
+  toggleShortcut: (shortcutId: string, enabled: boolean) => void;
+  executeShortcutAction: (action: string, params?: any) => void;
+
+  // Gestures Actions
+  addGesture: (gesture: Gesture) => void;
+  updateGesture: (gestureId: string, updates: Partial<Gesture>) => void;
+  removeGesture: (gestureId: string) => void;
+  toggleGesture: (gestureId: string, enabled: boolean) => void;
+
+  // Macros Actions
+  addMacro: (macro: MacroDefinition) => void;
+  updateMacro: (macroId: string, updates: Partial<MacroDefinition>) => void;
+  removeMacro: (macroId: string) => void;
+  executeMacro: (macroId: string) => Promise<void>;
+
+  // Macro Pad Actions
+  addMacroPadLayout: (layout: MacroPadLayout) => void;
+  updateMacroPadLayout: (layoutId: string, updates: Partial<MacroPadLayout>) => void;
+  removeMacroPadLayout: (layoutId: string) => void;
+  setActiveMacroPadLayout: (layoutId: string) => void;
+
+  // Player Control Groups Actions
+  addPlayerControlGroup: (group: PlayerControlGroup) => void;
+  updatePlayerControlGroup: (groupId: string, updates: Partial<PlayerControlGroup>) => void;
+  removePlayerControlGroup: (groupId: string) => void;
+  togglePlayerControlPin: (groupId: string, pinned: boolean) => void;
+  togglePlayerControlMiniMapPin: (groupId: string, pinned: boolean) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -257,6 +297,13 @@ export const useAppStore = create<AppStore>()(
       hueScenes: [],
       hueSyncs: [],
       hueIsLoading: false,
+
+      // Keyboard Shortcuts, Macros & Gestures defaults
+      keyboardShortcuts: [],
+      gestures: [],
+      macros: [],
+      macroPadLayouts: [],
+      playerControlGroups: [],
 
       setUser: (user) => set({ user }),
       setUsername: (username) => set({ username }),
@@ -861,6 +908,110 @@ export const useAppStore = create<AppStore>()(
       })),
       setHueLoading: (loading) => set({ hueIsLoading: loading }),
       setHueError: (error) => set({ hueError: error }),
+
+      // Keyboard Shortcuts Actions
+      addKeyboardShortcut: (shortcut) => set((state) => ({
+        keyboardShortcuts: [...state.keyboardShortcuts, shortcut]
+      })),
+      updateKeyboardShortcut: (shortcutId, updates) => set((state) => ({
+        keyboardShortcuts: state.keyboardShortcuts.map(s =>
+          s.id === shortcutId ? { ...s, ...updates } : s
+        )
+      })),
+      removeKeyboardShortcut: (shortcutId) => set((state) => ({
+        keyboardShortcuts: state.keyboardShortcuts.filter(s => s.id !== shortcutId)
+      })),
+      toggleShortcut: (shortcutId, enabled) => set((state) => ({
+        keyboardShortcuts: state.keyboardShortcuts.map(s =>
+          s.id === shortcutId ? { ...s, isEnabled: enabled } : s
+        )
+      })),
+      executeShortcutAction: (action, params) => {
+        // Action execution logic will be handled by a separate keyboard manager
+        console.log('Execute shortcut action:', action, params);
+      },
+
+      // Gestures Actions
+      addGesture: (gesture) => set((state) => ({
+        gestures: [...state.gestures, gesture]
+      })),
+      updateGesture: (gestureId, updates) => set((state) => ({
+        gestures: state.gestures.map(g =>
+          g.id === gestureId ? { ...g, ...updates } : g
+        )
+      })),
+      removeGesture: (gestureId) => set((state) => ({
+        gestures: state.gestures.filter(g => g.id !== gestureId)
+      })),
+      toggleGesture: (gestureId, enabled) => set((state) => ({
+        gestures: state.gestures.map(g =>
+          g.id === gestureId ? { ...g, isEnabled: enabled } : g
+        )
+      })),
+
+      // Macros Actions
+      addMacro: (macro) => set((state) => ({
+        macros: [...state.macros, macro]
+      })),
+      updateMacro: (macroId, updates) => set((state) => ({
+        macros: state.macros.map(m =>
+          m.id === macroId ? { ...m, ...updates, updatedAt: new Date().toISOString() } : m
+        )
+      })),
+      removeMacro: (macroId) => set((state) => ({
+        macros: state.macros.filter(m => m.id !== macroId)
+      })),
+      executeMacro: async (macroId) => {
+        const { macros } = get();
+        const macro = macros.find(m => m.id === macroId);
+        if (!macro || !macro.isEnabled) return;
+
+        // Execute actions sequentially
+        for (const action of macro.actions) {
+          if (action.delay) {
+            await new Promise(resolve => setTimeout(resolve, action.delay));
+          }
+          // Action execution logic will be handled by macro executor
+          console.log('Execute macro action:', action);
+        }
+      },
+
+      // Macro Pad Actions
+      addMacroPadLayout: (layout) => set((state) => ({
+        macroPadLayouts: [...state.macroPadLayouts, layout]
+      })),
+      updateMacroPadLayout: (layoutId, updates) => set((state) => ({
+        macroPadLayouts: state.macroPadLayouts.map(l =>
+          l.id === layoutId ? { ...l, ...updates } : l
+        )
+      })),
+      removeMacroPadLayout: (layoutId) => set((state) => ({
+        macroPadLayouts: state.macroPadLayouts.filter(l => l.id !== layoutId)
+      })),
+      setActiveMacroPadLayout: (layoutId) => set({ activeMacroPadLayoutId: layoutId }),
+
+      // Player Control Groups Actions
+      addPlayerControlGroup: (group) => set((state) => ({
+        playerControlGroups: [...state.playerControlGroups, group]
+      })),
+      updatePlayerControlGroup: (groupId, updates) => set((state) => ({
+        playerControlGroups: state.playerControlGroups.map(g =>
+          g.id === groupId ? { ...g, ...updates } : g
+        )
+      })),
+      removePlayerControlGroup: (groupId) => set((state) => ({
+        playerControlGroups: state.playerControlGroups.filter(g => g.id !== groupId)
+      })),
+      togglePlayerControlPin: (groupId, pinned) => set((state) => ({
+        playerControlGroups: state.playerControlGroups.map(g =>
+          g.id === groupId ? { ...g, isPinned: pinned } : g
+        )
+      })),
+      togglePlayerControlMiniMapPin: (groupId, pinned) => set((state) => ({
+        playerControlGroups: state.playerControlGroups.map(g =>
+          g.id === groupId ? { ...g, isPinnedToMiniMap: pinned } : g
+        )
+      })),
     }),
     {
       name: 'tv25-storage',

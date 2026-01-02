@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { DeviceType, OsType, BrowserType } from '@/hooks/use-device';
 
-export type ItemType = 'website' | 'image' | 'video' | 'audio' | 'pdf' | 'map' | 'folder' | 'list' | 'clock' | 'notes' | 'player' | 'calendar' | '3dplayer' | 'award' | 'todolist' | 'weather' | 'calculator' | 'currencyConverter' | 'unitConverter' | 'currencyRates' | 'playerControls' | 'navigation' | 'mediaHub' | 'aiImage' | 'inventory' | 'space' | 'file' | 'pharmacy' | 'trash-folder' | 'flowchart' | 'kanban' | 'swot' | 'fishbone' | '5s' | 'six-s' | 'kaizen-platform' | 'agile-calendar' | 'qfd' | 'processchart' | 'pmp' | 'rss' | 'devices' | 'profile-card' | 'profile-share' | 'mindmap' | 'financial-engineering' | 'financial-calculator' | 'book' | 'item' | 'saved-items' | 'alarm' | 'stopwatch' | 'timer' | 'world-clock' | 'pomodoro' | 'user-profile' | 'awards-folder' | 'spaces-folder' | 'devices-folder' | 'root' | 'match' | 'league-table' | 'fixture' | 'scan' | 'search' | 'todo' | 'social-feed' | 'user-list' | 'screenshot' | 'screen-recorder' | 'qrcode' | 'color-picker' | 'clipboard-manager' | 'gradient-generator' | 'lorem-ipsum' | 'business-model-canvas' | 'hue' | 'reservation' | 'purchase' | 'achievements' | 'training-module' | 'award-card' | 'new-tab' | 'device' | 'hue-light' | 'organization-chart' | 'business-analysis' | 'product-catalog' | 'stock-management' | 'sales-card' | 'advanced-table' | 'speed-test' | 'performance-monitor';
+export type ItemType = 'website' | 'image' | 'video' | 'audio' | 'pdf' | 'map' | 'folder' | 'list' | 'clock' | 'notes' | 'player' | 'calendar' | '3dplayer' | 'award' | 'todolist' | 'weather' | 'calculator' | 'currencyConverter' | 'unitConverter' | 'currencyRates' | 'playerControls' | 'navigation' | 'mediaHub' | 'aiImage' | 'inventory' | 'space' | 'file' | 'pharmacy' | 'trash-folder' | 'flowchart' | 'kanban' | 'swot' | 'fishbone' | '5s' | 'six-s' | 'kaizen-platform' | 'agile-calendar' | 'qfd' | 'processchart' | 'pmp' | 'rss' | 'devices' | 'profile-card' | 'profile-share' | 'mindmap' | 'financial-engineering' | 'financial-calculator' | 'book' | 'item' | 'saved-items' | 'alarm' | 'stopwatch' | 'timer' | 'world-clock' | 'pomodoro' | 'user-profile' | 'awards-folder' | 'spaces-folder' | 'devices-folder' | 'root' | 'match' | 'league-table' | 'fixture' | 'scan' | 'search' | 'todo' | 'social-feed' | 'user-list' | 'screenshot' | 'screen-recorder' | 'qrcode' | 'color-picker' | 'clipboard-manager' | 'gradient-generator' | 'lorem-ipsum' | 'business-model-canvas' | 'hue' | 'reservation' | 'purchase' | 'achievements' | 'training-module' | 'award-card' | 'new-tab' | 'device' | 'hue-light' | 'organization-chart' | 'business-analysis' | 'product-catalog' | 'stock-management' | 'sales-card' | 'advanced-table' | 'speed-test' | 'performance-monitor' | 'macro-pad' | 'player-controls-widget';
 
 export type SortOption = 'manual' | 'name' | 'createdAt' | 'updatedAt' | 'itemCount' | 'averageRating' | 'platformViews' | 'platformLikes' | 'sourceViews' | 'sourceLikes' | 'sourceCreatedAt';
 export type SortDirection = 'asc' | 'desc';
@@ -876,3 +876,139 @@ export const socialContent = [
   { id: 'post-1', userId: 'user-1', content: 'Bugün harika bir gün! #mutluluk', timestamp: '10dk önce', likes: 12, comments: 3 },
   { id: 'post-2', userId: 'user-2', content: 'Hafta sonu doğa yürüyüşü harikaydı. 🌲 #doğa #huzur', timestamp: '5s önce', likes: 56, comments: 4 },
 ];
+
+// ========================================
+// KEYBOARD SHORTCUTS, MACROS & GESTURES
+// ========================================
+
+export type KeyboardModifier = 'ctrl' | 'shift' | 'alt' | 'meta' | 'ctrlOrMeta';
+
+export type KeyboardShortcut = {
+  id: string;
+  name: string;
+  description: string;
+  keys: string[]; // e.g., ['ctrl', 'k'] or ['shift', 'alt', 'p']
+  action: string; // Action identifier
+  category: 'navigation' | 'player' | 'editing' | 'view' | 'macro' | 'custom';
+  isEnabled: boolean;
+  isCustom?: boolean; // User-defined shortcut
+  canBeOverridden?: boolean; // System shortcuts that can be modified
+};
+
+export type GestureType = 
+  | 'swipe-left' 
+  | 'swipe-right' 
+  | 'swipe-up' 
+  | 'swipe-down'
+  | 'pinch-in' 
+  | 'pinch-out'
+  | 'two-finger-tap'
+  | 'three-finger-tap'
+  | 'long-press'
+  | 'double-tap';
+
+export type Gesture = {
+  id: string;
+  name: string;
+  description: string;
+  type: GestureType;
+  action: string; // Action identifier
+  isEnabled: boolean;
+  sensitivity?: number; // 0-1 (for swipe/pinch)
+  duration?: number; // ms (for long-press)
+};
+
+export type MacroActionType = 
+  | 'navigate' // Navigate to item/folder
+  | 'play' // Play video/audio
+  | 'pause' // Pause playback
+  | 'mute' // Mute audio
+  | 'volume' // Set volume level
+  | 'speed' // Set playback speed
+  | 'skip' // Skip forward/backward
+  | 'fullscreen' // Toggle fullscreen
+  | 'layout' // Change layout mode
+  | 'theme' // Change theme
+  | 'execute-script' // Run custom script
+  | 'open-url' // Open URL
+  | 'create-item' // Create new item
+  | 'delete-item' // Delete item
+  | 'copy' // Copy item
+  | 'paste' // Paste item
+  | 'search' // Open search
+  | 'ai-chat' // Open AI chat
+  | 'screenshot' // Take screenshot
+  | 'wait' // Wait for duration
+  | 'custom'; // Custom action
+
+export type MacroAction = {
+  id: string;
+  type: MacroActionType;
+  parameters: Record<string, any>; // Action-specific parameters
+  delay?: number; // Delay before execution (ms)
+};
+
+export type MacroDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  icon?: string;
+  color?: string; // Button color in macro pad
+  category: string; // User-defined category
+  actions: MacroAction[]; // Sequence of actions
+  shortcut?: string[]; // Optional keyboard shortcut
+  isEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MacroPadLayout = {
+  id: string;
+  name: string;
+  columns: number; // Grid columns
+  rows: number; // Grid rows
+  buttonSize: 'small' | 'medium' | 'large';
+  showLabels: boolean;
+  showIcons: boolean;
+  theme: 'dark' | 'light' | 'colorful';
+  buttons: MacroPadButton[];
+};
+
+export type MacroPadButton = {
+  id: string;
+  position: { row: number; col: number }; // Grid position
+  span?: { rows?: number; cols?: number }; // Spanning multiple cells
+  macroId: string; // Reference to MacroDefinition
+  customLabel?: string; // Override macro name
+  customIcon?: string; // Override macro icon
+  customColor?: string; // Override macro color
+};
+
+export type PlayerControlGroup = {
+  id: string;
+  name: string;
+  type: 'smart' | 'defined'; // Smart = auto-detect players, Defined = specific players
+  playerIds?: string[]; // For defined type
+  controls: PlayerControlType[];
+  layout: 'horizontal' | 'vertical' | 'grid';
+  isPinned: boolean; // Pinned to player-controls-widget
+  isPinnedToMiniMap: boolean; // Pinned to mini-map
+  position?: { x: number; y: number }; // For mini-map pinning
+};
+
+export type PlayerControlType = 
+  | 'play-pause'
+  | 'stop'
+  | 'previous'
+  | 'next'
+  | 'volume'
+  | 'mute'
+  | 'speed'
+  | 'progress'
+  | 'fullscreen'
+  | 'pip' // Picture-in-picture
+  | 'subtitle'
+  | 'quality'
+  | 'loop'
+  | 'shuffle';
+

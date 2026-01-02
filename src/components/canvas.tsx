@@ -104,6 +104,74 @@ const Canvas = memo(function Canvas({
   const setGridColumns = useAppStore(state => state.setGridColumns);
   const setGridCurrentPage = useAppStore(state => state.setGridCurrentPage);
 
+  // Video Controls - Detect video items in canvas
+  const hasVideoItems = useMemo(() => {
+    return items.some(item => 
+      item.type === 'video' || 
+      item.type === 'youtube' ||
+      (item.url && /\.(mp4|webm|ogg|mov)$/i.test(item.url))
+    );
+  }, [items]);
+
+  // Video Control Callbacks - Toplu kontrol (bulk control for all videos)
+  const handlePlayAll = useCallback(() => {
+    const videos = document.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"]');
+    videos.forEach((element) => {
+      if (element instanceof HTMLVideoElement) {
+        element.play().catch(() => {/* Auto-play restrictions */});
+      } else if (element instanceof HTMLIFrameElement) {
+        // YouTube/Vimeo API integration
+        element.contentWindow?.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      }
+    });
+  }, []);
+
+  const handlePauseAll = useCallback(() => {
+    const videos = document.querySelectorAll('video, iframe[src*="youtube"], iframe[src*="vimeo"]');
+    videos.forEach((element) => {
+      if (element instanceof HTMLVideoElement) {
+        element.pause();
+      } else if (element instanceof HTMLIFrameElement) {
+        element.contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+      }
+    });
+  }, []);
+
+  const handleMuteAll = useCallback(() => {
+    const videos = document.querySelectorAll('video');
+    videos.forEach((video) => {
+      video.muted = true;
+    });
+  }, []);
+
+  const handleUnmuteAll = useCallback(() => {
+    const videos = document.querySelectorAll('video');
+    videos.forEach((video) => {
+      video.muted = false;
+    });
+  }, []);
+
+  const handleSkipForward = useCallback(() => {
+    const videos = document.querySelectorAll('video');
+    videos.forEach((video) => {
+      video.currentTime = Math.min(video.currentTime + 10, video.duration);
+    });
+  }, []);
+
+  const handleSkipBack = useCallback(() => {
+    const videos = document.querySelectorAll('video');
+    videos.forEach((video) => {
+      video.currentTime = Math.max(video.currentTime - 10, 0);
+    });
+  }, []);
+
+  const handleChangeSpeed = useCallback((speed: number) => {
+    const videos = document.querySelectorAll('video');
+    videos.forEach((video) => {
+      video.playbackRate = speed;
+    });
+  }, []);
+
   const {
     baseFrameStyles = {},
     borderRadius = 8,
@@ -387,6 +455,14 @@ const Canvas = memo(function Canvas({
               }
             }}
             totalItems={items.length}
+            hasVideoItems={hasVideoItems}
+            onPlayAll={handlePlayAll}
+            onPauseAll={handlePauseAll}
+            onMuteAll={handleMuteAll}
+            onUnmuteAll={handleUnmuteAll}
+            onSkipForward={handleSkipForward}
+            onSkipBack={handleSkipBack}
+            onChangeSpeed={handleChangeSpeed}
           />
         </div>
       )}
