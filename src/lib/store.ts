@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { ContentItem } from './initial-content';
 import { User } from '@supabase/supabase-js';
+import { Message, Conversation, Group, Call, GroupMember, PermissionLevel, PrivateAccount, MessageSearchFilter } from './messaging-types';
 
 export type SearchPanelState = {
   isOpen: boolean;
@@ -89,6 +90,16 @@ interface AppStore {
   virtualizerMode: boolean;
   visualizerMode: 'off' | 'bars' | 'wave' | 'circular' | 'particles';
 
+  // Messaging State
+  conversations: Conversation[];
+  groups: Group[];
+  messages: Record<string, Message[]>;
+  calls: Call[];
+  activeCall?: Call;
+  currentGroupId?: string;
+  currentConversationId?: string;
+  privateAccounts: Record<string, PrivateAccount>;
+
   // Actions
   setUser: (user: User | null) => void;
   setUsername: (username: string | null) => void;
@@ -142,6 +153,25 @@ interface AppStore {
   setStartupBehavior: (behavior: StartupBehavior) => void;
   setCustomNewTabContent: (content: ContentItem) => void;
   setCustomStartupContent: (content: ContentItem) => void;
+
+  // Messaging Actions
+  createGroup: (group: Omit<Group, 'id' | 'createdAt' | 'updatedAt' | 'messageCount'>) => void;
+  updateGroup: (groupId: string, updates: Partial<Group>) => void;
+  addGroupMember: (groupId: string, member: GroupMember) => void;
+  removeGroupMember: (groupId: string, userId: string) => void;
+  updateMemberRole: (groupId: string, userId: string, role: PermissionLevel) => void;
+  addMessage: (message: Message) => void;
+  editMessage: (messageId: string, content: string) => void;
+  deleteMessage: (conversationId: string, messageId: string) => void;
+  searchMessages: (filter: MessageSearchFilter) => Message[];
+  startCall: (call: Call) => void;
+  endCall: (callId: string) => void;
+  addCallParticipant: (callId: string, participant: { userId: string; userName: string; userAvatar?: string; audioEnabled: boolean; videoEnabled: boolean; screenShareActive: boolean }) => void;
+  setPrivateAccount: (account: PrivateAccount) => void;
+  blockUser: (userId: string) => void;
+  unblockUser: (userId: string) => void;
+  setCurrentConversation: (conversationId: string) => void;
+  setCurrentGroup: (groupId: string) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -181,6 +211,13 @@ export const useAppStore = create<AppStore>()(
       mouseTrackerEnabled: false,
       virtualizerMode: false,
       visualizerMode: 'off',
+
+      // Messaging defaults
+      conversations: [],
+      groups: [],
+      messages: {},
+      calls: [],
+      privateAccounts: {},
 
       setUser: (user) => set({ user }),
       setUsername: (username) => set({ username }),
@@ -603,6 +640,129 @@ export const useAppStore = create<AppStore>()(
       setStartupBehavior: (behavior) => set({ startupBehavior: behavior }),
       setCustomNewTabContent: (content) => set({ customNewTabContent: content }),
       setCustomStartupContent: (content) => set({ customStartupContent: content }),
+
+      // Messaging Actions
+      createGroup: (group) => set((state) => ({
+        groups: [...state.groups, {
+          ...group,
+          id: `group-${Date.now()}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          messageCount: 0,
+        }]
+      })),
+      updateGroup: (groupId, updates) => set((state) => ({
+        groups: state.groups.map(g => g.id === groupId ? { ...g, ...updates } : g)
+      })),
+      addGroupMember: (groupId, member) => set((state) => ({
+        groups: state.groups.map(g => 
+          g.id === groupId 
+            ? { ...g, members: [...g.members, member] }
+            : g
+        )
+      })),
+      removeGroupMember: (groupId, userId) => set((state) => ({
+        groups: state.groups.map(g => 
+          g.id === groupId 
+            ? { ...g, members: g.members.filter(m => m.userId !== userId) }
+            : g
+        )
+      })),
+      updateMemberRole: (groupId, userId, role) => set((state) => ({
+        groups: state.groups.map(g => 
+          g.id === groupId 
+            ? { ...g, members: g.members.map(m => m.userId === userId ? { ...m, role } : m) }
+            : g
+        )
+      })),
+      addMessage: (message) => set((state) => ({
+        messages: {
+          ...state.messages,
+          [message.conversationId]: [...(state.messages[message.conversationId] || []), message]
+        }
+      })),
+      editMessage: (messageId, content) => set((state) => {
+        const updatedMessages: Record<string, Message[]> = {};
+        for (const [convId, msgs] of Object.entries(state.messages)) {
+          updatedMessages[convId] = msgs.map(m => 
+            m.id === messageId 
+              ? { ...m, content, isEdited: true, editedAt: new Date().toISOString() }
+              : m
+          );
+        }
+        return { messages: updatedMessages };
+      }),
+      deleteMessage: (conversationId, messageId) => set((state) => ({
+        messages: {
+          ...state.messages,
+          [conversationId]: state.messages[conversationId]?.filter(m => m.id !== messageId) || []
+        }
+      })),
+      searchMessages: (filter) => {
+        const { query, conversationId, senderId, type, startDate, endDate } = filter;
+        const allMessages = Object.values(get().messages).flat();
+        return allMessages.filter(msg => {
+          if (conversationId && msg.conversationId !== conversationId) return false;
+          if (senderId && msg.senderId !== senderId) return false;
+          if (type && msg.type !== type) return false;
+          if (query && !msg.content.toLowerCase().includes(query.toLowerCase())) return false;
+          if (startDate && new Date(msg.createdAt) < new Date(startDate)) return false;
+          if (endDate && new Date(msg.createdAt) > new Date(endDate)) return false;
+          return true;
+        });
+      },
+      startCall: (call) => set((state) => ({
+        calls: [...state.calls, call],
+        activeCall: call
+      })),
+      endCall: (callId) => set((state) => ({
+        calls: state.calls.map(c => c.id === callId ? { ...c, status: 'ended' as const, endedAt: new Date().toISOString() } : c),
+        activeCall: state.activeCall?.id === callId ? undefined : state.activeCall
+      })),
+      addCallParticipant: (callId, participant) => set((state) => ({
+        calls: state.calls.map(c => 
+          c.id === callId 
+            ? { ...c, participants: [...c.participants, participant] }
+            : c
+        )
+      })),
+      setPrivateAccount: (account) => set((state) => ({
+        privateAccounts: {
+          ...state.privateAccounts,
+          [account.userId]: account
+        }
+      })),
+      blockUser: (userId) => set((state) => {
+        const currentUser = state.user?.id;
+        if (!currentUser) return state;
+        const account = state.privateAccounts[currentUser] || { userId: currentUser, privacyLevel: 'public', blockedUsers: [], allowedFollowers: [], followRequests: [], acceptedFollowers: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        return {
+          privateAccounts: {
+            ...state.privateAccounts,
+            [currentUser]: {
+              ...account,
+              blockedUsers: [...new Set([...account.blockedUsers, userId])]
+            }
+          }
+        };
+      }),
+      unblockUser: (userId) => set((state) => {
+        const currentUser = state.user?.id;
+        if (!currentUser) return state;
+        const account = state.privateAccounts[currentUser];
+        if (!account) return state;
+        return {
+          privateAccounts: {
+            ...state.privateAccounts,
+            [currentUser]: {
+              ...account,
+              blockedUsers: account.blockedUsers.filter(id => id !== userId)
+            }
+          }
+        };
+      }),
+      setCurrentConversation: (conversationId) => set({ currentConversationId: conversationId }),
+      setCurrentGroup: (groupId) => set({ currentGroupId: groupId }),
     }),
     {
       name: 'tv25-storage',
