@@ -1034,41 +1034,23 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
         username,
     } = props;
 
-    const {
-        user,
-        conversations,
-        groups,
-        messages,
-        calls,
-        createGroup,
-        updateGroup,
-        removeGroupMember,
-        updateMemberRole,
-        addMessage,
-        searchMessages,
-        startCall,
-        setCurrentConversation,
-        setCurrentGroup,
-        currentConversationId,
-        currentGroupId,
-    } = useAppStore((state) => ({
-        user: state.user,
-        conversations: state.conversations,
-        groups: state.groups,
-        messages: state.messages,
-        calls: state.calls,
-        createGroup: state.createGroup,
-        updateGroup: state.updateGroup,
-        removeGroupMember: state.removeGroupMember,
-        updateMemberRole: state.updateMemberRole,
-        addMessage: state.addMessage,
-        searchMessages: state.searchMessages,
-        startCall: state.startCall,
-        setCurrentConversation: state.setCurrentConversation,
-        setCurrentGroup: state.setCurrentGroup,
-        currentConversationId: state.currentConversationId,
-        currentGroupId: state.currentGroupId,
-    }));
+    // Zustand selectors - memoized to avoid infinite loops
+    const user = useAppStore((state) => state.user);
+    const conversations = useAppStore((state) => state.conversations);
+    const groups = useAppStore((state) => state.groups);
+    const messages = useAppStore((state) => state.messages);
+    const calls = useAppStore((state) => state.calls);
+    const createGroup = useAppStore((state) => state.createGroup);
+    const updateGroup = useAppStore((state) => state.updateGroup);
+    const removeGroupMember = useAppStore((state) => state.removeGroupMember);
+    const updateMemberRole = useAppStore((state) => state.updateMemberRole);
+    const addMessage = useAppStore((state) => state.addMessage);
+    const searchMessages = useAppStore((state) => state.searchMessages);
+    const startCall = useAppStore((state) => state.startCall);
+    const setCurrentConversation = useAppStore((state) => state.setCurrentConversation);
+    const setCurrentGroup = useAppStore((state) => state.setCurrentGroup);
+    const currentConversationId = useAppStore((state) => state.currentConversationId);
+    const currentGroupId = useAppStore((state) => state.currentGroupId);
 
     const currentUserId = user?.id ?? 'guest';
   
@@ -1656,7 +1638,17 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     </div>
                 </div>
             );
-        case 'messages':
+        case 'messages': {
+            const handleAddMessage = useCallback(addMessage, [addMessage]);
+            const handleSearchMessages = useCallback(searchMessages, [searchMessages]);
+            const handleCreateGroup = useCallback(createGroup, [createGroup]);
+            const handleUpdateGroup = useCallback(updateGroup, [updateGroup]);
+            const handleRemoveGroupMember = useCallback(removeGroupMember, [removeGroupMember]);
+            const handleUpdateMemberRole = useCallback(updateMemberRole, [updateMemberRole]);
+            const handleStartCall = useCallback(startCall, [startCall]);
+            const handleSetCurrentConversation = useCallback(setCurrentConversation, [setCurrentConversation]);
+            const handleSetCurrentGroup = useCallback(setCurrentGroup, [setCurrentGroup]);
+
             return (
                 <MessagingPanel
                     conversations={conversations}
@@ -1666,17 +1658,18 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     currentUserId={currentUserId}
                     currentConversationId={currentConversationId}
                     currentGroupId={currentGroupId}
-                    onAddMessage={addMessage}
-                    onSearchMessages={searchMessages}
-                    onCreateGroup={createGroup}
-                    onUpdateGroup={updateGroup}
-                    onRemoveGroupMember={removeGroupMember}
-                    onUpdateMemberRole={updateMemberRole}
-                    onStartCall={startCall}
-                    onSetCurrentConversation={setCurrentConversation}
-                    onSetCurrentGroup={setCurrentGroup}
+                    onAddMessage={handleAddMessage}
+                    onSearchMessages={handleSearchMessages}
+                    onCreateGroup={handleCreateGroup}
+                    onUpdateGroup={handleUpdateGroup}
+                    onRemoveGroupMember={handleRemoveGroupMember}
+                    onUpdateMemberRole={handleUpdateMemberRole}
+                    onStartCall={handleStartCall}
+                    onSetCurrentConversation={handleSetCurrentConversation}
+                    onSetCurrentGroup={handleSetCurrentGroup}
                 />
             );
+        }
         case 'notifications':
             const [activeNotifications, setActiveNotifications] = useState(notifications);
             
