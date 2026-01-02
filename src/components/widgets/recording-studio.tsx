@@ -22,9 +22,10 @@ import {
   Upload,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Timeline, Scene, Action } from '@/lib/recording-studio-types';
+import { Timeline, Scene, Action, ActionType } from '@/lib/recording-studio-types';
 import { useAutomationEngine } from '@/hooks/use-automation-engine';
 import { useScreenRecorder } from '@/hooks/use-screen-recorder';
+import { TimelineEditor } from '@/components/recording-studio/timeline-editor';
 
 interface RecordingStudioProps {
   size?: 'small' | 'medium' | 'large';
@@ -167,6 +168,132 @@ export function RecordingStudio({ size = 'large' }: RecordingStudioProps) {
     
     setTimeline(demoTimeline);
   }, [setTimeline]);
+
+  // Action handlers for timeline editor
+  const handleSceneAdd = useCallback(() => {
+    if (!timeline) {
+      // Create first scene
+      const newTimeline: Timeline = {
+        id: `timeline-${Date.now()}`,
+        name: 'Yeni Timeline',
+        description: '',
+        scenes: [{
+          id: `scene-${Date.now()}`,
+          name: 'Yeni Sahne',
+          description: '',
+          actions: [],
+          duration: 5000,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }],
+        totalDuration: 5000,
+        fps: 60,
+        resolution: { width: 1920, height: 1080 },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setTimeline(newTimeline);
+    } else {
+      // Add new scene to existing timeline
+      const newScene: Scene = {
+        id: `scene-${Date.now()}`,
+        name: `Sahne ${timeline.scenes.length + 1}`,
+        description: '',
+        actions: [],
+        duration: 5000,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const updatedTimeline = {
+        ...timeline,
+        scenes: [...timeline.scenes, newScene],
+        totalDuration: timeline.totalDuration + newScene.duration,
+        updatedAt: new Date().toISOString(),
+      };
+      setTimeline(updatedTimeline);
+    }
+  }, [timeline, setTimeline]);
+
+  const handleSceneRemove = useCallback((sceneId: string) => {
+    if (!timeline) return;
+    const updatedScenes = timeline.scenes.filter(s => s.id !== sceneId);
+    const newTotalDuration = updatedScenes.reduce((sum, s) => sum + s.duration, 0);
+    setTimeline({
+      ...timeline,
+      scenes: updatedScenes,
+      totalDuration: newTotalDuration,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [timeline, setTimeline]);
+
+  const handleActionAdd = useCallback((sceneId: string, actionType: ActionType) => {
+    if (!timeline) return;
+    
+    const scene = timeline.scenes.find(s => s.id === sceneId);
+    if (!scene) return;
+
+    // Create base action
+    const baseAction = {
+      id: `action-${Date.now()}`,
+      type: actionType,
+      startTime: 0,
+      duration: 1000,
+      easing: 'ease-in-out' as const,
+      label: `Yeni ${actionType}`,
+    };
+
+    // Type-specific properties
+    let newAction: Action;
+    switch (actionType) {
+      case 'scroll':
+        newAction = { ...baseAction, type: 'scroll', targetPosition: { x: 0, y: 100 }, smooth: true };
+        break;
+      case 'zoom':
+        newAction = { ...baseAction, type: 'zoom', fromZoom: 1, toZoom: 1.5 };
+        break;
+      case 'wait':
+        newAction = { ...baseAction, type: 'wait' };
+        break;
+      case 'animation':
+        newAction = { ...baseAction, type: 'animation', animationType: 'fade-in', properties: {} };
+        break;
+      default:
+        newAction = { ...baseAction, type: actionType } as Action;
+    }
+
+    const updatedScenes = timeline.scenes.map(s => 
+      s.id === sceneId 
+        ? { ...s, actions: [...s.actions, newAction], updatedAt: new Date().toISOString() }
+        : s
+    );
+
+    setTimeline({
+      ...timeline,
+      scenes: updatedScenes,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [timeline, setTimeline]);
+
+  const handleActionRemove = useCallback((sceneId: string, actionId: string) => {
+    if (!timeline) return;
+    
+    const updatedScenes = timeline.scenes.map(s => 
+      s.id === sceneId 
+        ? { ...s, actions: s.actions.filter(a => a.id !== actionId), updatedAt: new Date().toISOString() }
+        : s
+    );
+
+    setTimeline({
+      ...timeline,
+      scenes: updatedScenes,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [timeline, setTimeline]);
+
+  const handleActionEdit = useCallback((sceneId: string, actionId: string) => {
+    // TODO: Open action editor dialog
+    console.log('Edit action:', sceneId, actionId);
+  }, []);
 
   return (
     <Card className={cn(
@@ -335,38 +462,18 @@ export function RecordingStudio({ size = 'large' }: RecordingStudioProps) {
             <TabsTrigger value="settings">Ayarlar</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="timeline" className="flex-1 mt-4 border border-slate-700 rounded-lg p-4 bg-slate-800/30">
-            {timeline ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">{timeline.name}</h3>
-                  <Badge variant="outline" className="border-slate-600">
-                    {timeline.scenes.length} sahne
-                  </Badge>
-                </div>
-                
-                {/* Timeline görselleştirmesi buraya gelecek */}
-                <div className="h-64 bg-slate-900 rounded-lg p-4 border border-slate-700">
-                  <p className="text-slate-400 text-center">Timeline Editor (Yakında)</p>
-                </div>
-              </div>
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <div className="text-center text-slate-400">
-                  <Film className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Henüz timeline oluşturulmamış</p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={createDemoTimeline}
-                    className="mt-4 border-slate-600 hover:bg-slate-700"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Demo Timeline Oluştur
-                  </Button>
-                </div>
-              </div>
-            )}
+          <TabsContent value="timeline" className="flex-1 mt-4 border border-slate-700 rounded-lg p-0 bg-slate-800/30 overflow-hidden">
+            <TimelineEditor
+              timeline={timeline}
+              currentTime={currentTime}
+              isPlaying={isPlaying}
+              onTimeChange={seekTo}
+              onSceneAdd={handleSceneAdd}
+              onSceneRemove={handleSceneRemove}
+              onActionAdd={handleActionAdd}
+              onActionRemove={handleActionRemove}
+              onActionEdit={handleActionEdit}
+            />
           </TabsContent>
 
           <TabsContent value="scenes" className="flex-1 mt-4">
