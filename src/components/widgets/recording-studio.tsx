@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ import { Timeline, Scene, Action, ActionType } from '@/lib/recording-studio-type
 import { useAutomationEngine } from '@/hooks/use-automation-engine';
 import { useScreenRecorder } from '@/hooks/use-screen-recorder';
 import { TimelineEditor } from '@/components/recording-studio/timeline-editor';
+import { useAppStore } from '@/lib/store';
 
 interface RecordingStudioProps {
   size?: 'small' | 'medium' | 'large';
@@ -37,6 +38,9 @@ export function RecordingStudio({ size = 'large' }: RecordingStudioProps) {
   
   const isSmall = size === 'small';
   const isLarge = size === 'large';
+
+  // Get store actions for execution context
+  const { layoutMode, setLayoutMode } = useAppStore();
 
   // Automation engine
   const {
@@ -56,6 +60,7 @@ export function RecordingStudio({ size = 'large' }: RecordingStudioProps) {
     seekTo,
     setPlaybackSpeed,
     toggleLoop,
+    setExecutionContext,
   } = useAutomationEngine();
 
   // Screen recorder
@@ -66,6 +71,27 @@ export function RecordingStudio({ size = 'large' }: RecordingStudioProps) {
     downloadRecording,
     hasRecording,
   } = useScreenRecorder({ audio: true, video: true });
+
+  // Setup execution context for automation engine
+  useEffect(() => {
+    setExecutionContext({
+      currentLayoutMode: layoutMode,
+      setLayoutMode: (mode) => setLayoutMode(mode),
+      setZoom: (zoom) => {
+        // TODO: Connect to actual zoom control
+        console.log('Zoom:', zoom);
+      },
+      currentZoom: 1,
+      navigate: (path) => {
+        // TODO: Connect to actual navigation
+        console.log('Navigate:', path);
+      },
+      updateItem: (itemId, updates) => {
+        // TODO: Connect to actual item update
+        console.log('Update item:', itemId, updates);
+      },
+    });
+  }, [setExecutionContext, layoutMode, setLayoutMode]);
 
   // Format time as MM:SS.mmm
   const formatTime = useCallback((ms: number) => {

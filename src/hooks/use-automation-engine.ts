@@ -9,6 +9,11 @@ import {
   EasingFunction,
   AutomationState 
 } from '@/lib/recording-studio-types';
+import { 
+  executeAction, 
+  ExecutionContext, 
+  ActionExecutor 
+} from '@/components/recording-studio/action-executors';
 
 // Easing fonksiyonları
 const easingFunctions: Record<EasingFunction, (t: number) => number> = {
@@ -63,16 +68,16 @@ export function useAutomationEngine() {
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
+  
+  // Execution context for action executors
+  const executionContextRef = useRef<ExecutionContext>({});
 
-  // Action executor callbacks - bunlar dışarıdan sağlanacak
-  const actionExecutorsRef = useRef<Map<string, (action: Action, progress: number) => void>>(new Map());
-
-  // Action executor'ı kaydetme
-  const registerActionExecutor = useCallback((
-    actionType: string,
-    executor: (action: Action, progress: number) => void
-  ) => {
-    actionExecutorsRef.current.set(actionType, executor);
+  // Set execution context (called from component)
+  const setExecutionContext = useCallback((context: Partial<ExecutionContext>) => {
+    executionContextRef.current = {
+      ...executionContextRef.current,
+      ...context,
+    };
   }, []);
 
   // Progress hesaplama (easing ile)
@@ -102,11 +107,10 @@ export function useAutomationEngine() {
     const activeActions = getActiveActions(time);
     
     activeActions.forEach(action => {
-      const executor = actionExecutorsRef.current.get(action.type);
-      if (executor) {
-        const progress = calculateProgress(action, time);
-        executor(action, progress);
-      }
+      const progress = calculateProgress(action, time);
+      
+      // Use executeAction from action-executors
+      executeAction(action, progress, executionContextRef.current);
 
       // Action'ı executed olarak işaretle
       if (!executedActions.has(action.id)) {
@@ -254,8 +258,8 @@ export function useAutomationEngine() {
     setPlaybackSpeed,
     toggleLoop,
     
-    // Action execution
-    registerActionExecutor,
+    // Action execution context
+    setExecutionContext,
     getActiveActions,
   };
 }
