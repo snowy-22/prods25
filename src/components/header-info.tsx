@@ -139,6 +139,7 @@ const HeaderInfoComponent = ({
                     )}
                     disabled={!canNavigateBack} 
                     onClick={onNavigateBack}
+                    title="Geri"
                 >
                     <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -151,8 +152,20 @@ const HeaderInfoComponent = ({
                     )}
                     disabled={!canNavigateForward} 
                     onClick={onNavigateForward}
+                    title="İleri"
                 >
                     <ChevronRight className="h-4 w-4" />
+                </Button>
+                
+                {/* Home Button */}
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                    onClick={onNavigateToRoot}
+                    title="Ana Sayfa"
+                >
+                    <PanelTop className="h-4 w-4" />
                 </Button>
             </div>
 

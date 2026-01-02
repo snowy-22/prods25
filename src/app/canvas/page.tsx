@@ -803,14 +803,29 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         event.stopPropagation();
         const isContainer = ['folder', 'list', 'inventory', 'space', 'calendar', 'saved-items', 'root'].includes(item.type);
         const isPlayer = ['video', 'website', 'iframe', '3dplayer'].includes(item.type);
+        const isCtrlOrCmd = (event as React.MouseEvent).ctrlKey || (event as React.MouseEvent).metaKey;
 
-        if (event.detail === 2 && (isContainer || isPlayer)) { // Double click
-             state.openInNewTab(item, allItems);
-        } else { // Single click
+        if (isContainer) {
+            if (isCtrlOrCmd || event.detail === 2) {
+                // Ctrl+Click or Double-click: Open in new tab
+                state.openInNewTab(item, allItems);
+            } else if (event.detail === 1 && activeTab) {
+                // Single-click: Navigate in same tab with history
+                state.pushNavigationHistory(activeTab.id, item.id);
+                state.updateTab(activeTab.id, { activeViewId: item.id });
+            }
+            // Always select the item
+            const orderedIds = activeViewChildren.map((i) => i.id);
+            state.setSelectedItem(item, event, orderedIds);
+        } else if (isPlayer && event.detail === 2) {
+            // Double click on player: Open in new tab
+            state.openInNewTab(item, allItems);
+        } else {
+            // Single click on non-container: Just select
             const orderedIds = activeViewChildren.map((i) => i.id);
             state.setSelectedItem(item, event, orderedIds);
         }
-    }, [allItems, state, activeViewChildren]);
+    }, [allItems, state, activeViewChildren, activeTab]);
 
     const tabSwitchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const handleDragUpdate = useCallback((update: any) => {
@@ -1375,7 +1390,12 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                                 state.updateTab(state.activeTabId, { activeViewId: siblings[currentIndex - 1].id });
                                             }
                                         }}
-                                        onNavigateToRoot={() => state.updateTab(state.activeTabId, { activeViewId: 'root' })}
+                                        onNavigateToRoot={() => {
+                                            if (activeTab) {
+                                                state.pushNavigationHistory(activeTab.id, 'root');
+                                                state.updateTab(activeTab.id, { activeViewId: 'root' });
+                                            }
+                                        }}
                                         onUpdateItem={updateItem} username={state.username || 'Guest'}
                                         onShare={state.setItemToShare}
                                         onSaveItem={(item) => {
