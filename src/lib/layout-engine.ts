@@ -2,7 +2,29 @@
 import { ContentItem } from "./initial-content";
 import { CSSProperties } from "react";
 
-export type LayoutMode = 'grid' | 'canvas';
+export type LayoutMode = 'grid' | 'canvas' | 'grid-vertical' | 'grid-square';
+
+export interface GridModeState {
+  enabled: boolean;
+  type: 'vertical' | 'square'; // vertical = 1 column, square = equal cols/rows
+  columns: number;
+  currentPage: number;
+  totalPages: number;
+  itemsPerPage: number;
+  totalItems: number;
+}
+
+export interface GridPaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  itemsOnCurrentPage: number;
+  totalItems: number;
+  columns: number;
+  rows: number;
+  itemsPerPage: number;
+  startIndex: number;
+  endIndex: number;
+}
 
 interface LayoutCalculation {
     styles: CSSProperties;
@@ -259,4 +281,53 @@ export function measureRectDistance(
     const center1 = { x: rect1.x + rect1.width / 2, y: rect1.y + rect1.height / 2 };
     const center2 = { x: rect2.x + rect2.width / 2, y: rect2.y + rect2.height / 2 };
     return measureDistance(center1, center2);
+}
+
+/**
+ * Grid Mode Pagination: Calculate pagination info for grid mode
+ * @param totalItems Total number of items to display
+ * @param columns Number of columns in grid (for square mode, rows = columns)
+ * @param isSquareMode If true, rows = columns. If false, rows = 1 (vertical mode)
+ * @param currentPage Current page number (1-indexed)
+ * @returns Pagination info with page calculations
+ */
+export function calculateGridPagination(
+    totalItems: number,
+    columns: number,
+    isSquareMode: boolean = false,
+    currentPage: number = 1
+): GridPaginationInfo {
+    const rows = isSquareMode ? columns : 1;
+    const itemsPerPage = columns * rows;
+    const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+    const validPage = Math.max(1, Math.min(currentPage, totalPages));
+    
+    const startIndex = (validPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+    const itemsOnCurrentPage = endIndex - startIndex;
+    
+    return {
+        currentPage: validPage,
+        totalPages,
+        itemsOnCurrentPage,
+        totalItems,
+        columns,
+        rows,
+        itemsPerPage,
+        startIndex,
+        endIndex
+    };
+}
+
+/**
+ * Get paginated items for grid mode
+ */
+export function getPaginatedGridItems(
+    items: ContentItem[],
+    columns: number,
+    isSquareMode: boolean,
+    currentPage: number
+): ContentItem[] {
+    const pagination = calculateGridPagination(items.length, columns, isSquareMode, currentPage);
+    return items.slice(pagination.startIndex, pagination.endIndex);
 }

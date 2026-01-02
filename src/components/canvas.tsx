@@ -12,8 +12,10 @@ import { Skeleton } from './ui/skeleton';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, ContextMenuSeparator } from './ui/context-menu';
 import { Plus, Clipboard, Settings, Folder, Trash2 } from 'lucide-react';
 
-import { calculateLayout, LayoutMode } from '@/lib/layout-engine';
+import { calculateLayout, LayoutMode, calculateGridPagination, getPaginatedGridItems } from '@/lib/layout-engine';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { useAppStore } from '@/lib/store';
+import GridModeControls from './grid-mode-controls';
 
 const PlayerFrame = dynamic(() => import('./player-frame'), {
   loading: () => <Skeleton className="w-full h-full" />
@@ -95,6 +97,13 @@ const Canvas = memo(function Canvas({
   isSuspended = false,
 }: CanvasProps) {
 
+  // Grid Mode State from Store
+  const gridModeState = useAppStore(state => state.gridModeState);
+  const setGridModeEnabled = useAppStore(state => state.setGridModeEnabled);
+  const setGridModeType = useAppStore(state => state.setGridModeType);
+  const setGridColumns = useAppStore(state => state.setGridColumns);
+  const setGridCurrentPage = useAppStore(state => state.setGridCurrentPage);
+
   const {
     baseFrameStyles = {},
     borderRadius = 8,
@@ -145,6 +154,45 @@ const Canvas = memo(function Canvas({
 
   const responsiveGridSize = useMemo(() => getResponsiveGridSize(), [gridSize, responsive.isMobile, responsive.isTablet]);
   const normalizedLayoutMode: LayoutMode = layoutMode === 'canvas' ? 'canvas' : 'grid';
+
+  // Grid Mode Pagination Logic
+  const paginatedItems = useMemo(() => {
+    if (!gridModeState.enabled || normalizedLayoutMode === 'canvas') {
+      return items; // Return all items if grid mode disabled or in canvas mode
+    }
+    
+    const isSquareMode = gridModeState.type === 'square';
+    return getPaginatedGridItems(items, gridModeState.columns, isSquareMode, gridModeState.currentPage);
+  }, [items, gridModeState.enabled, gridModeState.type, gridModeState.columns, gridModeState.currentPage, normalizedLayoutMode]);
+
+  // Update grid mode total items and pages when items change
+  useEffect(() => {
+    if (gridModeState.enabled && items.length > 0) {
+      const isSquareMode = gridModeState.type === 'square';
+      const pagination = calculateGridPagination(
+        items.length,
+        gridModeState.columns,
+        isSquareMode,
+        gridModeState.currentPage
+      );
+      
+      // Only update if values changed
+      if (
+        pagination.totalPages !== gridModeState.totalPages ||
+        pagination.totalItems !== gridModeState.totalItems ||
+        pagination.itemsPerPage !== gridModeState.itemsPerPage
+      ) {
+        setGridModeEnabled(true); // Ensure we maintain state updates
+        // Note: We don't directly update totalPages here to avoid circular updates
+        // These values are recalculated on-demand in the UI
+      }
+      
+      // If current page > total pages, reset to page 1
+      if (gridModeState.currentPage > pagination.totalPages) {
+        setGridCurrentPage(1);
+      }
+    }
+  }, [items.length, gridModeState.enabled, gridModeState.type, gridModeState.columns, gridModeState.currentPage]);
 
   // Canvas moduna özel kısayollar
   useEffect(() => {
@@ -308,11 +356,43 @@ const Canvas = memo(function Canvas({
 
   return (
     <div 
-      className={cn('w-full h-full relative overflow-hidden')} 
+      className={cn('w-full h-full relative overflow-hidden flex flex-col')} 
       data-testid="main-canvas" 
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
+      {/* Grid Mode Controls - Positioned at top */}
+      {normalizedLayoutMode === 'grid' && (
+        <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border/50">
+          <GridModeControls
+            gridState={gridModeState}
+            onToggleGridMode={(enabled) => setGridModeEnabled(enabled)}
+            onChangeGridType={(type) => setGridModeType(type)}
+            onChangeColumns={(columns) => setGridColumns(columns)}
+            onPreviousPage={() => {
+              if (gridModeState.currentPage > 1) {
+                setGridCurrentPage(gridModeState.currentPage - 1);
+              }
+            }}
+            onNextPage={() => {
+              const isSquareMode = gridModeState.type === 'square';
+              const pagination = calculateGridPagination(
+                items.length,
+                gridModeState.columns,
+                isSquareMode,
+                gridModeState.currentPage
+              );
+              if (gridModeState.currentPage < pagination.totalPages) {
+                setGridCurrentPage(gridModeState.currentPage + 1);
+              }
+            }}
+            totalItems={items.length}
+          />
+        </div>
+      )}
+
+      {/* Canvas Content Container */}
+      <div className="flex-1 relative overflow-hidden">
       {/* Fixed Background Layer */}
       <div 
         className={cn(isPreviewMode ? 'absolute' : 'fixed', 'inset-0 z-0 pointer-events-none')} 
@@ -355,11 +435,11 @@ const Canvas = memo(function Canvas({
                     }}
                   >
                     <AnimatePresence mode="popLayout">
-                      {items.map((item, index) => {
+                      {paginatedItems.map((item, index) => {
                         const layoutCalc = calculateLayout(
                           normalizedLayoutMode,
                           index,
-                          items.length,
+                          paginatedItems.length,
                           containerSize.width,
                           containerSize.height,
                           item,
@@ -456,6 +536,9 @@ const Canvas = memo(function Canvas({
             </ContextMenuItem>
         </ContextMenuContent>
       </ContextMenu>
+      {/* Canvas Content Container end */}
+      </div>
+    {/* Main canvas wrapper end */}
     </div>
   );
 });

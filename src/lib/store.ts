@@ -5,6 +5,7 @@ import { ContentItem } from './initial-content';
 import { User } from '@supabase/supabase-js';
 import { Message, Conversation, Group, Call, GroupMember, PermissionLevel, PrivateAccount, MessageSearchFilter } from './messaging-types';
 import { HueBridge, HueLight, HueScene, HueSync } from './hue-types';
+import { GridModeState } from './layout-engine';
 
 export type SearchPanelState = {
   isOpen: boolean;
@@ -91,6 +92,9 @@ interface AppStore {
   virtualizerMode: boolean;
   visualizerMode: 'off' | 'bars' | 'wave' | 'circular' | 'particles';
 
+  // Grid Mode State (Izgara Modu)
+  gridModeState: GridModeState;
+
   // Messaging State
   conversations: Conversation[];
   groups: Group[];
@@ -122,6 +126,13 @@ interface AppStore {
   setMouseTrackerEnabled: (enabled: boolean) => void;
   setVirtualizerMode: (enabled: boolean) => void;
   setVisualizerMode: (mode: 'off' | 'bars' | 'wave' | 'circular' | 'particles') => void;
+  
+  // Grid Mode Actions
+  setGridModeEnabled: (enabled: boolean) => void;
+  setGridModeType: (type: 'vertical' | 'square') => void;
+  setGridColumns: (columns: number) => void;
+  setGridCurrentPage: (page: number) => void;
+  
   openInNewTab: (item: ContentItem, allItems: ContentItem[], isTemporary?: boolean) => void;
   createNewTab: () => void;
   updateTab: (tabId: string, updates: Partial<Tab>) => void;
@@ -222,6 +233,17 @@ export const useAppStore = create<AppStore>()(
       virtualizerMode: false,
       visualizerMode: 'off',
 
+      // Grid Mode defaults
+      gridModeState: {
+        enabled: false,
+        type: 'vertical',
+        columns: 3,
+        currentPage: 1,
+        totalPages: 1,
+        itemsPerPage: 3,
+        totalItems: 0
+      },
+
       // Messaging defaults
       conversations: [],
       groups: [],
@@ -257,6 +279,13 @@ export const useAppStore = create<AppStore>()(
       setMouseTrackerEnabled: (mouseTrackerEnabled) => set({ mouseTrackerEnabled }),
       setVirtualizerMode: (virtualizerMode) => set({ virtualizerMode }),
       setVisualizerMode: (visualizerMode) => set({ visualizerMode }),
+      
+      // Grid Mode Actions
+      setGridModeEnabled: (enabled) => set({ gridModeState: { ...get().gridModeState, enabled } }),
+      setGridModeType: (type) => set({ gridModeState: { ...get().gridModeState, type, currentPage: 1 } }),
+      setGridColumns: (columns) => set({ gridModeState: { ...get().gridModeState, columns, currentPage: 1 } }),
+      setGridCurrentPage: (page) => set({ gridModeState: { ...get().gridModeState, currentPage: page } }),
+      
       setLayoutMode: (layoutMode) => {
         const normalized = layoutMode === 'canvas' ? 'canvas' : 'grid';
         set({ layoutMode: normalized });
