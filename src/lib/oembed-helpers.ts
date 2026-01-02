@@ -1,10 +1,10 @@
 import type { ContentItem } from "./initial-content";
 
-export async function fetchOembedMetadata(url: string): Promise<Partial<ContentItem> | {error: string, isInvalid: boolean, title: string, url: string}> {
+export async function fetchOembedMetadata(url: string, userApiKey?: string): Promise<Partial<ContentItem> | {error: string, isInvalid: boolean, title: string, url: string}> {
     // Check if it's a YouTube URL
     const youtubeId = extractYoutubeId(url);
     if (youtubeId) {
-        return fetchYoutubeMetadata(url, youtubeId);
+        return fetchYoutubeMetadata(url, youtubeId, userApiKey);
     }
 
     // Check if it's a Google Drive URL
@@ -68,6 +68,13 @@ export async function fetchOembedMetadata(url: string): Promise<Partial<ContentI
 }
 
 function extractYoutubeId(url: string): string | null {
+    // YouTube Shorts URL pattern: /shorts/VIDEO_ID
+    const shortsMatch = url.match(/\/shorts\/([a-zA-Z0-9_-]{11})/);
+    if (shortsMatch) {
+        return shortsMatch[1];
+    }
+    
+    // Standard YouTube URL patterns
     const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[7].length === 11) ? match[7] : null;
@@ -112,8 +119,9 @@ async function fetchTidalMetadata(url: string): Promise<Partial<ContentItem>> {
     }
 }
 
-async function fetchYoutubeMetadata(url: string, videoId: string): Promise<Partial<ContentItem>> {
-    const apiKey = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
+async function fetchYoutubeMetadata(url: string, videoId: string, userApiKey?: string): Promise<Partial<ContentItem>> {
+    // Use user's API key if provided, otherwise fall back to environment variable
+    const apiKey = userApiKey || (typeof window !== 'undefined' ? undefined : process.env.NEXT_PUBLIC_YOUTUBE_API_KEY);
     
     try {
         // 1. Fetch from OEmbed for basic info
@@ -121,27 +129,62 @@ async function fetchYoutubeMetadata(url: string, videoId: string): Promise<Parti
         const oembedResponse = await fetch(oembedUrl);
         const oembedData = oembedResponse.ok ? await oembedResponse.json() : {};
 
-        // 2. Fetch from YouTube Data API v3 for detailed stats
+        // 2. Fetch from YouTube Data API v3 for detailed stats and metadata
         let dataApiData: any = {};
+        let contentDetails: any = {};
+        let statistics: any = {};
+        
         if (apiKey) {
-            const dataApiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${apiKey}&part=snippet,statistics`;
+            // Request multiple parts for comprehensive metadata
+            const dataApiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&key=${apiKey}&part=snippet,statistics,contentDetails`;
             const dataApiResponse = await fetch(dataApiUrl);
+            
             if (dataApiResponse.ok) {
                 const json = await dataApiResponse.json();
                 if (json.items && json.items.length > 0) {
                     dataApiData = json.items[0];
+                    statistics = dataApiData.statistics || {};
+                    contentDetails = dataApiData.contentDetails || {};
                 }
+            } else {
+                console.warn('YouTube Data API request failed:', await dataApiResponse.text());
             }
         }
 
+        const snippet = dataApiData.snippet || {};
+        
         return {
-            title: dataApiData.snippet?.title || oembedData.title || "YouTube Video",
-            author_name: dataApiData.snippet?.channelTitle || oembedData.author_name || "Bilinmeyen Kanal",
-            thumbnail_url: dataApiData.snippet?.thumbnails?.maxres?.url || dataApiData.snippet?.thumbnails?.high?.url || oembedData.thumbnail_url || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-            published_at: dataApiData.snippet?.publishedAt,
-            viewCount: dataApiData.statistics?.viewCount ? parseInt(dataApiData.statistics.viewCount) : undefined,
-            likeCount: dataApiData.statistics?.likeCount ? parseInt(dataApiData.statistics.likeCount) : undefined,
-            commentCount: dataApiData.statistics?.commentCount ? parseInt(dataApiData.statistics.commentCount) : undefined,
+            videoId,
+            title: snippet.title || oembedData.title || "YouTube Video",
+            author_name: snippet.channelTitle || oembedData.author_name || "Bilinmeyen Kanal",
+            channelId: snippet.channelId,
+            channelTitle: snippet.channelTitle,
+            thumbnail_url: snippet.thumbnails?.maxres?.url || 
+                          snippet.thumbnails?.high?.url || 
+                          oembedData.thumbnail_url || 
+                          `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+            published_at: snippet.publishedAt,
+            content: snippet.description, // Video description
+            
+            // Statistics
+            viewCount: statistics.viewCount ? parseInt(statistics.viewCount) : undefined,
+            likeCount: statistics.likeCount ? parseInt(statistics.likeCount) : undefined,
+            dislikeCount: statistics.dislikeCount ? parseInt(statistics.dislikeCount) : undefined,
+            favoriteCount: statistics.favoriteCount ? parseInt(statistics.favoriteCount) : undefined,
+            commentCount: statistics.commentCount ? parseInt(statistics.commentCount) : undefined,
+            
+            // Content Details
+            duration: contentDetails.duration, // ISO 8601 format (e.g., "PT4M13S")
+            dimension: contentDetails.dimension as '2d' | '3d' | undefined,
+            definition: contentDetails.definition as 'hd' | 'sd' | undefined,
+            caption: contentDetails.caption === 'true',
+            licensedContent: contentDetails.licensedContent,
+            projection: contentDetails.projection as 'rectangular' | '360' | undefined,
+            
+            // Snippet Details
+            categoryId: snippet.categoryId,
+            tags: snippet.tags || [],
+            
             type: 'video',
             provider_name: 'YouTube',
             isInvalid: false,
@@ -151,8 +194,11 @@ async function fetchYoutubeMetadata(url: string, videoId: string): Promise<Parti
     } catch (error) {
         console.error("Error fetching YouTube metadata:", error);
         return {
+            videoId,
             title: "YouTube Video",
             url: url,
+            type: 'video',
+            provider_name: 'YouTube',
             isInvalid: true
         };
     }

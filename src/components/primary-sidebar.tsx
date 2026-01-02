@@ -3,7 +3,7 @@
 'use client';
 
 import { memo, useRef, useState, useEffect, useMemo, ReactNode } from 'react';
-import { Bot, Library, Plus, Trash2, Folder as FolderIcon, FileText as FileIcon, Frame, Copy, List, Eye, Clock, StickyNote, Calendar, Play, Upload, LayoutGrid, AlertCircle, Film, Save, Pencil, MousePointer, Settings, Monitor, Moon, Sun, GripHorizontal, Image as ImageIcon, Expand, RotateCw, ArrowUpNarrowWide, Info, GanttChart, Wand2, User, LogOut, LogIn, ChevronDown, ListIcon, Undo, Redo, Share, Users, MessageSquare, Pin, PinOff, Palette, ArrowDownAZ, ArrowUpAZ, UserPlus, MessageSquarePlus, Minus, EyeOff, ChevronRight, PanelLeft, Link as LinkIcon, ChevronsRight, FolderSync, Award, Mic, History, Sparkles, Bell, Search, Puzzle, Globe, Camera, Tv, UserCog, Home, MonitorSmartphone, Airplay, Projector, QrCode } from 'lucide-react';
+import { Bot, Library, Plus, Trash2, Folder as FolderIcon, FileText as FileIcon, Frame, Copy, List, Eye, Clock, StickyNote, Calendar, Play, Upload, LayoutGrid, AlertCircle, Film, Save, Pencil, MousePointer, Settings, Monitor, Moon, Sun, GripHorizontal, Image as ImageIcon, Expand, RotateCw, ArrowUpNarrowWide, Info, GanttChart, Wand2, User, LogOut, LogIn, ChevronDown, ListIcon, Undo, Redo, Share, Users, MessageSquare, Pin, PinOff, Palette, ArrowDownAZ, ArrowUpAZ, UserPlus, MessageSquarePlus, Minus, EyeOff, ChevronRight, PanelLeft, Link as LinkIcon, ChevronsRight, FolderSync, Award, Mic, History, Sparkles, Bell, Search, Puzzle, Globe, Camera, Tv, UserCog, Home, MonitorSmartphone, Airplay, Projector, QrCode, KeyRound } from 'lucide-react';
 import { AppLogo } from '@/components/icons/app-logo';
 import type { ContentItem, ItemType, SortOption } from '@/lib/initial-content';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,7 @@ interface PrimarySidebarProps {
   toggleSecondLeftSidebar: (open?: boolean) => void;
   toggleSearchDialog: () => void;
   toggleSettingsDialog: (initialTab: 'integrations' | 'history' | 'shortcuts' | 'trash') => void;
+  toggleApiKeysDialog?: () => void;
   onUpdateItem: (itemId: string, updates: Partial<ContentItem>) => void;
   toggleSpacesPanel: () => void;
   toggleDevicesPanel: () => void;
@@ -65,6 +66,7 @@ export default function PrimarySidebar({
     toggleSecondLeftSidebar,
     toggleSearchDialog,
     toggleSettingsDialog,
+    toggleApiKeysDialog,
     onUpdateItem,
     toggleSpacesPanel,
     toggleDevicesPanel,
@@ -337,6 +339,22 @@ export default function PrimarySidebar({
             <div className="flex flex-col gap-2 mt-auto pb-2">
                 <Separator className="my-1" />
                 
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className='h-10 w-10' 
+                            onClick={() => toggleApiKeysDialog?.()}
+                        >
+                            <KeyRound className="h-5 w-5" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                        <p>API Anahtarları</p>
+                    </TooltipContent>
+                </Tooltip>
+
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button 

@@ -41,6 +41,7 @@ import { Message } from '@/ai/flows/assistant-schema';
 import AiGuide from '../../components/ai-guide';
 import ItemInfoDialog from '../../components/item-info-dialog';
 import SettingsDialog from '../../components/settings-dialog';
+import ApiKeysDialog from '../../components/api-keys-dialog';
 import { useDevice } from '@/hooks/use-device';
 import { useBackgroundTabManager } from '@/hooks/use-background-tab-manager';
 import PreviewDialog from '../../components/preview-dialog';
@@ -590,7 +591,11 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
         if (itemData.url && ['website', 'video', 'image', 'audio'].includes(itemData.type)) {
              try {
-                const metadata = await fetchOembedMetadata(itemData.url);
+                // Get user's YouTube API key from store if metadata is enabled
+                const { youtubeApiKey, youtubeMetadataEnabled } = useAppStore.getState();
+                const userApiKey = youtubeMetadataEnabled ? youtubeApiKey : undefined;
+                
+                const metadata = await fetchOembedMetadata(itemData.url, userApiKey);
                  if (!('error' in metadata)) {
                     finalItemData = { 
                         ...finalItemData, 
@@ -603,7 +608,22 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                         commentCount: metadata.commentCount,
                         html: metadata.html,
                         provider_name: metadata.provider_name,
-                        icon: metadata.icon || finalItemData.icon
+                        icon: metadata.icon || finalItemData.icon,
+                        // YouTube-specific metadata
+                        videoId: metadata.videoId,
+                        channelId: metadata.channelId,
+                        channelTitle: metadata.channelTitle,
+                        categoryId: metadata.categoryId,
+                        tags: metadata.tags,
+                        duration: metadata.duration,
+                        definition: metadata.definition,
+                        dimension: metadata.dimension,
+                        caption: metadata.caption,
+                        licensedContent: metadata.licensedContent,
+                        projection: metadata.projection,
+                        dislikeCount: metadata.dislikeCount,
+                        favoriteCount: metadata.favoriteCount,
+                        content: metadata.content || finalItemData.content
                     };
                  }
              } catch (e) {
@@ -861,6 +881,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const isUiHidden = state.isUiHidden;
     const setIsUiHidden = state.setIsUiHidden;
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isApiKeysOpen, setIsApiKeysOpen] = useState(false);
     const [isSpaceControlOpen, setIsSpaceControlOpen] = useState(false);
     const [gridSize, setGridSize] = useLocalStorage('canvas-grid-size', 280);
     const [isBottomPanelCollapsed, setIsBottomPanelCollapsed] = useState(true);
@@ -1306,6 +1327,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             isSecondLeftSidebarOpen={state.isSecondLeftSidebarOpen} toggleSecondLeftSidebar={(open) => state.togglePanel('isSecondLeftSidebarOpen', open)}
                             toggleSearchDialog={() => state.updateSearchPanel({ isOpen: true })}
                             toggleSettingsDialog={() => setIsSettingsOpen(true)}
+                            toggleApiKeysDialog={() => setIsApiKeysOpen(true)}
                             onUpdateItem={updateItem} allItems={allItems} onSetView={(item) => item ? state.updateTab(state.activeTabId, { activeViewId: item.id }) : handleSetView(null) }
                             unreadMessagesCount={0} unreadNotificationsCount={0}
                             onShare={state.setItemToShare}
@@ -1771,6 +1793,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             window.location.reload();
                         }}
                     />
+                    <ApiKeysDialog isOpen={isApiKeysOpen} onOpenChange={setIsApiKeysOpen} />
                      <PreviewDialog
                         item={state.itemForPreview} context={{items: activeViewChildren, currentIndex: activeViewChildren.findIndex(i => i.id === state.itemForPreview?.id) }} 
                         isOpen={!!state.itemForPreview} onOpenChange={handlePreviewDialogOpenChange}

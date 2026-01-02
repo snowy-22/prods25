@@ -321,6 +321,21 @@ export type ContentItem = {
   saveCount?: number;
   viewCount?: number;
   
+  // YouTube-specific metadata
+  videoId?: string; // YouTube Video ID
+  channelId?: string; // YouTube Channel ID
+  channelTitle?: string; // YouTube Channel Name
+  categoryId?: string; // YouTube Category ID
+  tags?: string[]; // YouTube Tags
+  duration?: string; // ISO 8601 duration format
+  definition?: 'hd' | 'sd'; // Video quality
+  dimension?: '2d' | '3d'; // Video dimension
+  caption?: boolean; // Has captions
+  licensedContent?: boolean; // Is licensed
+  projection?: 'rectangular' | '360'; // Video projection type
+  dislikeCount?: number; // YouTube dislike count (if available)
+  favoriteCount?: number; // YouTube favorite count
+  
   // Device-specific properties
   isCurrentDevice?: boolean;
   deviceInfo?: DeviceInfo;
@@ -555,6 +570,7 @@ export const initialContent: ContentItem[] = [
     { id: 'ex-youtube-lofi', type: 'video', title: 'YouTube Lofi Girl (Autoplay/Mute)', icon: 'youtube', url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk', createdAt: now, updatedAt: now, parentId: 'social-examples' },
     { id: 'ex-twitch-monstercat', type: 'video', title: 'Twitch: Monstercat (Autoplay/Mute)', icon: 'tv', url: 'https://www.twitch.tv/monstercat', createdAt: now, updatedAt: now, parentId: 'social-examples' },
     { id: 'ex-spotify-track', type: 'website', title: 'Spotify Track (Embed)', icon: 'music', url: 'https://open.spotify.com/track/7ouMYWpwJ422jRcDASZB7P', createdAt: now, updatedAt: now, parentId: 'social-examples' },
+    { id: 'ex-spotify-badway', type: 'website', title: 'Badway - Spotify Album', icon: 'music', url: 'https://open.spotify.com/album/3IBcauSj5M2A6lTeffJzdv', createdAt: now, updatedAt: now, parentId: 'social-examples', width: 560, height: 380 },
     { id: 'ex-instagram-post', type: 'website', title: 'Instagram Post (Embed)', icon: 'instagram', url: 'https://www.instagram.com/p/CxVjVbOPQy1/', createdAt: now, updatedAt: now, parentId: 'social-examples' },
     { id: 'ex-facebook-video', type: 'website', title: 'Facebook Video (Embed)', icon: 'globe', url: 'https://www.facebook.com/facebookapp/videos/10153231379946729/', createdAt: now, updatedAt: now, parentId: 'social-examples' },
     { id: 'ex-kick-channel', type: 'video', title: 'Kick: Channel (Autoplay/Mute)', icon: 'tv', url: 'https://kick.com/trainwreckstv', createdAt: now, updatedAt: now, parentId: 'social-examples' },

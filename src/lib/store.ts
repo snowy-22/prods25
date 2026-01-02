@@ -114,6 +114,11 @@ interface AppStore {
   hueIsLoading: boolean;
   hueError?: string;
 
+  // YouTube & Google API Keys (User-specific)
+  youtubeApiKey?: string;
+  googleApiKey?: string;
+  youtubeMetadataEnabled: boolean;
+
   // Actions
   setUser: (user: User | null) => void;
   setUsername: (username: string | null) => void;
@@ -297,6 +302,9 @@ export const useAppStore = create<AppStore>()(
       hueScenes: [],
       hueSyncs: [],
       hueIsLoading: false,
+
+      // YouTube & Google API defaults
+      youtubeMetadataEnabled: true,
 
       // Keyboard Shortcuts, Macros & Gestures defaults
       keyboardShortcuts: [],
@@ -909,6 +917,11 @@ export const useAppStore = create<AppStore>()(
       setHueLoading: (loading) => set({ hueIsLoading: loading }),
       setHueError: (error) => set({ hueError: error }),
 
+      // YouTube & Google API Actions
+      setYoutubeApiKey: (key) => set({ youtubeApiKey: key }),
+      setGoogleApiKey: (key) => set({ googleApiKey: key }),
+      setYoutubeMetadataEnabled: (enabled) => set({ youtubeMetadataEnabled: enabled }),
+
       // Keyboard Shortcuts Actions
       addKeyboardShortcut: (shortcut) => set((state) => ({
         keyboardShortcuts: [...state.keyboardShortcuts, shortcut]
@@ -1045,6 +1058,10 @@ export const useAppStore = create<AppStore>()(
         activeSecondaryPanel: state.activeSecondaryPanel,
         gridModeState: state.gridModeState,
         expandedItems: state.expandedItems,
+        // API Keys (persisted for user convenience and privacy)
+        youtubeApiKey: state.youtubeApiKey,
+        googleApiKey: state.googleApiKey,
+        youtubeMetadataEnabled: state.youtubeMetadataEnabled,
         // Do not persist isOpen to avoid auto-opening on first load
         searchPanelState: {
           isDraggable: state.searchPanelState.isDraggable,

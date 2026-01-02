@@ -390,7 +390,11 @@ export default function ItemInfoDialog({ item, allItems, onOpenChange, onUpdateI
                                     onClick={async () => {
                                         if (!item.url) return;
                                         const { fetchOembedMetadata } = await import('@/lib/oembed-helpers');
-                                        const metadata = await fetchOembedMetadata(item.url);
+                                        const { useAppStore } = await import('@/lib/store');
+                                        const { youtubeApiKey, youtubeMetadataEnabled } = useAppStore.getState();
+                                        const userApiKey = youtubeMetadataEnabled ? youtubeApiKey : undefined;
+                                        
+                                        const metadata = await fetchOembedMetadata(item.url, userApiKey);
                                         if (!('error' in metadata)) {
                                             onUpdateItem(item.id, {
                                                 title: metadata.title,
@@ -400,6 +404,20 @@ export default function ItemInfoDialog({ item, allItems, onOpenChange, onUpdateI
                                                 viewCount: metadata.viewCount,
                                                 likeCount: metadata.likeCount,
                                                 commentCount: metadata.commentCount,
+                                                videoId: metadata.videoId,
+                                                channelId: metadata.channelId,
+                                                channelTitle: metadata.channelTitle,
+                                                categoryId: metadata.categoryId,
+                                                tags: metadata.tags,
+                                                duration: metadata.duration,
+                                                definition: metadata.definition,
+                                                dimension: metadata.dimension,
+                                                caption: metadata.caption,
+                                                licensedContent: metadata.licensedContent,
+                                                projection: metadata.projection,
+                                                dislikeCount: metadata.dislikeCount,
+                                                favoriteCount: metadata.favoriteCount,
+                                                content: metadata.content
                                             });
                                             toast({ title: 'YouTube verileri güncellendi' });
                                         }
