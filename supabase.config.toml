@@ -1,0 +1,32 @@
+# Supabase Project Configuration for Philips Hue Integration
+# Bu dosya Supabase CLI ile kullanılır
+
+[project]
+project_id = "qukzepteomenikeelzno"  # Senin project ID'nin
+api_url = "https://qukzepteomenikeelzno.supabase.co"
+db_url = "postgresql://..."  # Auto-filled by CLI
+
+[database]
+# Hue Integration - Encrypted Personal Database
+# Migration: 004_hue_integration_personal_api.sql
+# Applied: supabase db push komutu ile
+
+[security]
+# Row-Level Security (RLS) Enabled on:
+# - hue_bridges (user_id ownership)
+# - hue_lights (user_id ownership)
+# - hue_scenes (user_id ownership)
+# - hue_syncs (user_id ownership)
+
+# All tables require auth.uid() matching for data access
+
+[encryption]
+# Supabase native encryption:
+# - API tokens/credentials encrypted at rest
+# - Database connection: SSL/TLS required
+# - Bridge communication: HTTPS only (port 443)
+
+[auth]
+# Authentication Method: Supabase Auth (JWT)
+# API Routes require: Authorization: Bearer {token}
+# Token validation via: supabase.auth.getUser(token)
