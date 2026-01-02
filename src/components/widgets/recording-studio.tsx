@@ -26,6 +26,10 @@ import { Timeline, Scene, Action, ActionType } from '@/lib/recording-studio-type
 import { useAutomationEngine } from '@/hooks/use-automation-engine';
 import { useScreenRecorder } from '@/hooks/use-screen-recorder';
 import { TimelineEditor } from '@/components/recording-studio/timeline-editor';
+import { TutorialMode } from '@/components/recording-studio/tutorial-mode';
+import { TestTools } from '@/components/recording-studio/test-tools';
+import { HelperDocumentation } from '@/components/recording-studio/helper-documentation';
+import { TemplateLibrary } from '@/components/recording-studio/template-library';
 import { useAppStore } from '@/lib/store';
 
 interface RecordingStudioProps {
@@ -33,7 +37,7 @@ interface RecordingStudioProps {
 }
 
 export function RecordingStudio({ size = 'large' }: RecordingStudioProps) {
-  const [activeTab, setActiveTab] = useState<'timeline' | 'scenes' | 'settings'>('timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'scenes' | 'settings' | 'tutorial' | 'test' | 'documentation' | 'templates'>('timeline');
   const [autoRecord, setAutoRecord] = useState(true);
   
   const isSmall = size === 'small';
@@ -482,10 +486,14 @@ export function RecordingStudio({ size = 'large' }: RecordingStudioProps) {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-3 bg-slate-800 border border-slate-700">
+          <TabsList className="grid w-full grid-cols-7 bg-slate-800 border border-slate-700 text-xs">
             <TabsTrigger value="timeline">Timeline</TabsTrigger>
             <TabsTrigger value="scenes">Sahneler</TabsTrigger>
             <TabsTrigger value="settings">Ayarlar</TabsTrigger>
+            <TabsTrigger value="tutorial">📚 Eğitim</TabsTrigger>
+            <TabsTrigger value="test">🧪 Test</TabsTrigger>
+            <TabsTrigger value="documentation">📖 Rehber</TabsTrigger>
+            <TabsTrigger value="templates">📋 Şablonlar</TabsTrigger>
           </TabsList>
 
           <TabsContent value="timeline" className="flex-1 mt-4 border border-slate-700 rounded-lg p-0 bg-slate-800/30 overflow-hidden">
@@ -547,6 +555,40 @@ export function RecordingStudio({ size = 'large' }: RecordingStudioProps) {
                 </span>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="tutorial" className="flex-1 mt-4 overflow-y-auto">
+            <TutorialMode
+              onStepComplete={(stepId) => console.log('Step completed:', stepId)}
+              onLoadExample={(timeline) => {
+                setTimeline(timeline);
+                setActiveTab('timeline');
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="test" className="flex-1 mt-4 overflow-y-auto">
+            {timeline && (
+              <TestTools
+                timeline={timeline}
+                onActionPreview={(action, sceneId) => {
+                  console.log('Preview action:', action, 'in scene:', sceneId);
+                }}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="documentation" className="flex-1 mt-4 overflow-y-auto">
+            <HelperDocumentation compact={false} />
+          </TabsContent>
+
+          <TabsContent value="templates" className="flex-1 mt-4 overflow-y-auto">
+            <TemplateLibrary
+              onLoadTemplate={(timeline) => {
+                setTimeline(timeline);
+                setActiveTab('timeline');
+              }}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>
