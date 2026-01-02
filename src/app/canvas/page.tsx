@@ -1333,15 +1333,6 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                     onUserCardClick={handleUserCardClick}
                                 />
                             </Sidebar>
-                                <div
-                                    onMouseDown={handleMouseDown}
-                                    className={cn(
-                                        "bg-transparent cursor-col-resize transition-all absolute right-0 top-0 bottom-0 z-50",
-                                        "w-1 hover:w-2 hover:bg-primary/20", // Desktop
-                                        "touch-target", // Mobile touch target (44px minimum)
-                                        isResizing && "bg-primary/40 w-2"
-                                    )}
-                                />
                             </div>
                         )}
                     </div>
@@ -1634,15 +1625,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                         onMouseLeave={() => isUiHidden && setIsRightSidebarHovered(false)}
                     >
                         {state.isStyleSettingsOpen && (
-                            <>
-                                <div
-                                    onMouseDown={handleRightMouseDown}
-                                    className={cn(
-                                        "w-1 hover:w-2 bg-transparent hover:bg-primary/20 cursor-col-resize transition-all absolute left-0 top-0 bottom-0 z-50",
-                                        isRightResizing && "bg-primary/40 w-2"
-                                    )}
-                                />
-                                <StyleSettingsPanel
+                            <StyleSettingsPanel
                                     activeView={activeView} onClose={() => state.togglePanel('isStyleSettingsOpen')}
                                     onUpdate={(updates) => updateItem(activeView.id, updates)}
                                     onSyncAll={() => {
@@ -1657,7 +1640,6 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                         toast({ title: 'Tüm hücreler eşitlendi', description: 'Özel stiller temizlendi.' });
                                     }}
                                 />
-                            </>
                         )}
                     </div>
                     

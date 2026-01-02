@@ -100,7 +100,7 @@ export function MiniMapOverlay({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative rounded-xl border bg-card/95 backdrop-blur-xl shadow-2xl ring-1 ring-border/50">
+      <div className="relative rounded-xl border bg-card/98 backdrop-blur-xl shadow-2xl ring-1 ring-border/50">
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40 rounded-t-xl">
           <div className="flex items-center gap-2 text-xs font-semibold">
