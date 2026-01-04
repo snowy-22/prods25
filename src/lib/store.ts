@@ -16,6 +16,7 @@ import {
   migrateLocalStorageToCloud,
   SyncDataType 
 } from './supabase-sync';
+import { AIProviderConfig, AIAgentConfig, DEFAULT_PROVIDERS } from './ai-providers';
 
 export type SearchPanelState = {
   isOpen: boolean;
@@ -129,6 +130,42 @@ interface AppStore {
   googleApiKey?: string;
   youtubeMetadataEnabled: boolean;
 
+  // AI Provider System
+  aiProviders: AIProviderConfig[];
+  aiAgentConfig: AIAgentConfig;
+
+  // Additional API Keys (grouped by category)
+  apiKeys: {
+    // Media & Content
+    spotify?: string;
+    soundcloud?: string;
+    vimeo?: string;
+    
+    // Cloud Storage
+    dropbox?: string;
+    onedrive?: string;
+    googleDrive?: string;
+    
+    // Communication
+    slack?: string;
+    discord?: string;
+    telegram?: string;
+    
+    // IoT & Smart Home
+    homeAssistant?: string;
+    mqtt?: string;
+    
+    // Analytics & Monitoring
+    mixpanel?: string;
+    amplitude?: string;
+    sentry?: string;
+    
+    // Other
+    weather?: string;
+    news?: string;
+    translation?: string;
+  };
+
   // Actions
   setUser: (user: User | null) => void;
   setUsername: (username: string | null) => void;
@@ -208,6 +245,22 @@ interface AppStore {
   unblockUser: (userId: string) => void;
   setCurrentConversation: (conversationId: string) => void;
   setCurrentGroup: (groupId: string) => void;
+
+  // AI Provider Actions
+  addAIProvider: (provider: AIProviderConfig) => void;
+  updateAIProvider: (providerId: string, updates: Partial<AIProviderConfig>) => void;
+  removeAIProvider: (providerId: string) => void;
+  setDefaultAIProvider: (providerId: string) => void;
+  updateAIAgentConfig: (updates: Partial<AIAgentConfig>) => void;
+
+  // API Keys Actions
+  setApiKey: (category: string, key: string, value: string) => void;
+  clearApiKey: (key: string) => void;
+
+  // YouTube & Google API Actions
+  setYoutubeApiKey: (key?: string) => void;
+  setGoogleApiKey: (key?: string) => void;
+  setYoutubeMetadataEnabled: (enabled: boolean) => void;
 
   // Keyboard Shortcuts, Macros & Gestures
   keyboardShortcuts: KeyboardShortcut[];
@@ -326,6 +379,24 @@ export const useAppStore = create<AppStore>()(
 
       // YouTube & Google API defaults
       youtubeMetadataEnabled: true,
+
+      // AI Provider defaults
+      aiProviders: DEFAULT_PROVIDERS.map((p, idx) => ({
+        ...p,
+        id: `provider-${idx}`,
+        apiKey: p.type === 'gemini' ? process.env.NEXT_PUBLIC_GEMINI_API_KEY : undefined
+      })),
+      aiAgentConfig: {
+        mode: 'auto',
+        defaultProvider: 'provider-0', // Gemini by default
+        fallbackProviders: ['provider-1', 'provider-3'], // OpenAI, Groq
+        autoSelectByCost: true,
+        autoSelectBySpeed: false,
+        autoSelectByCapability: true
+      },
+
+      // Additional API Keys defaults
+      apiKeys: {},
 
       // Keyboard Shortcuts, Macros & Gestures defaults
       keyboardShortcuts: [],
@@ -966,6 +1037,45 @@ export const useAppStore = create<AppStore>()(
       setYoutubeApiKey: (key) => set({ youtubeApiKey: key }),
       setGoogleApiKey: (key) => set({ googleApiKey: key }),
       setYoutubeMetadataEnabled: (enabled) => set({ youtubeMetadataEnabled: enabled }),
+
+      // AI Provider Actions
+      addAIProvider: (provider) => set((state) => ({
+        aiProviders: [...state.aiProviders, provider]
+      })),
+      updateAIProvider: (providerId, updates) => set((state) => ({
+        aiProviders: state.aiProviders.map(p =>
+          p.id === providerId ? { ...p, ...updates } : p
+        )
+      })),
+      removeAIProvider: (providerId) => set((state) => ({
+        aiProviders: state.aiProviders.filter(p => p.id !== providerId)
+      })),
+      setDefaultAIProvider: (providerId) => set((state) => ({
+        aiProviders: state.aiProviders.map(p => ({
+          ...p,
+          isDefault: p.id === providerId
+        })),
+        aiAgentConfig: {
+          ...state.aiAgentConfig,
+          defaultProvider: providerId
+        }
+      })),
+      updateAIAgentConfig: (updates) => set((state) => ({
+        aiAgentConfig: { ...state.aiAgentConfig, ...updates }
+      })),
+
+      // API Keys Actions
+      setApiKey: (category, key, value) => set((state) => ({
+        apiKeys: {
+          ...state.apiKeys,
+          [key]: value
+        }
+      })),
+      clearApiKey: (key) => set((state) => {
+        const newApiKeys = { ...state.apiKeys };
+        delete newApiKeys[key as keyof typeof newApiKeys];
+        return { apiKeys: newApiKeys };
+      }),
 
       // Keyboard Shortcuts Actions
       addKeyboardShortcut: (shortcut) => set((state) => ({

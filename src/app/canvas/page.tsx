@@ -41,7 +41,6 @@ import { Message } from '@/ai/flows/assistant-schema';
 import AiGuide from '../../components/ai-guide';
 import ItemInfoDialog from '../../components/item-info-dialog';
 import SettingsDialog from '../../components/settings-dialog';
-import ApiKeysDialog from '../../components/api-keys-dialog';
 import { useDevice } from '@/hooks/use-device';
 import { useBackgroundTabManager } from '@/hooks/use-background-tab-manager';
 import PreviewDialog from '../../components/preview-dialog';
@@ -1794,7 +1793,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             window.location.reload();
                         }}
                     />
-                    <ApiKeysDialog isOpen={isApiKeysOpen} onOpenChange={setIsApiKeysOpen} />
+                    <SettingsDialog isOpen={isApiKeysOpen} onOpenChange={setIsApiKeysOpen} />
                      <PreviewDialog
                         item={state.itemForPreview} context={{items: activeViewChildren, currentIndex: activeViewChildren.findIndex(i => i.id === state.itemForPreview?.id) }} 
                         isOpen={!!state.itemForPreview} onOpenChange={handlePreviewDialogOpenChange}
