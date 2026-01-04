@@ -14,6 +14,7 @@ import { analyzeItem } from './analyze-item-flow';
 import { analyzeContent } from './content-analysis-flow';
 import { suggestFrameStyles } from './content-adaptive-styling';
 import { fetchOembedMetadata } from '@/lib/oembed-helpers';
+import { logAIRequest, logToolCall, updateAIRequestStatus, type AIToolName } from '@/lib/ai/ai-logger';
 
 
 // Schemas for our tools
@@ -183,7 +184,26 @@ const offlineAnalyticsTool = ai.defineTool(
 
 // Main function that clients will call
 export async function askAi(input: AssistantInput): Promise<AssistantOutput> {
-  return assistantFlow(input);
+  try {
+    const result = await assistantFlow(input);
+    return result;
+  } catch (error: any) {
+    // Hata durumunda loglama (eğer logId varsa)
+    console.error('AI Flow Error:', error);
+    
+    // En azından bir hata mesajı döndür
+    return {
+      history: [
+        ...input.history,
+        {
+          role: 'model',
+          content: [{
+            text: `Üzgünüm, bir hata oluştu: ${error.message || 'Bilinmeyen hata'}. Lütfen tekrar deneyin.`
+          }]
+        }
+      ]
+    };
+  }
 }
 
 const allTools = [
@@ -207,6 +227,21 @@ const assistantFlow = ai.defineFlow(
     outputSchema: AssistantOutputSchema,
   },
   async (input) => {
+    // 🔥 LOGLAMA 1: AI isteği başladı
+    const userId = input.userId || 'anonymous';
+    const lastUserMessage = input.history.filter(m => m.role === 'user').pop();
+    const prompt = lastUserMessage?.content[0]?.text || 'Unknown prompt';
+    
+    const logId = await logAIRequest(userId, 'assistant', {
+      prompt,
+      conversationId: input.conversationId,
+      modelName: 'gemini-1.5-flash',
+      requestParams: {
+        historyLength: input.history.length,
+        hasSystemPrompt: true,
+      },
+    });
+    
     let history = [...input.history];
     const systemPrompt = `You are a powerful and friendly AI assistant for the tv25 application.
 Your role is to be helpful and provide accurate information, and to guide the user through the application's features.
@@ -271,8 +306,10 @@ Here are the test IDs for the main UI elements:
 
                 const toolRequest = part.toolRequest;
                 let toolResponseOutput: any;
+                const toolStartTime = Date.now();
                 
                 try {
+                    // 🔥 LOGLAMA 2: Tool çağrısı yapılıyor
                     switch (toolRequest.name) {
                         case 'webSearch':
                             // toolResponseOutput = await webSearchTool(toolRequest.input);
@@ -308,8 +345,28 @@ Here are the test IDs for the main UI elements:
                         default:
                             toolResponseOutput = { error: `Tool '${toolRequest.name}' not found.` };
                     }
+                    
+                    // Tool başarılı - logla
+                    await logToolCall(
+                      logId,
+                      toolRequest.name as AIToolName,
+                      toolRequest.input,
+                      toolResponseOutput,
+                      undefined,
+                      Date.now() - toolStartTime
+                    );
                 } catch(e: any) {
                     toolResponseOutput = { error: `Error executing tool '${toolRequest.name}': ${e.message}` };
+                    
+                    // Tool hata verdi - logla
+                    await logToolCall(
+                      logId,
+                      toolRequest.name as AIToolName,
+                      toolRequest.input,
+                      undefined,
+                      e.message,
+                      Date.now() - toolStartTime
+                    );
                 }
 
                 return {
@@ -339,6 +396,15 @@ Here are the test IDs for the main UI elements:
      if (finalResponse.output) {
         history.push(finalResponse.output);
      }
+
+    // 🔥 LOGLAMA 3: İstek tamamlandı
+    const finalMessage = history.filter(m => m.role === 'model').pop();
+    const responseText = finalMessage?.content[0]?.text || 'No response';
+    
+    await updateAIRequestStatus(logId, 'success', {
+      response: responseText.substring(0, 500), // İlk 500 karakter
+      tokensUsed: undefined, // Genkit'te usage bilgisi farklı alınabilir
+    });
 
     return { history };
   }

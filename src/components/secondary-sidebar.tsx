@@ -1002,6 +1002,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
     const [libraryViewMode, setLibraryViewMode] = useState<'list' | 'grid'>('list');
     const [librarySearchQuery, setLibrarySearchQuery] = useState('');
     const [filterType, setFilterType] = useState<ItemType[]>([]);
+    const [contentTabValue, setContentTabValue] = useState<'all' | 'my-content' | 'discover'>('all');
     
     // Default state managed locally
     const [sortOption, setSortOption] = useState<SortOption>('manual');
@@ -1104,6 +1105,30 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
         // Başlangıç: mevcut aktif klasörün çocukları
         let itemsToSort = allItems.filter(i => i.parentId === (activeView?.id ?? null));
 
+        // İçerikler tab filtresi (sadece library için)
+        if (type === 'library' && contentTabValue !== 'all') {
+            if (contentTabValue === 'my-content') {
+                // Kullanıcının kendi içerikleri (örnek: owner veya creator alanı varsa)
+                // Şimdilik basit bir filtre: sharing.sharedBy === username veya createdBy === username
+                itemsToSort = itemsToSort.filter(i => 
+                    i.sharing?.sharedBy === username || 
+                    (i as any).createdBy === username ||
+                    i.parentId === 'saved-items' // Kaydedilenler de kendi içeriği sayılır
+                );
+            } else if (contentTabValue === 'discover') {
+                // Global feed: Paylaşılan içerikler, zaman sırasıyla
+                // sharing.isPublic === true veya sharing.visibility === 'public'
+                itemsToSort = itemsToSort.filter(i => 
+                    i.sharing?.isPublic === true || 
+                    i.sharing?.visibility === 'public'
+                );
+                // Keşfet'te varsayılan olarak zaman sırasıyla sırala
+                itemsToSort.sort((a, b) => 
+                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                );
+            }
+        }
+
         // Arama: başlık, içerik veya URL'de eşleşme (aktif klasör içi)
         if (librarySearchQuery.trim()) {
             const query = librarySearchQuery.toLowerCase();
@@ -1162,7 +1187,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             }
             return 0;
         });
-    }, [allItems, activeView, sortOption, sortDirection, librarySearchQuery, filterType]);
+    }, [allItems, activeView, sortOption, sortDirection, librarySearchQuery, filterType, type, contentTabValue, username]);
     
     const renderItems = (items: ContentItem[], level = 0): React.ReactNode[] => {
         return items.map((item, index) => {
@@ -1330,6 +1355,28 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                       })()}
                     </div>
                   </div>
+                )}
+                
+                {/* İçerikler Tabs - Only shown for Library */}
+                {type === 'library' && (
+                    <div className="px-3 pt-2 border-b">
+                        <Tabs value={contentTabValue} onValueChange={(value: any) => setContentTabValue(value)} className="w-full">
+                            <TabsList className="grid w-full grid-cols-3 mb-2">
+                                <TabsTrigger value="all" className="text-xs">
+                                    <Library className="h-3.5 w-3.5 mr-1" />
+                                    Tümü
+                                </TabsTrigger>
+                                <TabsTrigger value="my-content" className="text-xs">
+                                    <User className="h-3.5 w-3.5 mr-1" />
+                                    İçeriklerim
+                                </TabsTrigger>
+                                <TabsTrigger value="discover" className="text-xs">
+                                    <Compass className="h-3.5 w-3.5 mr-1" />
+                                    Keşfet
+                                </TabsTrigger>
+                            </TabsList>
+                        </Tabs>
+                    </div>
                 )}
                 
                 <div className="px-3 py-2 border-b space-y-2">

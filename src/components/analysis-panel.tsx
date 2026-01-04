@@ -1,17 +1,30 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { LineChart, PieChart, BarChart, Download, RefreshCw } from 'lucide-react';
+import { LineChart, PieChart, BarChart, Download, RefreshCw, Bot, Zap, TrendingUp, AlertCircle } from 'lucide-react';
 import { ModuleAnalysis, WorkflowDiagram, DataMatrix } from '@/lib/json-tracking';
+import { getUserAIStats } from '@/lib/ai/ai-logger';
+import { useAppStore } from '@/lib/store';
+
+interface AIUsageStats {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  totalTokensUsed: number;
+  avgDuration: number;
+  topTools: Array<{ tool: string; count: number }>;
+  topFlows: Array<{ flow: string; count: number }>;
+}
 
 interface AnalysisPanelProps {
   moduleAnalyses?: ModuleAnalysis[];
   workflows?: WorkflowDiagram[];
   dataMatrices?: DataMatrix[];
+  aiStats?: AIUsageStats;
   isAdminMode?: boolean;
 }
 
@@ -19,20 +32,204 @@ export function AnalysisPanel({
   moduleAnalyses = [],
   workflows = [],
   dataMatrices = [],
+  aiStats: initialAiStats,
   isAdminMode = false
 }: AnalysisPanelProps) {
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
+  const [aiStats, setAiStats] = useState<AIUsageStats | null>(initialAiStats || null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const { user } = useAppStore();
+
+  // AI istatistiklerini yükle
+  const loadAIStats = async () => {
+    if (!user) return;
+    
+    setIsLoadingStats(true);
+    try {
+      const stats = await getUserAIStats(user.id, {
+        startDate: Date.now() - 7 * 24 * 60 * 60 * 1000, // Son 7 gün
+      });
+      setAiStats(stats);
+    } catch (error) {
+      console.error('Failed to load AI stats:', error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!initialAiStats && user) {
+      loadAIStats();
+    }
+  }, [user, initialAiStats]);
 
   return (
     <div className="w-full h-full overflow-auto p-4 space-y-4">
       {/* Module Analysis Tab */}
-      <Tabs defaultValue="modules" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="ai" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="ai">
+            <Bot className="h-4 w-4 mr-2" />
+            AI Kullanımı
+          </TabsTrigger>
           <TabsTrigger value="modules">Modüller</TabsTrigger>
           <TabsTrigger value="workflows">İş Akışları</TabsTrigger>
           <TabsTrigger value="data">Veri Matrisleri</TabsTrigger>
         </TabsList>
+
+        {/* AI Usage Stats Tab */}
+        <TabsContent value="ai" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">AI Kullanım İstatistikleri (Son 7 Gün)</h3>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={loadAIStats}
+              disabled={isLoadingStats}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoadingStats ? 'animate-spin' : ''}`} />
+              Yenile
+            </Button>
+          </div>
+
+          {!aiStats && !isLoadingStats ? (
+            <Card className="p-8 text-center text-muted-foreground">
+              <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>AI kullanım verisi bulunamadı</p>
+            </Card>
+          ) : aiStats ? (
+            <div className="grid gap-4">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Zap className="h-5 w-5 text-blue-500" />
+                    <Badge variant="outline">Toplam</Badge>
+                  </div>
+                  <div className="text-2xl font-bold">{aiStats.totalRequests}</div>
+                  <p className="text-xs text-muted-foreground">AI İsteği</p>
+                </Card>
+
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <TrendingUp className="h-5 w-5 text-green-500" />
+                    <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                      {aiStats.totalRequests > 0 
+                        ? ((aiStats.successfulRequests / aiStats.totalRequests) * 100).toFixed(1) 
+                        : 0}%
+                    </Badge>
+                  </div>
+                  <div className="text-2xl font-bold">{aiStats.successfulRequests}</div>
+                  <p className="text-xs text-muted-foreground">Başarılı</p>
+                </Card>
+
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                    <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20">
+                      {aiStats.failedRequests}
+                    </Badge>
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {aiStats.totalRequests > 0 
+                      ? ((aiStats.failedRequests / aiStats.totalRequests) * 100).toFixed(1) 
+                      : 0}%
+                  </div>
+                  <p className="text-xs text-muted-foreground">Hata Oranı</p>
+                </Card>
+
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <BarChart className="h-5 w-5 text-purple-500" />
+                    <Badge variant="outline">{aiStats.totalTokensUsed.toLocaleString()}</Badge>
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {(aiStats.avgDuration / 1000).toFixed(2)}s
+                  </div>
+                  <p className="text-xs text-muted-foreground">Ort. Süre</p>
+                </Card>
+              </div>
+
+              {/* Top Tools */}
+              {aiStats.topTools && aiStats.topTools.length > 0 && (
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <PieChart className="h-4 w-4" />
+                    En Çok Kullanılan Tool'lar
+                  </h4>
+                  <div className="space-y-2">
+                    {aiStats.topTools.map((tool, idx) => (
+                      <div key={tool.tool} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="w-6 h-6 p-0 justify-center">
+                            {idx + 1}
+                          </Badge>
+                          <span className="text-sm font-medium">{tool.tool}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-32 bg-muted rounded-full h-2">
+                            <div
+                              className="bg-primary h-2 rounded-full"
+                              style={{ 
+                                width: `${(tool.count / aiStats.topTools[0].count) * 100}%` 
+                              }}
+                            />
+                          </div>
+                          <span className="text-sm font-bold w-12 text-right">{tool.count}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* Top Flows */}
+              {aiStats.topFlows && aiStats.topFlows.length > 0 && (
+                <Card className="p-4">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <LineChart className="h-4 w-4" />
+                    En Çok Kullanılan Flow'lar
+                  </h4>
+                  <div className="space-y-2">
+                    {aiStats.topFlows.map((flow) => (
+                      <div key={flow.flow} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                        <span className="text-sm font-medium">{flow.flow}</span>
+                        <Badge>{flow.count} kullanım</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
+
+              {/* Token Usage & Cost Estimate */}
+              <Card className="p-4 bg-gradient-to-br from-blue-500/5 to-purple-500/5">
+                <h4 className="font-semibold mb-3">Token Kullanımı & Maliyet Tahmini</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Toplam Token</p>
+                    <p className="text-2xl font-bold">{aiStats.totalTokensUsed.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tahmini Maliyet</p>
+                    <p className="text-2xl font-bold">
+                      ${((aiStats.totalTokensUsed / 1000000) * 0.15).toFixed(4)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      ≈ ₺{((aiStats.totalTokensUsed / 1000000) * 0.15 * 34).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          ) : (
+            <Card className="p-8 text-center">
+              <RefreshCw className="h-12 w-12 mx-auto mb-4 animate-spin opacity-50" />
+              <p className="text-muted-foreground">Yükleniyor...</p>
+            </Card>
+          )}
+        </TabsContent>
 
         {/* Module Analysis Content */}
         <TabsContent value="modules" className="space-y-4">

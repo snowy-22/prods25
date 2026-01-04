@@ -76,27 +76,84 @@ CanvasFlow sosyal medya paneli, demo ve test amaçları için **12 adet örnek p
 - 234 içerik | 45,670 beğeni | 5,670 yorum
 - ✅ Doğrulanmış | Coach badge
 
-## 📱 İçerik Örnekleri (10 Adet)
+## 📱 İçerik Örnekleri (15 Adet - Geliştirilmiş)
 
-Her profil için örnek içerikler:
+Her profil için örnek içerikler (kapak fotoğrafı ve önizleme ile):
 
 1. **Modern UI Design System** (Design Studio)
-   - Resim tipi | 2,345 görüntülenme | 234 beğeni | 45 yorum
+   - 🖼️ Resim tipi | 2,345 görüntülenme | 234 beğeni | 45 yorum
+   - 📸 Kapak: Minimalist UI bileşenleri grid layout
+   - 🎨 Önizleme: Renk paleti ve tipografi örnekleri
 
 2. **React Performance Optimization Guide** (Dev Master)
-   - Makale tipi | 5,678 görüntülenme | 567 beğeni | 89 yorum
+   - 📝 Makale tipi | 5,678 görüntülenme | 567 beğeni | 89 yorum
+   - 📸 Kapak: Kod snippet'leri ve performans grafikleri
+   - 🎨 Önizleme: React logo ve kod editörü ekran görüntüsü
 
 3. **How to Create Viral Content** (Content Creator)
-   - Video tipi | 23,456 görüntülenme | 2,345 beğeni | 456 yorum
+   - 🎬 Video tipi | 23,456 görüntülenme | 2,345 beğeni | 456 yorum
+   - 📸 Kapak: Video thumbnail, parlak renkli başlık
+   - 🎨 Önizleme: Creator kamera karşısında, dinamik arka plan
 
 4. **Character Design Process** (Digital Artist)
-   - Resim tipi | 4,567 görüntülenme | 456 beğeni | 78 yorum
+   - 🖼️ Resim tipi | 4,567 görüntülenme | 456 beğeni | 78 yorum
+   - 📸 Kapak: Karakter sketch'i ve final render yan yana
+   - 🎨 Önizleme: Step-by-step kroki evreleri collage
 
 5. **Sunset Photography Collection** (Photography Pro)
-   - Koleksiyon tipi | 8,901 görüntülenme | 890 beğeni | 123 yorum
+   - 🌅 Koleksiyon tipi | 8,901 görüntülenme | 890 beğeni | 123 yorum
+   - 📸 Kapak: Panoramik gün batımı, turuncu-mor tonlar
+   - 🎨 Önizleme: 9 farklı gün batımı fotoğrafı grid
 
 6. **Minimalist Living Guide** (Lifestyle Influencer)
-   - Canvas tipi | 12,345 görüntülenme | 1,234 beğeni | 234 yorum
+   - 🎨 Canvas tipi | 12,345 görüntülenme | 1,234 beğeni | 234 yorum
+   - 📸 Kapak: Temiz, minimalist iç mekan, beyaz tonlar
+   - 🎨 Önizleme: Minimalist yaşam temaları infographic
+
+7. **CSS Animation Tricks** (Dev Master)
+   - 🎥 Video tipi | 7,890 görüntülenme | 678 beğeni | 112 yorum
+   - 📸 Kapak: Animasyonlu CSS logo, hover efektleri
+   - 🎨 Önizleme: Kod snippet ve animasyon demo
+
+8. **Abstract Art Series #3** (Digital Artist)
+   - 🖼️ Resim tipi | 3,456 görüntülenme | 345 beğeni | 67 yorum
+   - 📸 Kapak: Renkli abstract kompozisyon, geometrik şekiller
+   - 🎨 Önizleme: Kroki aşamaları ve renk paleti
+
+9. **Product Design Workflow** (Design Studio)
+   - 📐 Kroki/Sketch tipi | 4,567 görüntülenme | 456 beğeni | 89 yorum
+   - 📸 Kapak: Wireframe'den final tasarıma adımlar
+   - 🎨 Önizleme: El çizimi sketch, digital mockup, prototype
+
+10. **Morning Routine Vlog** (Lifestyle Influencer)
+    - 🎬 Video tipi | 15,678 görüntülenme | 1,567 beğeni | 345 yorum
+    - 📸 Kapak: Kahve fincanı, güneşli sabah ışığı
+    - 🎨 Önizleme: Vlogger kahvaltı masasında
+
+11. **TypeScript Best Practices** (Dev Master)
+    - 📝 Makale tipi | 6,789 görüntülenme | 678 beğeni | 123 yorum
+    - 📸 Kapak: TypeScript logo, kod editörü
+    - 🎨 Önizleme: Type safety örnekleri, kod snippet
+
+12. **Fashion Sketch Collection** (Digital Artist)
+    - ✏️ Kroki/Sketch tipi | 5,234 görüntülenme | 523 beğeni | 98 yorum
+    - 📸 Kapak: El çizimi moda illüstrasyonları
+    - 🎨 Önizleme: 6 farklı kıyafet sketch'i grid layout
+
+13. **Startup Pitch Deck Template** (Startup Hub)
+    - 📊 Canvas tipi | 9,876 görüntülenme | 987 beğeni | 234 yorum
+    - 📸 Kapak: Modern sunum tasarımı, şık tipografi
+    - 🎨 Önizleme: Slide örnekleri collage
+
+14. **Home Workout Challenge** (Fitness Coach)
+    - 🎬 Video tipi | 12,345 görüntülenme | 1,234 beğeni | 345 yorum
+    - 📸 Kapak: Fitness coach egzersiz pozisyonunda
+    - 🎨 Önizleme: 30 günlük challenge takvimi
+
+15. **Architectural Sketch Studies** (Design Studio)
+    - ✏️ Kroki/Sketch tipi | 4,321 görüntülenme | 432 beğeni | 87 yorum
+    - 📸 Kapak: Bina perspektif çizimleri, teknik detaylar
+    - 🎨 Önizleme: Karakalem mimari sketch koleksiyonu
 
 7. **Web Design Masterclass** (Edu Mentor)
    - Video tipi | 6,789 görüntülenme | 678 beğeni | 123 yorum

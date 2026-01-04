@@ -12,7 +12,6 @@ import { File, Folder, Settings, Layout, Palette, Sparkles, Frame, Search, Bot, 
 import { ContentItem, ItemType, widgetTemplates } from '@/lib/initial-content';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { askAi } from '@/ai/flows/assistant-flow';
 import { analyzeItem } from '@/ai/flows/analyze-item-flow';
 import { type Message } from '@/ai/flows/assistant-schema';
 import { useDebounce } from 'react-use';
@@ -88,6 +87,22 @@ function GlobalSearch({
   const [browserUrl, setBrowserUrl] = useState<string | null>(null);
   const [isImportMode, setIsImportMode] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+    const callAssistant = useCallback(async (history: Message[]) => {
+        const response = await fetch('/api/ai/assistant', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ history }),
+            cache: 'no-store',
+        });
+
+        if (!response.ok) {
+            throw new Error('Assistant service unavailable');
+        }
+
+        const data = await response.json();
+        return data.history as Message[];
+    }, []);
 
 
   const allWidgets = useMemo(() => Object.values(widgetTemplates).flat(), []);
@@ -173,7 +188,7 @@ function GlobalSearch({
   // }, [panelState.isOpen, allWidgets]);
 
 
-  const handleAiSearch = async (searchQuery: string) => {
+    const handleAiSearch = async (searchQuery: string) => {
     if (!searchQuery) {
         setBrowserUrl(null);
         setAiResponse(null);
@@ -194,8 +209,9 @@ function GlobalSearch({
     // Get AI summary
     try {
         const prompt = `Kullanıcının şu aramasına yardımcı ol: "${searchQuery}". Olası eylemleri veya ilgili bilgileri kısaca özetle.`;
-        const response = await askAi({ history: [{ role: 'user', content: [{ text: prompt }] }] });
-        const lastMessage = response.history[response.history.length - 1];
+        const history: Message[] = [{ role: 'user', content: [{ text: prompt }] }];
+        const responseHistory = await callAssistant(history);
+        const lastMessage = responseHistory[responseHistory.length - 1];
         if (lastMessage && lastMessage.role === 'model' && 'text' in lastMessage.content[0]) {
             setAiResponse(lastMessage.content[0].text);
         }

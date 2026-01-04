@@ -6,6 +6,16 @@ import { User } from '@supabase/supabase-js';
 import { Message, Conversation, Group, Call, GroupMember, PermissionLevel, PrivateAccount, MessageSearchFilter } from './messaging-types';
 import { HueBridge, HueLight, HueScene, HueSync } from './hue-types';
 import { GridModeState } from './layout-engine';
+import { 
+  subscribeToCanvasChanges, 
+  unsubscribeFromCanvasChanges, 
+  loadAllCanvasData, 
+  loadUserPreferences, 
+  debouncedSyncToCloud,
+  saveUserPreferences,
+  migrateLocalStorageToCloud,
+  SyncDataType 
+} from './supabase-sync';
 
 export type SearchPanelState = {
   isOpen: boolean;
@@ -207,6 +217,10 @@ interface AppStore {
   playerControlGroups: PlayerControlGroup[];
   activeMacroPadLayoutId?: string;
 
+  // Cloud Sync State
+  isSyncEnabled: boolean;
+  lastSyncTime: number | null;
+
   // Keyboard Shortcuts Actions
   addKeyboardShortcut: (shortcut: KeyboardShortcut) => void;
   updateKeyboardShortcut: (shortcutId: string, updates: Partial<KeyboardShortcut>) => void;
@@ -238,6 +252,13 @@ interface AppStore {
   removePlayerControlGroup: (groupId: string) => void;
   togglePlayerControlPin: (groupId: string, pinned: boolean) => void;
   togglePlayerControlMiniMapPin: (groupId: string, pinned: boolean) => void;
+
+  // Supabase Sync Actions
+  initializeCloudSync: () => Promise<void>;
+  syncToCloud: (dataType: SyncDataType, data: any) => void;
+  loadFromCloud: () => Promise<void>;
+  isSyncEnabled: boolean;
+  lastSyncTime: number | null;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -283,7 +304,7 @@ export const useAppStore = create<AppStore>()(
         enabled: false,
         type: 'vertical',
         columns: 3,
-        currentPage: 1,
+        currentPage: 1, // Her zaman 1. sayfadan başla
         totalPages: 1,
         itemsPerPage: 3,
         totalItems: 0
@@ -313,7 +334,21 @@ export const useAppStore = create<AppStore>()(
       macroPadLayouts: [],
       playerControlGroups: [],
 
-      setUser: (user) => set({ user }),
+      // Cloud Sync defaults
+      isSyncEnabled: false,
+      lastSyncTime: null,
+
+      setUser: (user) => {
+        set({ user });
+        if (user) {
+          // Initialize cloud sync when user logs in
+          get().initializeCloudSync();
+        } else {
+          // Cleanup when user logs out
+          unsubscribeFromCanvasChanges();
+          set({ isSyncEnabled: false });
+        }
+      },
       setUsername: (username) => set({ username }),
       setActiveTab: (activeTabId) => {
         const { tabs } = get();
@@ -327,7 +362,10 @@ export const useAppStore = create<AppStore>()(
           activeSecondaryPanel: isLibraryTab ? 'library' : get().activeSecondaryPanel
         });
       },
-      setTabs: (tabs) => set({ tabs }),
+      setTabs: (tabs) => {
+        set({ tabs });
+        get().syncToCloud('tabs', tabs);
+      },
       setIsUiHidden: (isUiHidden) => set({ isUiHidden }),
       setPointerFrameEnabled: (pointerFrameEnabled) => set({ pointerFrameEnabled }),
       setAudioTrackerEnabled: (audioTrackerEnabled) => set({ audioTrackerEnabled }),
@@ -344,6 +382,10 @@ export const useAppStore = create<AppStore>()(
       setLayoutMode: (layoutMode) => {
         const normalized = layoutMode === 'canvas' ? 'canvas' : 'grid';
         set({ layoutMode: normalized });
+        const { user } = get();
+        if (user) {
+          saveUserPreferences(user.id, { layout_mode: normalized });
+        }
         // Canvas: hide extra chrome for focus; Grid: keep default panels
         if (normalized === 'canvas') {
           set({ 
@@ -553,9 +595,11 @@ export const useAppStore = create<AppStore>()(
         });
       },
       updateTab: (tabId, updates) => {
-        set((state) => ({
-          tabs: state.tabs.map((t) => (t.id === tabId ? { ...t, ...updates } : t)),
-        }));
+        set((state) => {
+          const newTabs = state.tabs.map((t) => (t.id === tabId ? { ...t, ...updates } : t));
+          get().syncToCloud('tabs', newTabs);
+          return { tabs: newTabs };
+        });
       },
       closeTab: (tabId) => {
         const { tabs, activeTabId } = get();
@@ -578,6 +622,7 @@ export const useAppStore = create<AppStore>()(
         const newExpanded = state.expandedItems.includes(itemId)
           ? state.expandedItems.filter(id => id !== itemId)
           : [...state.expandedItems, itemId];
+        get().syncToCloud('expanded_items', newExpanded);
         return { expandedItems: newExpanded };
       }),
       setHoveredItem: (itemId) => set({ hoveredItemId: itemId }),
@@ -1025,6 +1070,107 @@ export const useAppStore = create<AppStore>()(
           g.id === groupId ? { ...g, isPinnedToMiniMap: pinned } : g
         )
       })),
+
+      // Supabase Sync Actions
+      initializeCloudSync: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          // Migrate local storage to cloud if needed
+          await migrateLocalStorageToCloud(user.id);
+
+          // Load data from cloud
+          await get().loadFromCloud();
+
+          // Subscribe to real-time changes
+          subscribeToCanvasChanges(user.id, ({ dataType, data }) => {
+            const state = get();
+            
+            switch (dataType) {
+              case 'tabs':
+                set({ tabs: data });
+                break;
+              case 'expanded_items':
+                set({ expandedItems: data });
+                break;
+              case 'settings':
+                // Update preferences
+                if (data.layout_mode) set({ layoutMode: data.layout_mode });
+                if (data.new_tab_behavior) set({ newTabBehavior: data.new_tab_behavior });
+                if (data.startup_behavior) set({ startupBehavior: data.startup_behavior });
+                if (data.grid_mode_state) set({ gridModeState: data.grid_mode_state });
+                if (data.ui_settings) {
+                  const ui = data.ui_settings;
+                  set({
+                    isSecondLeftSidebarOpen: ui.isSecondLeftSidebarOpen ?? state.isSecondLeftSidebarOpen,
+                    activeSecondaryPanel: ui.activeSecondaryPanel ?? state.activeSecondaryPanel,
+                    pointerFrameEnabled: ui.pointerFrameEnabled ?? state.pointerFrameEnabled,
+                    audioTrackerEnabled: ui.audioTrackerEnabled ?? state.audioTrackerEnabled,
+                    mouseTrackerEnabled: ui.mouseTrackerEnabled ?? state.mouseTrackerEnabled,
+                    virtualizerMode: ui.virtualizerMode ?? state.virtualizerMode,
+                    visualizerMode: ui.visualizerMode ?? state.visualizerMode,
+                  });
+                }
+                break;
+            }
+          });
+
+          set({ isSyncEnabled: true, lastSyncTime: Date.now() });
+        } catch (error) {
+          console.error('Failed to initialize cloud sync:', error);
+        }
+      },
+
+      syncToCloud: (dataType, data) => {
+        const { user, isSyncEnabled } = get();
+        if (!user || !isSyncEnabled) return;
+        
+        debouncedSyncToCloud(dataType, data, user.id);
+        set({ lastSyncTime: Date.now() });
+      },
+
+      loadFromCloud: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          // Load all canvas data
+          const data = await loadAllCanvasData(user.id);
+          if (data) {
+            if (data.tabs) set({ tabs: data.tabs });
+            if (data.expandedItems) set({ expandedItems: data.expandedItems });
+          }
+
+          // Load preferences
+          const prefs = await loadUserPreferences(user.id);
+          if (prefs) {
+            set({
+              layoutMode: prefs.layout_mode,
+              newTabBehavior: prefs.new_tab_behavior,
+              startupBehavior: prefs.startup_behavior,
+              gridModeState: prefs.grid_mode_state || get().gridModeState,
+            });
+
+            if (prefs.ui_settings) {
+              const ui = prefs.ui_settings;
+              set({
+                isSecondLeftSidebarOpen: ui.isSecondLeftSidebarOpen ?? true,
+                activeSecondaryPanel: ui.activeSecondaryPanel ?? 'library',
+                pointerFrameEnabled: ui.pointerFrameEnabled ?? false,
+                audioTrackerEnabled: ui.audioTrackerEnabled ?? false,
+                mouseTrackerEnabled: ui.mouseTrackerEnabled ?? false,
+                virtualizerMode: ui.virtualizerMode ?? false,
+                visualizerMode: ui.visualizerMode ?? 'off',
+              });
+            }
+          }
+
+          set({ lastSyncTime: Date.now() });
+        } catch (error) {
+          console.error('Failed to load from cloud:', error);
+        }
+      },
     }),
     {
       name: 'tv25-storage',

@@ -3,6 +3,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { AppProvider } from '@/providers/app-provider';
 import { AuthProvider } from '@/providers/auth-provider';
+import { CloudSyncProvider } from '@/components/cloud-sync-provider';
 import { LogTracker } from '@/components/log-tracker';
 import { VercelAnalytics } from '@/components/vercel-analytics';
 
@@ -114,11 +115,13 @@ export default function RootLayout({
       </head>
       <body className={cn('font-body antialiased overflow-hidden')}>
         <AuthProvider>
-          <AppProvider>
-            <LogTracker />
-            {children}
-            <VercelAnalytics />
-          </AppProvider>
+          <CloudSyncProvider>
+            <AppProvider>
+              <LogTracker />
+              {children}
+              <VercelAnalytics />
+            </AppProvider>
+          </CloudSyncProvider>
         </AuthProvider>
       </body>
     </html>

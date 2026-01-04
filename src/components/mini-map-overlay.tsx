@@ -101,22 +101,22 @@ export function MiniMapOverlay({
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={cn(
-        "relative rounded-xl border bg-card/98 backdrop-blur-xl shadow-2xl ring-1 ring-border/50 overflow-hidden",
+        "relative rounded-lg border bg-card/98 backdrop-blur-xl shadow-2xl ring-1 ring-border/50 overflow-hidden",
         isHovered && "ring-primary/50"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40 rounded-t-xl">
+        <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40 rounded-t-lg">
           <div className="flex items-center gap-2 text-xs font-semibold">
             <Map className="h-4 w-4" /> Mini Map
           </div>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onToggle(false)}>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onToggle(false)}>
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Canvas Preview */}
         <div 
-          className="relative bg-muted/20 border-b border-muted/40"
+          className="relative bg-muted/20"
           style={{ 
             width: mapWidth, 
             height: mapHeight,
@@ -137,8 +137,8 @@ export function MiniMapOverlay({
                 x2={((i + 1) * cellWidth).toString()}
                 y2={mapHeight.toString()}
                 stroke="currentColor"
-                strokeWidth="0.5"
-                className="text-muted-foreground/30"
+                strokeWidth="1"
+                className="text-muted-foreground/20"
               />
             ))}
             {/* Horizontal grid lines */}
@@ -150,8 +150,8 @@ export function MiniMapOverlay({
                 x2={mapWidth.toString()}
                 y2={((i + 1) * cellHeight).toString()}
                 stroke="currentColor"
-                strokeWidth="0.5"
-                className="text-muted-foreground/30"
+                strokeWidth="1"
+                className="text-muted-foreground/20"
               />
             ))}
           </svg>
@@ -247,10 +247,10 @@ export function MiniMapOverlay({
 
         {/* Items List (scrollable) */}
         <div 
-          className="border-t border-muted/40 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-border/50 scrollbar-track-transparent"
+          className="border-t border-muted/40 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-border/50 scrollbar-track-transparent"
           style={{ width: mapWidth }}
         >
-          <div className="p-2 grid gap-1" style={{ gridTemplateColumns: `repeat(${Math.min(gridCols, 3)}, 1fr)` }}>
+          <div className="p-1 grid gap-0.5" style={{ gridTemplateColumns: `repeat(${Math.min(gridCols, 3)}, 1fr)` }}>
             {itemsToShow.map((item) => (
               <MiniMapCell
                 key={item.id}
@@ -269,12 +269,12 @@ export function MiniMapOverlay({
           ref={resizeRef}
           onMouseDown={handleMouseDown}
           className={cn(
-            "absolute -right-1.5 bottom-0 w-3 h-6 cursor-col-resize flex items-center justify-center hover:bg-primary/20 transition-colors rounded-r",
+            "absolute -right-1.5 bottom-0 w-3 h-5 cursor-col-resize flex items-center justify-center hover:bg-primary/20 transition-colors rounded-r",
             "group"
           )}
           title="Drag to resize"
         >
-          <GripVertical className="h-3 w-3 text-muted-foreground/50 group-hover:text-primary/50" />
+          <GripVertical className="h-2.5 w-2.5 text-muted-foreground/50 group-hover:text-primary/50" />
         </div>
       </div>
     </motion.div>
@@ -299,16 +299,15 @@ function MiniMapCell({ item, isSelected, onClick, blurFallback, boldTitle }: Min
   return (
     <motion.div
       className={cn(
-        'relative rounded border cursor-pointer overflow-hidden group transition-all',
-        isSelected && 'ring-2 ring-primary ring-offset-1 ring-offset-background',
-        isHovered && 'border-primary shadow-lg z-10'
+        'relative rounded border cursor-pointer overflow-hidden group transition-all h-full aspect-square',
+        isSelected && 'ring-2 ring-primary ring-offset-0',
+        isHovered && 'border-primary shadow-lg z-10 ring-2 ring-primary/60'
       )}
-      style={{ aspectRatio: '1 / 1', minHeight: cellSize, minWidth: cellSize }}
       onClick={(e) => onClick(item, e)}
       onTouchEnd={(e) => onClick(item, e)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      whileHover={{ scale: 1.08, zIndex: 20 }}
+      whileHover={{ scale: 1.05, zIndex: 20 }}
       whileTap={{ scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 400, damping: 20 }}
     >
@@ -336,8 +335,8 @@ function MiniMapCell({ item, isSelected, onClick, blurFallback, boldTitle }: Min
 
       {/* Title overlay on hover */}
       <div className={cn(
-        'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/60 to-transparent p-1 text-[8px] text-white truncate transition-opacity',
-        isHovered ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+        'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-0.5 text-[7px] text-white truncate transition-opacity line-clamp-1',
+        isHovered ? 'opacity-100' : 'opacity-0',
         boldTitle && 'font-bold'
       )}>
         {item.title}

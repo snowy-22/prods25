@@ -106,12 +106,19 @@ const Canvas = memo(function Canvas({
   const setGridColumns = useAppStore(state => state.setGridColumns);
   const setGridCurrentPage = useAppStore(state => state.setGridCurrentPage);
 
+  // Info Panels State (Mini Map, Descriptions, Comments, Analytics)
+  const [isMiniMapVisible, setIsMiniMapVisible] = useState(false);
+  const [isDescriptionsVisible, setIsDescriptionsVisible] = useState(false);
+  const [isCommentsVisible, setIsCommentsVisible] = useState(false);
+  const [isAnalyticsVisible, setIsAnalyticsVisible] = useState(false);
+
   // Video Controls - Detect video items in canvas
   const hasVideoItems = useMemo(() => {
     return items.some(item => 
       item.type === 'video' || 
-      item.type === 'youtube' ||
-      (item.url && /\.(mp4|webm|ogg|mov)$/i.test(item.url))
+      item.type === 'player' ||
+      (item.url && /\.(mp4|webm|ogg|mov)$/i.test(item.url)) ||
+      (item.url && /youtube\.com|youtu\.be|vimeo\.com/i.test(item.url))
     );
   }, [items]);
 
@@ -227,10 +234,17 @@ const Canvas = memo(function Canvas({
 
   // Grid Mode Pagination Logic
   const paginatedItems = useMemo(() => {
+    // Canvas modda veya grid mode kapalıysa tüm öğeleri göster
     if (!gridModeState.enabled || normalizedLayoutMode === 'canvas') {
-      return items; // Return all items if grid mode disabled or in canvas mode
+      return items;
     }
     
+    // Sonsuz modda (vertical) tüm öğeleri göster, scroll ile gezinilir
+    if (gridModeState.type === 'vertical') {
+      return items;
+    }
+    
+    // Sayfa modunda (square) sadece mevcut sayfadaki öğeleri göster
     const isSquareMode = gridModeState.type === 'square';
     return getPaginatedGridItems(items, gridModeState.columns, isSquareMode, gridModeState.currentPage);
   }, [items, gridModeState.enabled, gridModeState.type, gridModeState.columns, gridModeState.currentPage, normalizedLayoutMode]);
@@ -246,23 +260,17 @@ const Canvas = memo(function Canvas({
         gridModeState.currentPage
       );
       
-      // Only update if values changed
-      if (
-        pagination.totalPages !== gridModeState.totalPages ||
-        pagination.totalItems !== gridModeState.totalItems ||
-        pagination.itemsPerPage !== gridModeState.itemsPerPage
-      ) {
-        setGridModeEnabled(true); // Ensure we maintain state updates
-        // Note: We don't directly update totalPages here to avoid circular updates
-        // These values are recalculated on-demand in the UI
-      }
-      
       // If current page > total pages, reset to page 1
       if (gridModeState.currentPage > pagination.totalPages) {
         setGridCurrentPage(1);
       }
+      
+      // Sayfa moduna geçişte 1. sayfadan başla (sonsuz moddan geliyorsa)
+      if (isSquareMode && gridModeState.currentPage === 0) {
+        setGridCurrentPage(1);
+      }
     }
-  }, [items.length, gridModeState.enabled, gridModeState.type, gridModeState.columns, gridModeState.currentPage]);
+  }, [items.length, gridModeState.enabled, gridModeState.type, gridModeState.columns, gridModeState.currentPage, setGridCurrentPage]);
 
   // Canvas moduna özel kısayollar
   useEffect(() => {
@@ -465,6 +473,14 @@ const Canvas = memo(function Canvas({
             onSkipForward={handleSkipForward}
             onSkipBack={handleSkipBack}
             onChangeSpeed={handleChangeSpeed}
+            onToggleMiniMap={() => setIsMiniMapVisible(!isMiniMapVisible)}
+            isMiniMapVisible={isMiniMapVisible}
+            onToggleDescriptions={() => setIsDescriptionsVisible(!isDescriptionsVisible)}
+            isDescriptionsVisible={isDescriptionsVisible}
+            onToggleComments={() => setIsCommentsVisible(!isCommentsVisible)}
+            isCommentsVisible={isCommentsVisible}
+            onToggleAnalytics={() => setIsAnalyticsVisible(!isAnalyticsVisible)}
+            isAnalyticsVisible={isAnalyticsVisible}
           />
         </div>
       )}
@@ -492,7 +508,11 @@ const Canvas = memo(function Canvas({
       {/* Scrollable Content Layer */}
       <ContextMenu>
         <ContextMenuTrigger className="relative z-10 w-full h-full block">
-          <div className="w-full h-full overflow-auto overflow-x-hidden" ref={containerRef}>
+          <div className={cn(
+            "w-full h-full",
+            // Sayfa modunda scroll kapalı, sonsuz modda scroll açık
+            gridModeState.enabled && gridModeState.type === 'square' ? 'overflow-hidden' : 'overflow-auto overflow-x-hidden'
+          )} ref={containerRef}>
             <div className={cn(canvasScale !== 1 && 'origin-top-left')} style={scaledWrapperStyle}>
               <Droppable droppableId="canvas-droppable" direction="horizontal" isDropDisabled={isPreviewMode || normalizedLayoutMode !== 'grid'} type="canvas-item">
                 {(provided, snapshot) => (
@@ -501,18 +521,18 @@ const Canvas = memo(function Canvas({
                     ref={provided.innerRef}
                     className={cn(
                       'transition-all duration-500 relative w-full min-h-full select-none',
-                      (normalizedLayoutMode === 'grid' || normalizedLayoutMode === 'grid-square' || normalizedLayoutMode === 'grid-vertical') ? 'grid' : 'block',
+                      normalizedLayoutMode === 'grid' ? 'grid' : 'block',
                       snapshot.isDraggingOver && normalizedLayoutMode !== 'canvas' && "bg-primary/5 ring-2 ring-primary/20 ring-inset rounded-lg"
                     )}
                     style={{ 
                       padding: `${padding}px`, 
                       gap: `${gap}px`, 
                       gridTemplateColumns: 
-                        normalizedLayoutMode === 'grid-vertical' ? '1fr' :
-                        (normalizedLayoutMode === 'grid' || normalizedLayoutMode === 'grid-square') ? `repeat(auto-fill, minmax(${responsiveGridSize}px, 1fr))` : undefined,
+                        (normalizedLayoutMode === 'grid' && gridModeState.type === 'vertical') ? '1fr' :
+                        normalizedLayoutMode === 'grid' ? `repeat(auto-fill, minmax(${responsiveGridSize}px, 1fr))` : undefined,
                       gridAutoRows: 
-                        normalizedLayoutMode === 'grid-vertical' ? 'auto' :
-                        (normalizedLayoutMode === 'grid' || normalizedLayoutMode === 'grid-square') ? `${responsiveGridSize}px` : undefined,
+                        (normalizedLayoutMode === 'grid' && gridModeState.type === 'vertical') ? 'auto' :
+                        normalizedLayoutMode === 'grid' ? `${responsiveGridSize}px` : undefined,
                       height: normalizedLayoutMode === 'canvas' ? '100%' : undefined
                     }}
                   >

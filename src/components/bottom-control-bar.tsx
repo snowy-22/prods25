@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ZoomIn, ZoomOut, ChevronDown, ChevronUp, Map, LayoutGrid } from 'lucide-react';
@@ -32,7 +33,28 @@ export function BottomControlBar({
   onToggleMiniMap,
 }: BottomBarProps) {
   const currentPreset = pixelToSizePreset(gridSize);
-  const sizes: SizePreset[] = ['S', 'M', 'L', 'XL'];
+  const sizes: SizePreset[] = ['S', 'M', 'L', 'XL', 'XXL'];
+
+  const minGridSize = sizePresetToPixel('S');
+  const maxGridSize = sizePresetToPixel('XXL');
+  const logMin = Math.log(minGridSize);
+  const logMax = Math.log(maxGridSize);
+
+  const toSliderValue = (value: number) => {
+    const clamped = Math.min(Math.max(value, minGridSize), maxGridSize);
+    return ((Math.log(clamped) - logMin) / (logMax - logMin)) * 100;
+  };
+
+  const fromSliderValue = (value: number) => {
+    const clamped = Math.min(Math.max(value, 0), 100);
+    const scaled = Math.exp(logMin + (clamped / 100) * (logMax - logMin));
+    return Math.round(scaled);
+  };
+
+  const presetMarkers = sizes.map(preset => ({
+    preset,
+    position: toSliderValue(sizePresetToPixel(preset))
+  }));
 
   const handlePresetChange = (preset: SizePreset) => {
     onGridSizeChange(sizePresetToPixel(preset));
@@ -49,24 +71,9 @@ export function BottomControlBar({
   };
 
   return (
-    <div className="flex items-center justify-between gap-2 px-2 md:px-3 py-1 border-t bg-muted/50 backdrop-blur-sm min-h-8">
-      {/* Left Section: Collapse/Expand */}
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        className="h-7 w-7" 
-        onClick={() => onToggleCollapse(!isCollapsed)}
-      >
-        {isCollapsed ? (
-          <ChevronUp className="h-3.5 w-3.5" />
-        ) : (
-          <ChevronDown className="h-3.5 w-3.5" />
-        )}
-      </Button>
-
-      {/* Middle Section: Size Preset Buttons + Slider */}
-      <div className="flex items-center gap-2 flex-1 max-w-none">
-        {/* Zoom Out Button */}
+    <div className="flex items-center justify-between gap-2 px-2 md:px-3 py-2 border-t bg-muted/50 backdrop-blur-sm min-h-12">
+      {/* Left Section: Zoom Out + Slider Section */}
+      <div className="flex items-center gap-3 flex-1 max-w-none">
         <Button
           variant="ghost"
           size="icon"
@@ -77,68 +84,80 @@ export function BottomControlBar({
         >
           <ZoomOut className="h-3.5 w-3.5" />
         </Button>
-        
-        {/* Size Preset Buttons */}
-        <div className="flex items-center gap-1 border rounded-md p-0.5 bg-background/50 flex-shrink-0">
-          {sizes.map(size => (
-            <Button
-              key={size}
-              variant={currentPreset === size ? 'secondary' : 'ghost'}
-              size="sm"
-              className={cn(
-                "h-6 w-8 text-xs font-semibold",
-                currentPreset === size && "shadow-sm"
-              )}
-              onClick={() => handlePresetChange(size)}
-            >
-              {size}
-            </Button>
-          ))}
-        </div>
 
-        {/* Fine-tune Slider - Expanded */}
         <div className="flex items-center gap-2 flex-1">
           <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-          <Slider
-            value={[gridSize]}
-            min={100}
-            max={800}
-            step={10}
-            onValueChange={(val) => onGridSizeChange(val[0])}
-            className="flex-1 min-w-[200px]"
-          />
-          <span className="text-xs font-mono text-muted-foreground min-w-[50px] flex-shrink-0">
+          <div className="relative flex-1 min-w-[280px] h-12">
+            {/* Map scale ruler appearance */}
+            <div className="absolute inset-0 flex items-center">
+              {/* Scale bar track */}
+              <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-muted via-primary/20 to-muted rounded-full" />
+              
+              {/* Preset markers with tick marks */}
+              {presetMarkers.map((marker, idx) => (
+                <div
+                  key={marker.preset}
+                  className="absolute top-0 bottom-0 flex flex-col items-center justify-center -translate-x-1/2 pointer-events-none"
+                  style={{ left: `${marker.position}%` }}
+                >
+                  {/* Tick mark */}
+                  <div 
+                    className={cn(
+                      "w-0.5 rounded-full transition-all",
+                      currentPreset === marker.preset 
+                        ? "h-8 bg-primary shadow-lg" 
+                        : "h-4 bg-muted-foreground/40"
+                    )}
+                  />
+                  
+                  {/* Label - clickable */}
+                  <button
+                    type="button"
+                    onClick={() => handlePresetChange(marker.preset)}
+                    className={cn(
+                      "absolute -bottom-1 text-[10px] font-bold px-2 py-0.5 rounded-md transition-all pointer-events-auto whitespace-nowrap",
+                      currentPreset === marker.preset
+                        ? "bg-primary text-primary-foreground shadow-md scale-110 z-10"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60 hover:scale-105"
+                    )}
+                  >
+                    {marker.preset}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Slider overlay */}
+            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2">
+              <Slider
+                value={[toSliderValue(gridSize)]}
+                min={0}
+                max={100}
+                step={0.5}
+                onValueChange={(val) => onGridSizeChange(fromSliderValue(val[0]))}
+                className="w-full"
+              />
+            </div>
+          </div>
+          <span className="text-xs font-mono text-muted-foreground min-w-[55px] flex-shrink-0 text-right">
             {gridSize}px
           </span>
         </div>
-        
-        {/* Zoom Buttons Together on Right */}
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={handleZoomOut}
-            disabled={currentPreset === 'S'}
-            title="Küçült"
-          >
-            <ZoomOut className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={handleZoomIn}
-            disabled={currentPreset === 'XL'}
-            title="Büyüt"
-          >
-            <ZoomIn className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 flex-shrink-0"
+          onClick={handleZoomIn}
+          disabled={currentPreset === 'XXL'}
+          title="Büyüt"
+        >
+          <ZoomIn className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
-      {/* Right Section: MiniMap */}
-      <div className="flex items-center gap-1">
+      {/* Right Section: Collapse + MiniMap */}
+      <div className="flex items-center gap-1 flex-shrink-0">
         {showMiniMapToggle && (
           <Button
             variant={isMiniMapOpen ? 'secondary' : 'ghost'}
@@ -150,6 +169,18 @@ export function BottomControlBar({
             <Map className="h-3.5 w-3.5" />
           </Button>
         )}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-7 w-7" 
+          onClick={() => onToggleCollapse(!isCollapsed)}
+        >
+          {isCollapsed ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
+        </Button>
       </div>
     </div>
   );

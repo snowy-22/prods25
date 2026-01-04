@@ -9,7 +9,6 @@ import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
 import { Bot, User, Send, Loader2, X, Pin, PinOff, Paperclip, Smile, Mic, Video, Phone, MoreHorizontal, Image as ImageIcon, Users, Info, ExternalLink, Share2, Camera, ArrowLeft, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { askAi } from '@/ai/flows/assistant-flow';
 import { type Message } from '@/ai/flows/assistant-schema';
 import { AppLogo } from './icons/app-logo';
 import { ChatPanelState } from '@/lib/store';
@@ -109,6 +108,22 @@ export function AiChatDialog({
 
   const processedMessagesRef = useRef<Set<number>>(new Set());
 
+  const callAssistant = async (history: Message[]): Promise<Message[]> => {
+    const response = await fetch('/api/ai/assistant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ history }),
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error('Assistant service unavailable');
+    }
+
+    const data = await response.json();
+    return data.history as Message[];
+  };
+
   useEffect(() => {
     messages.forEach((msg, index) => {
       if (msg.role === 'model' && !processedMessagesRef.current.has(index)) {
@@ -152,11 +167,7 @@ export function AiChatDialog({
     if (panelState.id === 'asistan') {
         setIsLoading(true);
         try {
-          const response = await askAi({
-            history: newHistory,
-          });
-
-          const finalHistory = response.history;
+          const finalHistory = await callAssistant(newHistory);
           setMessages(finalHistory);
           if (onNewMessages) {
             onNewMessages(panelState.id, finalHistory);

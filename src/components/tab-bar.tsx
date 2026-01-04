@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, Reorder, AnimatePresence } from 'framer-motion';
-import { X, GripVertical, Plus, LayoutGrid, Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { X, GripVertical, Plus, LayoutGrid, Search, ChevronDown, ChevronRight, Home } from 'lucide-react';
 import { ContentItem } from '@/lib/initial-content';
 import { getIconByName, IconName } from '@/lib/icons';
 import { cn } from '@/lib/utils';
@@ -37,6 +37,8 @@ export default function TabBar({
   tabAccessHistory = [],
 }: TabBarProps) {
   const [thirdTabVisible, setThirdTabVisible] = useState(true);
+  const displayedTabs = tabs.filter(t => t.id !== 'root');
+  const homeTab = tabs.find(t => t.id === 'root');
 
   useEffect(() => {
     if (tabAccessHistory.length >= 3) {
@@ -68,12 +70,12 @@ export default function TabBar({
   };
 
   // Organize tabs by groups
-  const ungroupedTabs = tabs.filter(t => !t.groupId);
+  const ungroupedTabs = displayedTabs.filter(t => !t.groupId);
   const groupedData: Array<{ group: TabGroup; tabs: Tab[] } | { tab: Tab }> = [];
 
   // Add grouped tabs
   tabGroups.forEach(group => {
-    const groupTabs = tabs.filter(t => t.groupId === group.id);
+    const groupTabs = displayedTabs.filter(t => t.groupId === group.id);
     if (groupTabs.length > 0) {
       groupedData.push({ group, tabs: groupTabs });
     }
@@ -105,6 +107,16 @@ export default function TabBar({
   return (
     <div className="flex items-center justify-between border-b bg-muted/30 backdrop-blur-md h-10 px-2 gap-2">
       <div className="flex items-center flex-1 min-w-0 overflow-hidden">
+        <Button
+          variant={activeTabId === 'root' ? 'secondary' : 'ghost'}
+          size="icon"
+          className="h-7 w-7 mr-2 flex-shrink-0"
+          onClick={() => homeTab && onTabClick(homeTab.id)}
+          disabled={!homeTab}
+          title="Ana sayfa"
+        >
+          <Home className="h-4 w-4" />
+        </Button>
         <div 
           ref={scrollContainerRef}
           className="flex items-center overflow-x-auto overflow-y-hidden scrollbar-hide scroll-smooth"

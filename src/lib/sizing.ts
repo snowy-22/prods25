@@ -1,9 +1,9 @@
 /**
- * 4 Aşamalı Boyutlandırma Sistemi
- * S/M/L/XL boyutları için logaritmik geçiş ve tutarlı boyutlandırma
+ * 5 Aşamalı Boyutlandırma Sistemi
+ * S/M/L/XL/XXL boyutları için logaritmik geçiş ve tutarlı boyutlandırma
  */
 
-export type SizePreset = 'S' | 'M' | 'L' | 'XL';
+export type SizePreset = 'S' | 'M' | 'L' | 'XL' | 'XXL';
 
 export interface SizingConfig {
   gridSize: number;        // Grid hücre boyutu (px)
@@ -31,9 +31,9 @@ export interface SizingConfig {
 }
 
 /**
- * S/M/L/XL boyutları için logaritmik ölçeklendirme
+ * S/M/L/XL/XXL boyutları için logaritmik ölçeklendirme
  * Formül: size = baseSize × (scaleFactor ^ level)
- * S (level 0) → M (level 1) → L (level 2) → XL (level 3)
+ * S (level 0) → M (level 1) → L (level 2) → XL (level 3) → XXL (level 4)
  */
 export const SIZING_PRESETS: Record<SizePreset, SizingConfig> = {
   S: {
@@ -131,6 +131,30 @@ export const SIZING_PRESETS: Record<SizePreset, SizingConfig> = {
     },
     borderRadius: '0.75rem', // 12px
     scale: 2.3
+  },
+  XXL: {
+    gridSize: 960,
+    minWidth: 720,
+    maxWidth: 1440,
+    minHeight: 720,
+    maxHeight: 1440,
+    fontSize: {
+      base: '1.5rem',     // 24px
+      heading: '2rem',    // 32px
+      small: '1.25rem'    // 20px
+    },
+    spacing: {
+      padding: '2rem',    // 32px
+      gap: '1.5rem',      // 24px
+      margin: '1.5rem'    // 24px
+    },
+    iconSize: {
+      small: 32,
+      medium: 48,
+      large: 64
+    },
+    borderRadius: '1rem', // 16px
+    scale: 3.5
   }
 };
 
@@ -141,7 +165,8 @@ export function pixelToSizePreset(pixels: number): SizePreset {
   if (pixels <= 230) return 'S';
   if (pixels <= 350) return 'M';
   if (pixels <= 530) return 'L';
-  return 'XL';
+  if (pixels <= 800) return 'XL';
+  return 'XXL';
 }
 
 /**
@@ -155,7 +180,7 @@ export function sizePresetToPixel(preset: SizePreset): number {
  * Bir sonraki boyut preset'ini döndürür (zoom in)
  */
 export function getNextSizePreset(current: SizePreset): SizePreset {
-  const order: SizePreset[] = ['S', 'M', 'L', 'XL'];
+  const order: SizePreset[] = ['S', 'M', 'L', 'XL', 'XXL'];
   const currentIndex = order.indexOf(current);
   return order[Math.min(currentIndex + 1, order.length - 1)];
 }
@@ -164,14 +189,14 @@ export function getNextSizePreset(current: SizePreset): SizePreset {
  * Bir önceki boyut preset'ini döndürür (zoom out)
  */
 export function getPreviousSizePreset(current: SizePreset): SizePreset {
-  const order: SizePreset[] = ['S', 'M', 'L', 'XL'];
+  const order: SizePreset[] = ['S', 'M', 'L', 'XL', 'XXL'];
   const currentIndex = order.indexOf(current);
   return order[Math.max(currentIndex - 1, 0)];
 }
 
 /**
  * Grid span değerlerini boyut preset'ine göre ayarlar
- * S: max 2×2, M: max 3×3, L: max 4×4, XL: max 6×6
+ * S: max 2×2, M: max 3×3, L: max 4×4, XL: max 6×6, XXL: max 8×8
  */
 export function getMaxGridSpan(preset: SizePreset): { col: number; row: number } {
   switch (preset) {
@@ -183,6 +208,8 @@ export function getMaxGridSpan(preset: SizePreset): { col: number; row: number }
       return { col: 4, row: 4 };
     case 'XL':
       return { col: 6, row: 6 };
+    case 'XXL':
+      return { col: 8, row: 8 };
   }
 }
 

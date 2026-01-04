@@ -3,8 +3,6 @@
 import React, { memo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ChevronLeft, 
-  ChevronRight, 
   Columns3, 
   SquareStack, 
   Info,
@@ -15,7 +13,11 @@ import {
   SkipForward,
   SkipBack,
   Gauge,
-  MonitorPlay
+  MonitorPlay,
+  Map,
+  MessageSquare,
+  FileText,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GridModeState } from '@/lib/layout-engine';
@@ -40,6 +42,14 @@ type GridModeControlsProps = {
   onSkipBack?: () => void;
   onChangeSpeed?: (speed: number) => void;
   activeMediaItem?: ContentItem | null;
+  onToggleMiniMap?: () => void;
+  isMiniMapVisible?: boolean;
+  onToggleComments?: () => void;
+  isCommentsVisible?: boolean;
+  onToggleAnalytics?: () => void;
+  isAnalyticsVisible?: boolean;
+  onToggleDescriptions?: () => void;
+  isDescriptionsVisible?: boolean;
 };
 
 const GridModeControls = memo(function GridModeControls({
@@ -58,12 +68,26 @@ const GridModeControls = memo(function GridModeControls({
   onSkipForward,
   onSkipBack,
   onChangeSpeed,
-  activeMediaItem = null
+  activeMediaItem = null,
+  onToggleMiniMap,
+  isMiniMapVisible = false,
+  onToggleComments,
+  isCommentsVisible = false,
+  onToggleAnalytics,
+  isAnalyticsVisible = false,
+  onToggleDescriptions,
+  isDescriptionsVisible = false
 }: GridModeControlsProps) {
   const isVertical = gridState.type === 'vertical';
   const isSquare = gridState.type === 'square';
+  
+  // Canlı totalPages hesapla
+  const rowsPerPageCalc = isSquare ? gridState.columns : 1;
+  const itemsPerPageCalc = gridState.columns * rowsPerPageCalc;
+  const calculatedTotalPages = Math.max(1, Math.ceil(totalItems / itemsPerPageCalc));
+  
   const canGoPrevious = gridState.currentPage > 1;
-  const canGoNext = gridState.currentPage < gridState.totalPages;
+  const canGoNext = gridState.currentPage < calculatedTotalPages;
   
   // Video player state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -104,7 +128,7 @@ const GridModeControls = memo(function GridModeControls({
   };
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm rounded-lg border border-slate-700/50">
+    <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm rounded-lg border border-slate-700/50">
       {/* Left Section: Mode Switcher + Column Selector */}
       <div className="flex items-center gap-2">
         {/* Mode Switcher */}
@@ -123,10 +147,10 @@ const GridModeControls = memo(function GridModeControls({
                 ? "bg-blue-500/80 text-white shadow-lg shadow-blue-500/30"
                 : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
             )}
-            title="Dikey Mod - Aşağıya kaydırarak göz at"
+            title="Sonsuz Görünüm - Aşağıya kaydırarak göz at"
           >
             <Columns3 className="w-3.5 h-3.5" />
-            <span>Dikey</span>
+            <span>Sonsuz</span>
           </motion.button>
 
           {/* Square Grid Mode Button */}
@@ -143,16 +167,16 @@ const GridModeControls = memo(function GridModeControls({
                 ? "bg-emerald-500/80 text-white shadow-lg shadow-emerald-500/30"
                 : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
             )}
-            title="Kare Izgara Modu - Sayfalarla aşın"
+            title="Sayfa Görünümü - Sayfalarla aşın"
           >
             <SquareStack className="w-3.5 h-3.5" />
-            <span>Kare</span>
+            <span>Sayfa</span>
           </motion.button>
         </div>
 
-        {/* Column Count Selector - Moved next to mode switcher */}
+        {/* Column Count Selector - Only visible in square/page mode */}
         <AnimatePresence mode="wait">
-          {gridState.enabled && (
+          {gridState.enabled && isSquare && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95, width: 0 }}
               animate={{ opacity: 1, scale: 1, width: 'auto' }}
@@ -182,91 +206,165 @@ const GridModeControls = memo(function GridModeControls({
         </AnimatePresence>
       </div>
 
-      {/* Center Section: Page Navigation */}
+      {/* Center Section: Page Navigation - Only in square/page mode */}
       <AnimatePresence mode="wait">
-        {gridState.enabled && (
+        {gridState.enabled && isSquare && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-3 bg-slate-900/60 rounded-md px-4 py-2.5 border border-slate-700/50"
           >
-            {/* Page Navigation */}
-            <div className="flex items-center gap-2 bg-slate-900/60 rounded-md p-1.5 border border-slate-700/50">
-              {/* Previous Button */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onPreviousPage}
-                disabled={!canGoPrevious}
-                className={cn(
-                  "p-1 rounded transition-colors",
-                  canGoPrevious
-                    ? "text-slate-300 hover:bg-slate-800 hover:text-white"
-                    : "text-slate-600 cursor-not-allowed"
-                )}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </motion.button>
+            {/* Page Indicator - Interactive Swipeable Dots */}
+            <motion.div 
+              className="flex items-center gap-2 cursor-grab active:cursor-grabbing select-none"
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(event, info) => {
+                // Swipe threshold: 50px sağa (önceki) veya sola (sonraki)
+                if (info.offset.x > 50 && canGoPrevious) {
+                  onPreviousPage();
+                } else if (info.offset.x < -50 && canGoNext) {
+                  onNextPage();
+                }
+              }}
+            >
+              {(() => {
+                // Canlı totalPages hesapla
+                const rowsPerPage = isSquare ? gridState.columns : 1;
+                const itemsPerPage = gridState.columns * rowsPerPage;
+                const calculatedTotalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+                
+                return Array.from({ length: calculatedTotalPages }).map((_, i) => {
+                  const pageNumber = i + 1;
+                  const isActive = pageNumber === gridState.currentPage;
 
-              {/* Page Indicator (Android-style dots) */}
-              <div className="flex items-center gap-1 px-2">
-                <div className="flex gap-1">
-                  {Array.from({ length: Math.min(gridState.totalPages, 5) }).map((_, i) => {
-                    const pageNum = i + 1;
-                    const isActive = pageNum === gridState.currentPage;
-                    const isFar = Math.abs(pageNum - gridState.currentPage) > 2;
-
-                    return (
-                      <motion.div
-                        key={i}
-                        animate={{
-                          width: isActive ? 24 : 6,
-                          backgroundColor: isActive ? '#3b82f6' : '#64748b',
-                          opacity: isFar && gridState.totalPages > 5 ? 0 : 1
-                        }}
-                        transition={{ duration: 0.2 }}
-                        className="h-1.5 rounded-full"
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Next Button */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onNextPage}
-                disabled={!canGoNext}
-                className={cn(
-                  "p-1 rounded transition-colors",
-                  canGoNext
-                    ? "text-slate-300 hover:bg-slate-800 hover:text-white"
-                    : "text-slate-600 cursor-not-allowed"
-                )}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </motion.button>
-            </div>
-
-            {/* Page Info */}
-            <div className="text-xs text-slate-400 bg-slate-900/40 rounded px-2.5 py-1.5 border border-slate-700/30 whitespace-nowrap">
-              <span className="font-medium">{gridState.currentPage}</span>
-              <span className="mx-1">/</span>
-              <span>{gridState.totalPages}</span>
-              <span className="mx-1.5">•</span>
-              <span className="font-medium">{itemsOnPage}</span>
-              <span className="mx-1">/</span>
-              <span>{totalItems}</span>
-            </div>
+                  return (
+                    <motion.button
+                      key={i}
+                      onClick={() => {
+                        // Dot'a tıklayarak direkt o sayfaya git
+                        const diff = pageNumber - gridState.currentPage;
+                        if (diff > 0) {
+                          for (let j = 0; j < diff; j++) onNextPage();
+                        } else if (diff < 0) {
+                          for (let j = 0; j < Math.abs(diff); j++) onPreviousPage();
+                        }
+                      }}
+                      whileHover={{ scale: 1.2 }}
+                      whileTap={{ scale: 0.9 }}
+                      animate={{
+                        scale: isActive ? 1.4 : 1,
+                        backgroundColor: isActive ? '#3b82f6' : '#64748b',
+                        width: isActive ? '32px' : '10px',
+                        borderRadius: isActive ? '6px' : '50%'
+                      }}
+                      transition={{ duration: 0.3, ease: 'easeOut' }}
+                      className="h-2.5 hover:opacity-80 transition-opacity"
+                      title={`Sayfa ${pageNumber} / ${calculatedTotalPages}`}
+                      aria-label={`Sayfa ${pageNumber}`}
+                    />
+                  );
+                });
+              })()}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Vertical Mode Controls: Mini Map & Info Panels */}
+      <AnimatePresence mode="wait">
+        {gridState.enabled && isVertical && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center gap-2 bg-slate-900/60 rounded-md p-1.5 border border-slate-700/50"
+          >
+            {/* Mini Map Toggle */}
+            {onToggleMiniMap && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onToggleMiniMap}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-sm text-xs font-medium transition-colors flex items-center gap-1.5",
+                  isMiniMapVisible
+                    ? "bg-blue-500/80 text-white shadow-lg shadow-blue-500/30"
+                    : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
+                )}
+                title="Mini Haritayı Göster/Gizle"
+              >
+                <Map className="w-3.5 h-3.5" />
+                <span>Mini Harita</span>
+              </motion.button>
+            )}
+
+            {/* Descriptions Toggle */}
+            {onToggleDescriptions && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onToggleDescriptions}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-sm text-xs font-medium transition-colors flex items-center gap-1.5",
+                  isDescriptionsVisible
+                    ? "bg-emerald-500/80 text-white shadow-lg shadow-emerald-500/30"
+                    : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
+                )}
+                title="Açıklamaları Göster/Gizle"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Açıklamalar</span>
+              </motion.button>
+            )}
+
+            {/* Comments Toggle */}
+            {onToggleComments && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onToggleComments}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-sm text-xs font-medium transition-colors flex items-center gap-1.5",
+                  isCommentsVisible
+                    ? "bg-purple-500/80 text-white shadow-lg shadow-purple-500/30"
+                    : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
+                )}
+                title="Yorumları Göster/Gizle"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Yorumlar</span>
+              </motion.button>
+            )}
+
+            {/* Analytics Toggle */}
+            {onToggleAnalytics && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onToggleAnalytics}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-sm text-xs font-medium transition-colors flex items-center gap-1.5",
+                  isAnalyticsVisible
+                    ? "bg-orange-500/80 text-white shadow-lg shadow-orange-500/30"
+                    : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
+                )}
+                title="Analizleri Göster/Gizle"
+              >
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>Analizler</span>
+              </motion.button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Smart Player Button - Before Video Controls */}
       <AnimatePresence mode="wait">
