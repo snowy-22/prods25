@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { 
   Tooltip, 
@@ -22,12 +22,23 @@ import {
   BarChart, 
   LogOut,
   AlignVerticalJustifyCenter,
-  Grid3x3
+  Grid3x3,
+  Settings,
+  User,
+  CreditCard,
+  Bell,
+  Shield,
+  Key,
+  HelpCircle,
+  Search,
+  Wand2,
+  Map
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
+import { ControlCenter } from './control-center';
 import { useAuth } from '@/providers/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -50,6 +61,8 @@ type HeaderControlsProps = {
   setIsUiHidden: (hidden: boolean) => void;
   isStyleSettingsOpen: boolean;
   toggleStyleSettingsPanel: () => void;
+  isViewportEditorOpen?: boolean;
+  toggleViewportEditor?: () => void;
   gridSize: number;
   setGridSize: (size: number) => void;
   layoutMode?: LayoutMode;
@@ -59,6 +72,9 @@ type HeaderControlsProps = {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
+  toggleSearchDialog?: () => void;
+  isMiniMapOpen?: boolean;
+  onToggleMiniMap?: (open: boolean) => void;
 };
 
 export default function HeaderControls({
@@ -68,6 +84,8 @@ export default function HeaderControls({
   setIsUiHidden,
   isStyleSettingsOpen,
   toggleStyleSettingsPanel,
+  isViewportEditorOpen = false,
+  toggleViewportEditor,
   gridSize,
   setGridSize,
   layoutMode = 'grid',
@@ -77,12 +95,16 @@ export default function HeaderControls({
   canRedo = false,
   onUndo,
   onRedo,
+  toggleSearchDialog,
+  isMiniMapOpen = false,
+  onToggleMiniMap,
 }: HeaderControlsProps) {
   const responsive = useResponsiveLayout();
   const { theme } = useTheme();
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -108,6 +130,24 @@ export default function HeaderControls({
       {/* Grid slider moved to bottom control bar */}
       <div className="flex items-center bg-muted/30 p-1 rounded-lg gap-1">
         <TooltipProvider>
+          {/* Search Button */}
+          {toggleSearchDialog && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={toggleSearchDialog}
+                  data-testid="search-button-header"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Arama (F)</TooltipContent>
+            </Tooltip>
+          )}
+
           {/* UI Toggle */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -142,146 +182,121 @@ export default function HeaderControls({
             <TooltipContent>{isFullscreen ? 'Tam Ekrandan Çık' : 'Tam Ekran'}</TooltipContent>
           </Tooltip>
 
-          {/* Pop-out Window */}
-          {activeViewId && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => {
-                    window.open(
-                      `/popout?itemId=${activeViewId}&layoutMode=${layoutMode}`,
-                      'popout-view',
-                      'width=1000,height=800,menubar=no,toolbar=no,location=no,status=no'
-                    );
-                  }}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Pencereyi Ayır</TooltipContent>
-            </Tooltip>
-          )}
+          {/* Pop-out Window removed per request */}
 
           <div className="w-px h-4 bg-border mx-1" />
 
-          {/* Layout Mode Toggle */}
-          {layoutMode && layoutMode !== 'canvas' && onSetLayoutMode && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={layoutMode === 'grid-vertical' ? 'default' : 'ghost'}
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => {
-                    if (layoutMode === 'grid' || layoutMode === 'grid-square') {
-                      onSetLayoutMode('grid-vertical');
-                    } else {
-                      onSetLayoutMode('grid-square');
-                    }
-                  }}
-                >
-                  {layoutMode === 'grid-vertical' ? (
-                    <AlignVerticalJustifyCenter className="h-4 w-4" />
-                  ) : (
-                    <Grid3x3 className="h-4 w-4" />
-                  )}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {layoutMode === 'grid-vertical' ? 'Dikey Mod' : 'Kare Mod'}
-              </TooltipContent>
-            </Tooltip>
-          )}
+          {/* Layout Mode Toggle removed per request */}
 
-          {/* Style Settings */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={isStyleSettingsOpen ? "secondary" : "ghost"}
-                size="icon"
-                className="h-9 w-9"
-                onClick={toggleStyleSettingsPanel}
-              >
-                <Palette className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Görünüm Ayarları</TooltipContent>
-          </Tooltip>
+          {/* MiniMap Toggle removed per request */}
 
-          {/* Undo */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-9 w-9",
-                  canUndo ? "text-orange-500 hover:bg-orange-500/10" : "text-muted-foreground/50"
-                )}
-                onClick={onUndo}
-                disabled={!canUndo}
-              >
-                <Undo2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Geri Al (Ctrl+Z)</TooltipContent>
-          </Tooltip>
-
-          {/* Redo */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "h-9 w-9",
-                  canRedo ? "text-orange-500 hover:bg-orange-500/10" : "text-muted-foreground/50"
-                )}
-                onClick={onRedo}
-                disabled={!canRedo}
-              >
-                <Redo2 className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>İleri Al (Ctrl+Y)</TooltipContent>
-          </Tooltip>
-
-          <div className="w-px h-4 bg-border mx-1" />
-
-          {/* Main Menu */}
+          {/* Settings Menu */}
           <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-9 w-9">
-                    <Menu className="h-4 w-4" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9"
+                  >
+                    <Settings className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
-              <TooltipContent>Menü</TooltipContent>
+              <TooltipContent>Ayarlar</TooltipContent>
             </Tooltip>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => router.push('/analytics')} className="cursor-pointer">
-                <BarChart className="mr-2 h-4 w-4" />
-                <span>Analiz</span>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={toggleStyleSettingsPanel}>
+                <Palette className="mr-2 h-4 w-4" />
+                <span>Görünüm Ayarları</span>
               </DropdownMenuItem>
+              {toggleViewportEditor && (
+                <DropdownMenuItem onClick={toggleViewportEditor}>
+                  <Wand2 className="mr-2 h-4 w-4" />
+                  <span>Viewport Editörü</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={() => setIsControlCenterOpen(true)}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Kontrol Merkezi</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push('/settings')}>
+                <Shield className="mr-2 h-4 w-4" />
+                <span>Gizlilik ve Güvenlik</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/settings/api-keys')}>
+                <Key className="mr-2 h-4 w-4" />
+                <span>API Anahtarları</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/settings/notifications')}>
+                <Bell className="mr-2 h-4 w-4" />
+                <span>Bildirimler</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Profile Menu */}
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9"
+                  >
+                    <User className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Profil</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="end" className="w-56">
               {user && (
                 <>
+                  <div className="px-2 py-1.5 text-sm font-medium">
+                    {user.email}
+                  </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Çıkış Yap</span>
-                  </DropdownMenuItem>
                 </>
+              )}
+              <DropdownMenuItem onClick={() => router.push('/profile')}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profilim</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/profile/payment-methods')}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                <span>Ödeme Yöntemleri</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/help')}>
+                <HelpCircle className="mr-2 h-4 w-4" />
+                <span>Yardım</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {user ? (
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Çıkış Yap</span>
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => router.push('/auth/login')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Giriş Yap</span>
+                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
         </TooltipProvider>
 
         <PlayerModeDialog />
+
+        {/* Control Center Modal */}
+        <ControlCenter 
+          isOpen={isControlCenterOpen} 
+          onClose={() => setIsControlCenterOpen(false)} 
+        />
       </div>
     </div>
   );

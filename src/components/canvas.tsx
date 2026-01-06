@@ -3,7 +3,7 @@
 
 import React, { CSSProperties, memo, useRef, useState, useEffect, useCallback, useMemo, Suspense, DragEvent } from 'react';
 import dynamic from 'next/dynamic';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import type { ContentItem, PatternSettings, Alignment, GridSizingMode, ItemType, ItemLayout } from '@/lib/initial-content';
 import { cn } from '@/lib/utils';
 import { AppLogo } from './icons/app-logo';
@@ -12,12 +12,19 @@ import { Skeleton } from './ui/skeleton';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, ContextMenuSeparator } from './ui/context-menu';
 import { Plus, Clipboard, Settings, Folder, Trash2 } from 'lucide-react';
 
-import { calculateLayout, LayoutMode, calculateGridPagination, getPaginatedGridItems } from '@/lib/layout-engine';
+import { calculateLayout, LayoutMode, calculateGridPagination, getPaginatedGridItems, snapToGrid } from '@/lib/layout-engine';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useAppStore } from '@/lib/store';
-import GridModeControls from './grid-mode-controls';
 
 const PlayerFrame = dynamic(() => import('./player-frame'), {
+  loading: () => <Skeleton className="w-full h-full" />
+});
+
+const EcommerceCanvas = dynamic(() => import('./ecommerce-canvas').then(mod => ({ default: mod.EcommerceCanvas })), {
+  loading: () => <Skeleton className="w-full h-full" />
+});
+
+const EcommerceLandingTemplate = dynamic(() => import('./templates/ecommerce-landing-template').then(mod => ({ default: mod.EcommerceLandingTemplate })), {
   loading: () => <Skeleton className="w-full h-full" />
 });
 
@@ -101,6 +108,19 @@ const Canvas = memo(function Canvas({
 
   // Grid Mode State from Store
   const gridModeState = useAppStore(state => state.gridModeState);
+  
+  // Drag & drop visual state
+  const [dragFeedback, setDragFeedback] = useState<{
+    isDragging: boolean;
+    draggedItemId: string | null;
+    dropTarget: string | null;
+    dropPosition: 'before' | 'after' | 'inside' | null;
+  }>({
+    isDragging: false,
+    draggedItemId: null,
+    dropTarget: null,
+    dropPosition: null,
+  });
   const setGridModeEnabled = useAppStore(state => state.setGridModeEnabled);
   const setGridModeType = useAppStore(state => state.setGridModeType);
   const setGridColumns = useAppStore(state => state.setGridColumns);
@@ -200,10 +220,21 @@ const Canvas = memo(function Canvas({
     layoutMode: savedLayoutMode = 'grid',
   } = activeView || {};
 
-  // DEBUG
+  // DEBUG - Monitor items prop changes
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Canvas] Items prop changed:', {
+        itemsCount: items.length,
+        activeViewId,
+        activeViewTitle: activeView?.title,
+        items: items.map(i => ({ id: i.id, title: i.title, type: i.type }))
+      });
+    }
+  }, [items, activeViewId, activeView]);
+
   useEffect(() => {
     if (items.length === 0 && activeViewId === 'root' && process.env.NODE_ENV === 'development') {
-      console.debug('[CANVAS] Root view render with NO items:', {
+      console.warn('[Canvas] Root view has NO items:', {
         itemsCount: items.length,
         activeViewId,
         activeView: { id: activeView?.id, title: activeView?.title, childrenCount: activeView?.children?.length },
@@ -225,6 +256,10 @@ const Canvas = memo(function Canvas({
       return Math.max(gridSize * 0.75, 80); // 75% on mobile, min 80px
     } else if (responsive.isTablet) {
       return Math.max(gridSize * 0.9, 120); // 90% on tablet, min 120px
+    } else if (containerSize.width >= 2560) {
+      return Math.max(gridSize * 1.7, 480); // XXL: 170%, min 480px for ultra-wide displays
+    } else if (containerSize.width >= 1920) {
+      return Math.max(gridSize * 1.3, 360); // XL: 130%, min 360px for large displays
     }
     return gridSize; // Full size on desktop
   };
@@ -345,6 +380,41 @@ const Canvas = memo(function Canvas({
           data-item-id={item.id}
         >
             <Suspense fallback={<Skeleton className="w-full h-full" />}>
+              {item.type === 'ecommerce-landing' && (
+                <EcommerceLandingTemplate />
+              )}
+              {(item.type === 'product-grid' || item.type === 'product-list') && (
+                <EcommerceCanvas 
+                  item={item}
+                  contentType="products"
+                  viewMode={item.type === 'product-grid' ? 'grid' : 'list'}
+                />
+              )}
+              {item.type === 'shopping-cart' && (
+                <EcommerceCanvas 
+                  item={item}
+                  contentType="cart"
+                />
+              )}
+              {item.type === 'marketplace-grid' && (
+                <EcommerceCanvas 
+                  item={item}
+                  contentType="marketplace"
+                  viewMode="grid"
+                />
+              )}
+              {item.type === 'order-history' && (
+                <EcommerceCanvas 
+                  item={item}
+                  contentType="orders"
+                />
+              )}
+              {item.type !== 'ecommerce-landing' &&
+               item.type !== 'product-grid' && 
+               item.type !== 'product-list' && 
+               item.type !== 'shopping-cart' && 
+               item.type !== 'marketplace-grid' && 
+               item.type !== 'order-history' && (
               <WidgetRenderer 
                   item={item}
                   allItems={allItems}
@@ -359,6 +429,7 @@ const Canvas = memo(function Canvas({
                   isPreview={isPreviewMode}
                   isSuspended={isSuspended}
               />
+              )}
             </Suspense>
         </PlayerFrame>
     );
@@ -404,6 +475,12 @@ const Canvas = memo(function Canvas({
       if (data) {
         const itemData = JSON.parse(data);
         onAddItem(itemData, activeViewId);
+        setDragFeedback({
+          isDragging: false,
+          draggedItemId: null,
+          dropTarget: null,
+          dropPosition: null,
+        });
       }
     } catch (err) {
       if (process.env.NODE_ENV === 'development') {
@@ -413,6 +490,54 @@ const Canvas = memo(function Canvas({
       }
     }
   }, [isPreviewMode, onAddItem, activeViewId]);
+
+  // Track drag events from hello-pangea/dnd for visual feedback
+  const handleDragStart = useCallback((dragUpdate: any) => {
+    const draggedId = dragUpdate.draggableId;
+    setDragFeedback(prev => ({
+      ...prev,
+      isDragging: true,
+      draggedItemId: draggedId,
+    }));
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Canvas Drag Start] Item ID: ${draggedId}`);
+    }
+  }, []);
+
+  const handleDragOverUpdate = useCallback((dragUpdate: any) => {
+    setDragFeedback(prev => ({
+      ...prev,
+      dropTarget: dragUpdate.destination?.droppableId || null,
+      dropPosition: dragUpdate.destination ? 'inside' : null,
+    }));
+  }, []);
+
+  const handleDragEnd = useCallback((dragUpdate: any) => {
+    setDragFeedback({
+      isDragging: false,
+      draggedItemId: null,
+      dropTarget: null,
+      dropPosition: null,
+    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[Canvas Drag End] Dropped at:`, dragUpdate.destination);
+    }
+  }, []);
+
+  // Canvas mode drag end handler: converts viewport drag end to canvas coordinates and persists
+  const handleCanvasDragEnd = useCallback((item: ContentItem, info: PanInfo) => {
+    if (isPreviewMode || normalizedLayoutMode !== 'canvas') return;
+    if (!containerRef.current) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const scrollLeft = containerRef.current.scrollLeft;
+    const scrollTop = containerRef.current.scrollTop;
+    const nextX = (info.point.x - rect.left + scrollLeft - padding) / canvasScale;
+    const nextY = (info.point.y - rect.top + scrollTop - padding) / canvasScale;
+    const snapped = snapToGrid({ x: nextX, y: nextY }, gridSize);
+
+    onUpdateItem(item.id, { x: snapped.x, y: snapped.y });
+  }, [canvasScale, gridSize, isPreviewMode, normalizedLayoutMode, onUpdateItem, padding]);
 
   const selectedItems = useMemo(() => items.filter((item) => selectedItemIds.includes(item.id)), [items, selectedItemIds]);
   const deletableSelectedItems = useMemo(() => selectedItems.filter((item) => item.isDeletable !== false), [selectedItems]);
@@ -439,51 +564,7 @@ const Canvas = memo(function Canvas({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      {/* Grid Mode Controls - Positioned at top */}
-      {normalizedLayoutMode === 'grid' && (
-        <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border/50">
-          <GridModeControls
-            gridState={gridModeState}
-            onToggleGridMode={(enabled) => setGridModeEnabled(enabled)}
-            onChangeGridType={(type) => setGridModeType(type)}
-            onChangeColumns={(columns) => setGridColumns(columns)}
-            onPreviousPage={() => {
-              if (gridModeState.currentPage > 1) {
-                setGridCurrentPage(gridModeState.currentPage - 1);
-              }
-            }}
-            onNextPage={() => {
-              const isSquareMode = gridModeState.type === 'square';
-              const pagination = calculateGridPagination(
-                items.length,
-                gridModeState.columns,
-                isSquareMode,
-                gridModeState.currentPage
-              );
-              if (gridModeState.currentPage < pagination.totalPages) {
-                setGridCurrentPage(gridModeState.currentPage + 1);
-              }
-            }}
-            totalItems={items.length}
-            hasVideoItems={hasVideoItems}
-            onPlayAll={handlePlayAll}
-            onPauseAll={handlePauseAll}
-            onMuteAll={handleMuteAll}
-            onUnmuteAll={handleUnmuteAll}
-            onSkipForward={handleSkipForward}
-            onSkipBack={handleSkipBack}
-            onChangeSpeed={handleChangeSpeed}
-            onToggleMiniMap={() => setIsMiniMapVisible(!isMiniMapVisible)}
-            isMiniMapVisible={isMiniMapVisible}
-            onToggleDescriptions={() => setIsDescriptionsVisible(!isDescriptionsVisible)}
-            isDescriptionsVisible={isDescriptionsVisible}
-            onToggleComments={() => setIsCommentsVisible(!isCommentsVisible)}
-            isCommentsVisible={isCommentsVisible}
-            onToggleAnalytics={() => setIsAnalyticsVisible(!isAnalyticsVisible)}
-            isAnalyticsVisible={isAnalyticsVisible}
-          />
-        </div>
-      )}
+      {/* Grid Mode Controls - Moved to settings dropdown in primary-sidebar */}
 
       {/* Canvas Content Container */}
       <div className="flex-1 relative overflow-hidden">
@@ -511,7 +592,8 @@ const Canvas = memo(function Canvas({
           <div className={cn(
             "w-full h-full",
             // Sayfa modunda scroll kapalı, sonsuz modda scroll açık
-            gridModeState.enabled && gridModeState.type === 'square' ? 'overflow-hidden' : 'overflow-auto overflow-x-hidden'
+            // XXL viewportlarda her zaman scroll aktif (içerik uzunsa scroll edilebilir)
+            gridModeState.enabled && gridModeState.type === 'square' && !responsive.isXXL ? 'overflow-hidden' : 'overflow-auto overflow-x-hidden'
           )} ref={containerRef}>
             <div className={cn(canvasScale !== 1 && 'origin-top-left')} style={scaledWrapperStyle}>
               <Droppable droppableId="canvas-droppable" direction="horizontal" isDropDisabled={isPreviewMode || normalizedLayoutMode !== 'grid'} type="canvas-item">
@@ -520,8 +602,8 @@ const Canvas = memo(function Canvas({
                     {...provided.droppableProps}
                     ref={provided.innerRef}
                     className={cn(
-                      'transition-all duration-500 relative w-full min-h-full select-none',
-                      normalizedLayoutMode === 'grid' ? 'grid' : 'block',
+                      'transition-all duration-500 relative w-full select-none',
+                      normalizedLayoutMode === 'grid' ? 'grid min-h-screen' : 'block',
                       snapshot.isDraggingOver && normalizedLayoutMode !== 'canvas' && "bg-primary/5 ring-2 ring-primary/20 ring-inset rounded-lg"
                     )}
                     style={{ 
@@ -529,13 +611,26 @@ const Canvas = memo(function Canvas({
                       gap: `${gap}px`, 
                       gridTemplateColumns: 
                         (normalizedLayoutMode === 'grid' && gridModeState.type === 'vertical') ? '1fr' :
-                        normalizedLayoutMode === 'grid' ? `repeat(auto-fill, minmax(${responsiveGridSize}px, 1fr))` : undefined,
+                        normalizedLayoutMode === 'grid' ? `repeat(auto-fit, minmax(${responsiveGridSize}px, 1fr))` : undefined,
                       gridAutoRows: 
                         (normalizedLayoutMode === 'grid' && gridModeState.type === 'vertical') ? 'auto' :
-                        normalizedLayoutMode === 'grid' ? `${responsiveGridSize}px` : undefined,
+                        normalizedLayoutMode === 'grid' ? 'auto' : undefined,
                       height: normalizedLayoutMode === 'canvas' ? '100%' : undefined
                     }}
                   >
+                    {paginatedItems.length === 0 && (
+                      <div className="col-span-full flex items-center justify-center py-16 text-muted-foreground">
+                        <div className="text-center space-y-2">
+                          <AppLogo className="w-16 h-16 mx-auto opacity-30" />
+                          <p className="text-sm">Bu görünümde henüz içerik yok</p>
+                          {!isPreviewMode && (
+                            <p className="text-xs text-muted-foreground/60">
+                              Sağ tıklayarak veya sürükle-bırak ile içerik ekleyebilirsiniz
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <AnimatePresence mode="popLayout">
                       {paginatedItems.map((item, index) => {
                         const layoutCalc = calculateLayout(
@@ -548,6 +643,9 @@ const Canvas = memo(function Canvas({
                           { carouselCenterIndex }
                         );
 
+                        const isDraggedItem = dragFeedback.draggedItemId === item.id;
+                        const isDropTarget = dragFeedback.dropTarget === 'canvas-droppable' && isDraggedItem === false;
+                        
                         return (
                           <Draggable
                             key={item.id}
@@ -555,48 +653,67 @@ const Canvas = memo(function Canvas({
                             index={index}
                             isDragDisabled={isPreviewMode || item.isDeletable === false || normalizedLayoutMode === 'canvas'}
                           >
-                            {(provided, snapshot) => (
-                              <motion.div
-                                layout={normalizedLayoutMode !== 'canvas'}
-                                initial={false}
-                                animate={{ 
-                                  opacity: 1, 
-                                  scale: snapshot.isDragging ? 1.05 : 1,
-                                  zIndex: snapshot.isDragging ? 100 : (layoutCalc.styles.zIndex as number || 1),
-                                  ...(snapshot.isDragging ? {} : layoutCalc.styles as any)
-                                }}
-                                transition={{ 
-                                  type: "tween",
-                                  duration: normalizedLayoutMode === 'grid' ? 0.2 : 0,
-                                  ease: "easeOut"
-                                }}
-                                ref={provided.innerRef}
-                                {...(normalizedLayoutMode === 'grid' ? provided.draggableProps as any : {})}
-                                {...(isPreviewMode || normalizedLayoutMode === 'canvas' ? {} : (provided.dragHandleProps as any))}
-                                className={cn(
-                                  "relative group",
-                                  snapshot.isDragging && "z-50",
-                                  (snapshot.isDragging && !snapshot.draggingOver) && "ring-4 ring-destructive rounded-lg",
-                                  layoutCalc.className,
-                                  normalizedLayoutMode === 'canvas' && "cursor-move"
-                                )}
-                                style={{
-                                  ...provided.draggableProps.style,
-                                  ...(normalizedLayoutMode === 'canvas' ? { 
-                                    position: 'absolute',
-                                    left: layoutCalc.styles.left,
-                                    top: layoutCalc.styles.top,
-                                    width: layoutCalc.styles.width,
-                                    height: layoutCalc.styles.height,
-                                    zIndex: layoutCalc.styles.zIndex
-                                  } : {}),
-                                  ...(snapshot.isDragging && normalizedLayoutMode === 'grid' ? {} : layoutCalc.styles)
-                                }}
-                                data-item-id={item.id}
-                              >
-                                {renderItem(item)}
-                              </motion.div>
-                            )}
+                            {(provided, snapshot) => {
+                              // Update feedback on drag state change
+                              if (snapshot.isDragging && !dragFeedback.isDragging) {
+                                handleDragStart({ draggableId: item.id });
+                              }
+                              
+                              return (
+                                <motion.div
+                                  layout={normalizedLayoutMode !== 'canvas'}
+                                  initial={false}
+                                  animate={{ 
+                                    opacity: snapshot.isDragging ? 0.7 : 1, 
+                                    scale: snapshot.isDragging ? 1.08 : (isDropTarget ? 1.02 : 1),
+                                    zIndex: snapshot.isDragging ? 100 : (layoutCalc.styles.zIndex as number || 1),
+                                    ...(snapshot.isDragging ? {} : layoutCalc.styles as any)
+                                  }}
+                                  transition={{ 
+                                    type: "spring",
+                                    stiffness: 300,
+                                    damping: 30,
+                                    duration: normalizedLayoutMode === 'grid' ? 0.2 : 0,
+                                  }}
+                                  ref={provided.innerRef}
+                                  {...(normalizedLayoutMode === 'grid' ? provided.draggableProps as any : {})}
+                                  {...(isPreviewMode || normalizedLayoutMode === 'canvas' ? {} : (provided.dragHandleProps as any))}
+                                  className={cn(
+                                    "relative group transition-all",
+                                    snapshot.isDragging && "z-50",
+                                    snapshot.isDragging && !snapshot.draggingOver && "ring-2 ring-orange-500 shadow-lg shadow-orange-500/50",
+                                    snapshot.isDragging && snapshot.draggingOver && "ring-2 ring-green-500 shadow-lg shadow-green-500/50",
+                                    isDraggedItem && "opacity-80",
+                                    isDropTarget && "ring-2 ring-primary/40 bg-primary/5 rounded-lg",
+                                    layoutCalc.className,
+                                    normalizedLayoutMode === 'canvas' && "cursor-move"
+                                  )}
+                                  style={{
+                                    ...provided.draggableProps.style,
+                                    ...(normalizedLayoutMode === 'canvas' ? { 
+                                      position: 'absolute',
+                                      left: layoutCalc.styles.left,
+                                      top: layoutCalc.styles.top,
+                                      width: layoutCalc.styles.width,
+                                      height: layoutCalc.styles.height,
+                                      zIndex: layoutCalc.styles.zIndex
+                                    } : {}),
+                                    ...(snapshot.isDragging && normalizedLayoutMode === 'grid' ? {} : layoutCalc.styles)
+                                  }}
+                                  data-item-id={item.id}
+                                  title={isDraggedItem ? 'Sürükleniyör...' : isDropTarget ? 'Bırakmak için tıkla' : ''}
+                                  drag={normalizedLayoutMode === 'canvas' && !isPreviewMode}
+                                  dragMomentum={false}
+                                  dragElastic={0}
+                                  onDragEnd={(event, info) => handleCanvasDragEnd(item, info)}
+                                >
+                                  {renderItem(item)}
+                                  {snapshot.isDragging && (
+                                    <div className="absolute inset-0 bg-black/10 rounded-lg pointer-events-none" />
+                                  )}
+                                </motion.div>
+                              );
+                            }}
                           </Draggable>
                         );
                       })}

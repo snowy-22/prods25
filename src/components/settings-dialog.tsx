@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   KeyRound, Save, TestTube2, Brain, Zap, Cloud, Database, 
   MessageSquare, Music, Globe, Lock, TrendingUp, Settings,
-  Youtube, Chrome, Disc, Video, Home, BarChart
+  Youtube, Chrome, Disc, Video, Home, BarChart, CreditCard
 } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { AIProviderConfig } from '@/lib/ai-providers';
+import { SubscriptionManagement } from '@/components/subscription-management';
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -42,7 +43,7 @@ export default function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogP
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid grid-cols-6 w-full">
+          <TabsList className="grid grid-cols-7 w-full">
             <TabsTrigger value="ai" className="flex items-center gap-1">
               <Brain className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">AI</span>
@@ -66,6 +67,10 @@ export default function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogP
             <TabsTrigger value="analytics" className="flex items-center gap-1">
               <BarChart className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Analitik</span>
+            </TabsTrigger>
+            <TabsTrigger value="subscription" className="flex items-center gap-1">
+              <CreditCard className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Abonelik</span>
             </TabsTrigger>
           </TabsList>
 
@@ -92,6 +97,10 @@ export default function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogP
 
             <TabsContent value="analytics" className="space-y-4 mt-0">
               <AnalyticsSection />
+            </TabsContent>
+
+            <TabsContent value="subscription" className="space-y-4 mt-0">
+              <SubscriptionSection />
             </TabsContent>
           </div>
         </Tabs>
@@ -873,3 +882,9 @@ function AnalyticsSection() {
     </div>
   );
 }
+
+// Subscription Section Component
+function SubscriptionSection() {
+  return <SubscriptionManagement />;
+}
+

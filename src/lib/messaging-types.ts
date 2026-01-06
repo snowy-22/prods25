@@ -1,3 +1,5 @@
+import { ContentItem } from './initial-content';
+
 /**
  * Messaging System Types & Constants
  * Comprehensive messaging infrastructure with groups, permissions, and video calls
@@ -15,6 +17,7 @@ export enum MessageType {
   CALL_INITIATED = 'call_initiated',
   CALL_ENDED = 'call_ended',
   SYSTEM = 'system', // Member joined, left, etc.
+  SHARED_ITEM = 'shared_item', // CanvasFlow ContentItem share
 }
 
 export enum GroupType {
@@ -74,6 +77,8 @@ export interface Message {
   replyToId?: string; // Reply to another message
   replyToContent?: string;
   replyToSender?: string;
+  sharedItem?: ContentItem;
+  metadata?: Record<string, any>;
   isEdited: boolean;
   editedAt?: string;
   readBy: string[]; // Users who read this message

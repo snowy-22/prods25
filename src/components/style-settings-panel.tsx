@@ -73,7 +73,7 @@ export default function StyleSettingsPanel({
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [customThemes, setCustomThemes] = useState<ThemePreset[]>([]);
-  const accordionItems = useMemo(() => ['view', 'theme', 'frame', 'background', 'pattern', 'webgl'], []);
+  const accordionItems = useMemo(() => ['view', 'theme', 'frame', 'infobar', 'player-bars', 'background', 'pattern', 'webgl'], []);
   const [openAccordions, setOpenAccordions] = useState<string[]>(accordionItems);
   const scale = activeView.scale || 100;
   const setScale = (newScale: number) => onUpdate({ scale: newScale });
@@ -249,12 +249,18 @@ export default function StyleSettingsPanel({
                             <h4 className="text-xs font-semibold text-muted-foreground">KAPAK & MINI MAP</h4>
                             <div className="grid grid-cols-1 gap-3">
                                 <div className="space-y-1">
-                                    <Label>Kapak Boyutu (S/M/L/XL)</Label>
+                                    <Label>Kapak Boyutu</Label>
                                     <ToggleGroup type="single" value={coverPreset} onValueChange={(val) => val && onUpdate({ coverPreset: val })} className="grid grid-cols-4 gap-1">
-                                        <ToggleGroupItem value="s">S</ToggleGroupItem>
-                                        <ToggleGroupItem value="m">M</ToggleGroupItem>
-                                        <ToggleGroupItem value="l">L</ToggleGroupItem>
-                                        <ToggleGroupItem value="xl">XL</ToggleGroupItem>
+                                        <ToggleGroupItem value="xxxs" title="Minimal">●</ToggleGroupItem>
+                                        <ToggleGroupItem value="xxs" title="Çok Çok Küçük">●●</ToggleGroupItem>
+                                        <ToggleGroupItem value="xs" title="Çok Küçük">●●●</ToggleGroupItem>
+                                        <ToggleGroupItem value="s" title="Küçük">●●●●</ToggleGroupItem>
+                                    </ToggleGroup>
+                                    <ToggleGroup type="single" value={coverPreset} onValueChange={(val) => val && onUpdate({ coverPreset: val })} className="grid grid-cols-4 gap-1 mt-1">
+                                        <ToggleGroupItem value="m" title="Orta">●●●●●</ToggleGroupItem>
+                                        <ToggleGroupItem value="l" title="Büyük">●●●●●●</ToggleGroupItem>
+                                        <ToggleGroupItem value="xl" title="Çok Büyük">●●●●●●●</ToggleGroupItem>
+                                        <ToggleGroupItem value="xxl" title="Maksimum">●●●●●●●●</ToggleGroupItem>
                                     </ToggleGroup>
                                 </div>
                                 <div className="space-y-1">
@@ -476,6 +482,42 @@ export default function StyleSettingsPanel({
                                     />
                                     <Label htmlFor="show-grade" className="text-xs font-normal cursor-pointer">Harf Notu</Label>
                                 </div>
+                            </div>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>                <AccordionItem value="player-bars" className='px-4'>
+                    <AccordionTrigger className="py-3 text-sm font-medium">
+                        <div className='flex items-center gap-2'><StretchVertical className='h-4 w-4'/> <span>Oynatıcı Barları</span></div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4 space-y-4">
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-xs font-medium">Dikey Siyah Barlar (16:9 Optimizasyonu)</Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Video oynatıcısının yanlarına dikey siyah barlar ekler. 
+                                        Maksimum 16:9 en-boy oranı sağlar ve ekran genişliğini daha iyi kullanır.
+                                    </p>
+                                </div>
+                                <Switch 
+                                    checked={activeView.hideBlackBars || false}
+                                    onCheckedChange={(checked) => onUpdate({ hideBlackBars: checked })}
+                                />
+                            </div>
+                        </div>
+                        <Separator />
+                        <div className="space-y-2">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase">Bilgi</Label>
+                            <div className="rounded-md bg-muted/50 p-3 space-y-1">
+                                <p className="text-xs text-muted-foreground">
+                                    🎬 Dikey barlar etkinleştirildiğinde:
+                                </p>
+                                <ul className="text-xs text-muted-foreground list-disc list-inside space-y-0.5 ml-2">
+                                    <li>Videoların iki yanına dikey siyah barlar eklenir</li>
+                                    <li>16:9 en-boy oranı korunur</li>
+                                    <li>Ekran genişliğinden maksimum yararlanılır</li>
+                                    <li>Film görünümü elde edilir</li>
+                                </ul>
                             </div>
                         </div>
                     </AccordionContent>

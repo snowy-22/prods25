@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useMemo, useCallback, CSSProperties, useRef, DragEvent } from 'react';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import {
@@ -34,6 +34,7 @@ import GlobalSearch from '../../components/global-search';
 import ShareDialog from '../../components/share-dialog';
 import SaveDialog from '../../components/save-dialog';
 import StyleSettingsPanel from '../../components/style-settings-panel';
+import { ViewportEditor } from '../../components/viewport-editor';
 import { cn } from '@/lib/utils';
 import { AppLogo } from '../../components/icons/app-logo';
 import { AiChatDialog } from '../../components/ai-chat-dialog';
@@ -72,6 +73,7 @@ import { MiniMapOverlay } from '@/components/mini-map-overlay';
 const MainContentInternal = ({ username }: { username: string | null }) => {
     const { toast } = useToast();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const supabase = createClient();
     const responsive = useResponsiveLayout();
     const [isMounted, setIsMounted] = useState(false);
@@ -156,10 +158,16 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     }, [allRawItems]);
 
     const sidebarItems = useMemo(() => allItems, [allItems]);
+    
+    // Filter spaces from all items
+    const spaces = useMemo(() => allItems.filter(item => item.type === 'space'), [allItems]);
 
     const state = useAppStore();
     const setUsername = useAppStore(s => s.setUsername);
     const setUser = useAppStore(s => s.setUser);
+    const setActiveSecondaryPanel = useAppStore(s => s.setActiveSecondaryPanel);
+    const setEcommerceView = useAppStore(s => s.setEcommerceView);
+    const ecommerceView = useAppStore(s => s.ecommerceView);
     
     // Enable realtime sync across browser tabs and sessions
     const { broadcastItemUpdate, broadcastItemAdd, broadcastItemDelete } = useRealtimeSync(true);
@@ -179,6 +187,17 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         return () => subscription.unsubscribe();
     }, [supabase, setUser, setUsername]);
 
+    // Handle e-commerce query params
+    useEffect(() => {
+        if (!isMounted) return;
+        
+        const ecommerceParam = searchParams?.get('ecommerce');
+        if (ecommerceParam === 'products' || ecommerceParam === 'marketplace' || ecommerceParam === 'cart' || ecommerceParam === 'orders') {
+            setActiveSecondaryPanel('shopping');
+            setEcommerceView(ecommerceParam as any);
+        }
+    }, [searchParams, isMounted, setActiveSecondaryPanel, setEcommerceView]);
+
     // Sync local data to Supabase when logged in
     useEffect(() => {
         const syncData = async () => {
@@ -197,7 +216,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                     if (fetchError) throw fetchError;
 
                     // If no items in DB, sync local items
-                    if (!existingItems || existingItems.length === 0) {
+                    if (existingItems === null || existingItems.length === 0) {
                         const itemsToSync = allRawItems.map(item => ({
                             id: item.id,
                             user_id: state.user!.id,
@@ -236,7 +255,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
                         if (dbFetchError) throw dbFetchError;
 
-                        if (dbItems && dbItems.length > 0) {
+                        if (dbItems !== null && dbItems.length > 0) {
                             const mappedItems: ContentItem[] = dbItems.map(item => ({
                                 ...item,
                                 parentId: item.parent_id,
@@ -279,7 +298,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
           const currentItems = allRawItems.length > 0 ? allRawItems : initialContent;
           
           // Check startup behavior setting
-          if (state.startupBehavior === 'new-tab' || state.startupBehavior === 'chrome-style') {
+          if (state.startupBehavior === 'new-tab') {
             // Create chrome-style new tab
             state.createNewTab();
           } else if (state.startupBehavior === 'custom' && state.customStartupContent) {
@@ -287,9 +306,22 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             state.openInNewTab(state.customStartupContent, currentItems);
           } else {
             // Default: Open root library (last-session behavior)
-            const rootItem = currentItems.find(i => i.id === 'root') || currentItems[0];
+            let rootItem = currentItems.find(i => i.id === 'root');
+            
+            // Fallback to initialContent if root not found in currentItems
+            if (!rootItem) {
+              rootItem = initialContent.find(i => i.id === 'root');
+              console.log('[Canvas] Root not found in currentItems, using initialContent root');
+            }
+            
             if (rootItem) {
-              state.openInNewTab(rootItem, currentItems);
+              // Ensure all items includes root and its children
+              const allItemsForTab = currentItems.some(i => i.id === 'root') 
+                ? currentItems 
+                : [...currentItems, rootItem, ...initialContent.filter(i => i.parentId === 'root')];
+              
+              state.openInNewTab(rootItem, allItemsForTab);
+              console.log('[Canvas] Opened root library tab with', allItemsForTab.length, 'items');
             }
           }
         }
@@ -305,45 +337,48 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
     const activeTab = useMemo(() => state.tabs.find(t => t.id === state.activeTabId), [state.tabs, state.activeTabId]);
     const activeViewId = activeTab?.activeViewId || 'root';
+    const normalizedLayoutMode: LayoutMode = state.layoutMode === 'canvas' ? 'canvas' : 'grid';
 
     const activeView = useMemo(() => {
         const findAndBuildView = (viewId: string): ContentItem | null => {
+            // First try to find view in allItems
             let view = allItems.find(i => i.id === viewId);
+            
+            // If not found and it's root, use initialContent
             if (!view && viewId === 'root') {
                 view = initialContent.find(i => i.id === 'root');
             }
-            if (!view) return null;
-
-            let children = allItems.filter(i => i.parentId === view.id);
             
-            // If no children found and this is root, use initialContent as fallback
-            if (children.length === 0 && viewId === 'root' && allItems.length > 0) {
-                // allItems is non-empty but has no children - might be data corruption
-                // Fallback to initialContent children
-                children = initialContent.filter(i => i.parentId === 'root');
-            } else if (children.length === 0 && viewId === 'root') {
-                // allItems is empty or root has no children at all
-                children = initialContent.filter(i => i.parentId === 'root');
+            // If still not found, return null
+            if (!view) {
+                console.warn(`[Canvas] View not found: ${viewId}`);
+                return null;
             }
+
+            // Find children - try both allItems and initialContent
+            let children = allItems.filter(i => i.parentId === view!.id);
             
-            // DEBUG
-            if (viewId === 'root') {
-                console.log('[DEBUG] Root view found:', { 
-                    viewId, 
-                    viewFound: !!view, 
-                    allItemsCount: allItems.length,
-                    childrenCount: children.length,
-                    childrenIds: children.map(c => c.id),
-                    rootFromInitialContent: !!initialContent.find(i => i.id === 'root'),
-                    allItemsIncludeRoot: allItems.some(i => i.id === 'root'),
-                    parentIdRootItems: allItems.filter(i => i.parentId === 'root').map(c => c.id),
-                    initialContentRootItems: initialContent.filter(i => i.parentId === 'root').map(c => c.id)
-                });
+            // Special handling for root: always ensure we have children
+            if (viewId === 'root' || view.id === 'root') {
+                if (children.length === 0) {
+                    // Try initialContent as fallback
+                    const initialChildren = initialContent.filter(i => i.parentId === 'root');
+                    if (initialChildren.length > 0) {
+                        console.log('[Canvas] Using initialContent children for root:', initialChildren.length);
+                        children = initialChildren;
+                    }
+                }
+                
+                // If still no children, create default structure
+                if (children.length === 0) {
+                    console.warn('[Canvas] Root has no children, this should not happen');
+                    children = [];
+                }
             }
 
             // Apply sorting based on view's sort settings
-            const sortOption = view.sortOption || 'manual';
-            const sortDirection = view.sortDirection || 'asc';
+            const sortOption = view?.sortOption || 'manual';
+            const sortDirection = view?.sortDirection || 'asc';
 
             children = children.sort((a, b) => {
                 if (sortOption === 'manual') {
@@ -385,13 +420,33 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 return 0;
             });
             
-            return { ...view, children: children } as ContentItem;
+            // Return view with children
+            const result = { ...view, children } as ContentItem;
+            if (process.env.NODE_ENV === 'development' && viewId === 'root') {
+                console.log('[Canvas] Root view built:', {
+                    viewId: result.id,
+                    childrenCount: result.children?.length || 0,
+                    childrenIds: result.children?.map(c => c.id) || []
+                });
+            }
+            return result;
         };
         
         return findAndBuildView(activeViewId);
     }, [activeViewId, allItems]);
 
-    const activeViewChildren = useMemo(() => activeView?.children || [], [activeView]);
+    const activeViewChildren = useMemo(() => {
+        const children = activeView?.children || [];
+        if (process.env.NODE_ENV === 'development') {
+            console.log('[Canvas] activeViewChildren:', {
+                activeViewId,
+                hasActiveView: !!activeView,
+                childrenCount: children.length,
+                childrenIds: children.map(c => c.id)
+            });
+        }
+        return children;
+    }, [activeView, activeViewId]);
 
     // Track background tab media/timer state
     const { isSuspended } = useBackgroundTabManager(
@@ -415,7 +470,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     
     const updateItem = useCallback(async (itemId: string, updates: Partial<ContentItem>) => {
         // Push to undo/redo stack if this is a contentItem update
-        if (activeTab && !updates.activeViewId) {
+        if (activeTab) {
             state.pushUndoRedo(activeTab.id, activeTab.activeViewId);
         }
 
@@ -768,6 +823,89 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         };
     }, [addItemToView]);
 
+    // Listen for search result open events (Ctrl+Click, etc.)
+    useEffect(() => {
+        const handleAddNewTabFromSearch = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { type, url, title } = customEvent.detail;
+            
+            if (url) {
+                const newItem: Partial<ContentItem> = {
+                    type: (type || 'website') as ItemType,
+                    url,
+                    title: title || url,
+                };
+                
+                // Open in new tab
+                state.openInNewTab(
+                    newItem as ContentItem,
+                    allItems
+                );
+            }
+        };
+
+        window.addEventListener('addNewTabFromSearch', handleAddNewTabFromSearch);
+        return () => {
+            window.removeEventListener('addNewTabFromSearch', handleAddNewTabFromSearch);
+        };
+    }, [state, allItems]);
+
+    // Listen for link drop events (from search results or web content)
+    useEffect(() => {
+        const handleLinkDropped = (event: Event) => {
+            const customEvent = event as CustomEvent;
+            const { url, title, source, ctrlKey, shiftKey, altKey } = customEvent.detail;
+            
+            if (!url) return;
+
+            // Determine action based on modifier keys
+            if (ctrlKey) {
+                // Ctrl+drop: Open in internal new tab
+                const newItem: Partial<ContentItem> = {
+                    type: 'website',
+                    url,
+                    title: title || url,
+                };
+                state.openInNewTab(newItem as ContentItem, allItems);
+                toast({
+                    title: "Yeni Sekmede Açıldı",
+                    description: `${title || 'Website'} yeni sekmede açıldı.`,
+                });
+            } else if (shiftKey) {
+                // Shift+drop: Open in external browser
+                window.open(url, '_blank');
+                toast({
+                    title: "Tarayıcıda Açıldı",
+                    description: `${title || 'Website'} tarayıcıda açıldı.`,
+                });
+            } else if (altKey) {
+                // Alt+drop: Open in browser tab window
+                window.open(url, '_blank', 'width=800,height=600');
+                toast({
+                    title: "Yeni Pencerede Açıldı",
+                    description: `${title || 'Website'} yeni pencerede açıldı.`,
+                });
+            } else {
+                // Default: Add to current canvas view
+                const newItem: Partial<ContentItem> & { type: ItemType } = {
+                    type: 'website',
+                    url,
+                    title: title || url,
+                };
+                addItemToView(newItem, activeViewId);
+                toast({
+                    title: "Canvas'a Eklendi",
+                    description: `${title || 'Website'} mevcut sayfaya eklendi.`,
+                });
+            }
+        };
+
+        window.addEventListener('linkDropped', handleLinkDropped);
+        return () => {
+            window.removeEventListener('linkDropped', handleLinkDropped);
+        };
+    }, [state, allItems, activeViewId, addItemToView, toast]);
+
 
     const handleGridDrop = useCallback((result: DropResult) => {
         if (!result.destination) return;
@@ -880,12 +1018,11 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const isUiHidden = state.isUiHidden;
     const setIsUiHidden = state.setIsUiHidden;
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isApiKeysOpen, setIsApiKeysOpen] = useState(false);
     const [isSpaceControlOpen, setIsSpaceControlOpen] = useState(false);
     const [gridSize, setGridSize] = useLocalStorage('canvas-grid-size', 280);
     const [isBottomPanelCollapsed, setIsBottomPanelCollapsed] = useState(true);
-    const [isMiniMapOpen, setIsMiniMapOpen] = useLocalStorage<boolean>('canvas_minimap_open', false);
-    const [miniMapSize, setMiniMapSize] = useLocalStorage<'s' | 'm' | 'l' | 'xl'>('canvas_minimap_size', 'm');
+    const [isMiniMapOpen, setIsMiniMapOpen] = useState(true);
+    const [miniMapSize, setMiniMapSize] = useState<'s' | 'm' | 'l' | 'xl'>('m');
     const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('canvasflow_sidebar_width', 320);
     const [rightSidebarWidth, setRightSidebarWidth] = useLocalStorage<number>('canvasflow_right_sidebar_width', 380);
     const [viewportRect, setViewportRect] = useState<{ top: number; height: number } | undefined>(undefined);
@@ -944,32 +1081,75 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     }, [state, activeViewChildren]);
     
     // Responsive sidebar widths based on breakpoint
+    // Optimized to eliminate gap between player and library
     const responsiveSidebarWidth = responsive.isMobile 
       ? 0 // Hidden on mobile (drawer mode)
       : responsive.isTablet 
         ? 200 // Compact on tablet
-        : sidebarWidth; // User-adjustable on desktop
+        : sidebarWidth; // User-adjustable on desktop (ideally 250-280px)
     
+    // Secondary sidebar width - optimized to close gap
     const responsiveRightSidebarWidth = responsive.isMobile
       ? 0 // Hidden on mobile (drawer mode)
       : responsive.isTablet
-        ? 280 // Compact on tablet  
-        : rightSidebarWidth; // User-adjustable on desktop
+        ? 260 // Slightly wider on tablet to close gap
+        : (rightSidebarWidth || 320); // User-adjustable on desktop, fallback 320px
+    
+    // Calculate responsive secondary sidebar width (player panel)
+    const responsiveSecondaryPanelWidth = responsive.isMobile
+      ? 0 // Hidden on mobile (drawer mode)
+      : responsive.isTablet
+        ? 280 // Compact on tablet to prevent overflow
+        : Math.min(360, Math.max(280, responsive.windowWidth * 0.18)); // Responsive between 280px-360px
     const [isResizing, setIsResizing] = useState(false);
     const [isRightResizing, setIsRightResizing] = useState(false);
 
-    // Sync minimap defaults from active view (using metadata)
+    // Sync minimap state from active view (using metadata) - per-folder memory
     useEffect(() => {
-        const minimapDefaultOpen = (activeView?.metadata as any)?.minimapDefaultOpen;
+        // Yeni sekme sayfasında minimap otomatik kapat
+        if (activeTab?.type === 'new-tab') {
+            setIsMiniMapOpen(false);
+            return;
+        }
+        
+        const minimapOpen = (activeView?.metadata as any)?.minimapOpen;
         const minimapSize = (activeView?.metadata as any)?.minimapSize;
         
-        if (minimapDefaultOpen !== undefined) {
-            setIsMiniMapOpen(minimapDefaultOpen);
+        // View'ın kendi minimap durumu varsa yükle
+        if (minimapOpen !== undefined) {
+            setIsMiniMapOpen(minimapOpen);
+        } else {
+            // Varsayılan: açık
+            setIsMiniMapOpen(true);
         }
+        
         if (minimapSize) {
             setMiniMapSize(minimapSize as 's' | 'm' | 'l' | 'xl');
+        } else {
+            // Varsayılan boyut: medium
+            setMiniMapSize('m');
         }
-    }, [activeView?.metadata, setIsMiniMapOpen, setMiniMapSize]);
+    }, [activeView?.id, activeView?.metadata, activeTab?.type]);
+    
+    // Minimap değiştiğinde view metadata'ya kaydet
+    useEffect(() => {
+        if (!activeView || activeTab?.type === 'new-tab') return;
+        
+        const currentMetadata = activeView.metadata || {};
+        const needsUpdate = 
+            (currentMetadata as any)?.minimapOpen !== isMiniMapOpen ||
+            (currentMetadata as any)?.minimapSize !== miniMapSize;
+        
+        if (needsUpdate) {
+            updateItem(activeView.id, {
+                metadata: {
+                    ...(currentMetadata as object),
+                    minimapOpen: isMiniMapOpen,
+                    minimapSize: miniMapSize
+                } as any
+            });
+        }
+    }, [isMiniMapOpen, miniMapSize, activeView?.id, activeTab?.type]);
 
     // Left sidebar resize handlers
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -1156,6 +1336,12 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 e.preventDefault();
                 setIsUiHidden(!isUiHidden);
             }
+
+            // F key: Open global search dialog
+            if (e.key === 'f' || e.key === 'F') {
+                e.preventDefault();
+                state.updateSearchPanel({ isOpen: true });
+            }
             
             // Undo/Redo shortcuts
             if (isCtrl && !e.shiftKey && e.key.toLowerCase() === 'z') {
@@ -1326,7 +1512,6 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             isSecondLeftSidebarOpen={state.isSecondLeftSidebarOpen} toggleSecondLeftSidebar={(open) => state.togglePanel('isSecondLeftSidebarOpen', open)}
                             toggleSearchDialog={() => state.updateSearchPanel({ isOpen: true })}
                             toggleSettingsDialog={() => setIsSettingsOpen(true)}
-                            toggleApiKeysDialog={() => setIsApiKeysOpen(true)}
                             onUpdateItem={updateItem} allItems={allItems} onSetView={(item) => item ? state.updateTab(state.activeTabId, { activeViewId: item.id }) : handleSetView(null) }
                             unreadMessagesCount={0} unreadNotificationsCount={0}
                             onShare={state.setItemToShare}
@@ -1338,10 +1523,50 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             isDevicesPanelOpen={state.isDevicesPanelOpen}
                             toggleSpacesPanel={() => state.togglePanel('isSpacesPanelOpen')}
                             toggleDevicesPanel={() => state.togglePanel('isDevicesPanelOpen')}
+                            isFullscreen={isFullscreen}
+                            toggleFullscreen={() => { 
+                                if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } else { document.exitFullscreen(); }
+                            }}
+                            isUiHidden={isUiHidden}
+                            setIsUiHidden={setIsUiHidden}
+                            isStyleSettingsOpen={state.isStyleSettingsOpen}
+                            toggleStyleSettingsPanel={() => state.togglePanel('isStyleSettingsOpen')}
+                            isViewportEditorOpen={state.isViewportEditorOpen}
+                            toggleViewportEditor={() => state.togglePanel('isViewportEditorOpen')}
+                            activeViewId={activeView?.id}
+                            normalizedLayoutMode={normalizedLayoutMode}
+                            gridModeState={state.gridModeState}
+                            setGridModeEnabled={state.setGridModeEnabled}
+                            setGridModeType={state.setGridModeType}
+                            setGridColumns={state.setGridColumns}
+                            setGridCurrentPage={state.setGridCurrentPage}
                         />
+                        {/* Backdrop overlay for mobile/tablet */}
+                        {state.isSecondLeftSidebarOpen && (responsive.isMobile || responsive.isTablet) && (
+                            <div 
+                                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in duration-300"
+                                onClick={() => state.togglePanel('isSecondLeftSidebarOpen', false)}
+                                aria-hidden="true"
+                            />
+                        )}
+                        
                         {state.isSecondLeftSidebarOpen && (
-                            <div className="border-r relative" style={{ width: `${responsiveSidebarWidth}px` }}>
-                                <Sidebar className="w-full h-full">
+                            <div 
+                                className={cn(
+                                    "border-r flex-shrink-0 overflow-hidden bg-background shadow-2xl z-50",
+                                    responsive.isMobile || responsive.isTablet
+                                        ? "fixed left-14 top-0 bottom-0 animate-in slide-in-from-left duration-300" // Overlay mode
+                                        : "relative" // Normal flow on desktop
+                                )}
+                                style={{ 
+                                    width: responsive.isMobile || responsive.isTablet 
+                                        ? '280px' 
+                                        : `${responsiveSecondaryPanelWidth}px`, 
+                                    minWidth: '200px', 
+                                    maxWidth: '400px' 
+                                }}
+                            >
+                                <Sidebar className="w-full h-full overflow-y-auto overflow-x-hidden">
                              <SecondarySidebar
                                     type={state.activeSecondaryPanel || 'library'}
                                     allItems={sidebarItems}
@@ -1455,6 +1680,28 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                                 }
                                             }
                                         }}
+                                        canUndo={(activeTab?.undoRedoIndex || 0) > 0}
+                                        canRedo={(activeTab?.undoRedoIndex || 0) < ((activeTab?.undoRedoStack || []).length - 1)}
+                                        onUndo={() => {
+                                            if (activeTab && (activeTab.undoRedoIndex || 0) > 0) {
+                                                state.undo(activeTab.id);
+                                                const newIndex = (activeTab.undoRedoIndex || 0) - 1;
+                                                const item = activeTab.undoRedoStack?.[newIndex];
+                                                if (item) {
+                                                    state.updateTab(activeTab.id, { activeViewId: item.activeViewId });
+                                                }
+                                            }
+                                        }}
+                                        onRedo={() => {
+                                            if (activeTab && (activeTab.undoRedoIndex || 0) < ((activeTab.undoRedoStack || []).length - 1)) {
+                                                state.redo(activeTab.id);
+                                                const newIndex = (activeTab.undoRedoIndex || 0) + 1;
+                                                const item = activeTab.undoRedoStack?.[newIndex];
+                                                if (item) {
+                                                    state.updateTab(activeTab.id, { activeViewId: item.activeViewId });
+                                                }
+                                            }
+                                        }}
                                     />
                                     {/* Desktop Header Controls */}
                                     {responsive.isDesktop && (
@@ -1465,6 +1712,8 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                         isUiHidden={isUiHidden} setIsUiHidden={setIsUiHidden} 
                                         isStyleSettingsOpen={state.isStyleSettingsOpen}
                                         toggleStyleSettingsPanel={() => state.togglePanel('isStyleSettingsOpen')}
+                                        isViewportEditorOpen={state.isViewportEditorOpen}
+                                        toggleViewportEditor={() => state.togglePanel('isViewportEditorOpen')}
                                         gridSize={gridSize}
                                         setGridSize={setGridSize}
                                         layoutMode={activeView?.layoutMode || 'grid'}
@@ -1492,6 +1741,9 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                                 }
                                             }
                                         }}
+                                        toggleSearchDialog={() => state.updateSearchPanel({ isOpen: true })}
+                                        isMiniMapOpen={isMiniMapOpen}
+                                        onToggleMiniMap={setIsMiniMapOpen}
                                     />
                                     )}
 
@@ -1504,10 +1756,12 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                         isUiHidden={isUiHidden} setIsUiHidden={setIsUiHidden} 
                                         isStyleSettingsOpen={state.isStyleSettingsOpen}
                                         toggleStyleSettingsPanel={() => state.togglePanel('isStyleSettingsOpen')}
+                                        isViewportEditorOpen={state.isViewportEditorOpen}
+                                        toggleViewportEditor={() => state.togglePanel('isViewportEditorOpen')}
                                         gridSize={gridSize}
                                         setGridSize={setGridSize}
-                                        layoutMode={activeView?.layoutMode || 'grid'}
-                                        onSetLayoutMode={(mode) => activeView && updateItem(activeView.id, { layoutMode: mode })}
+                                        layoutMode={(activeView?.layoutMode as any) || 'grid'}
+                                        onSetLayoutMode={(mode) => activeView && updateItem(activeView.id, { layoutMode: mode as any })}
                                         activeViewId={activeView?.id}
                                         user={null}
                                       />
@@ -1552,8 +1806,8 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                     items={activeViewChildren}
                                     allItems={sidebarItems}
                                     activeView={activeView}
-                                    layoutMode={activeView?.layoutMode || 'grid'}
-                                    onSetLayoutMode={(mode) => activeView && updateItem(activeView.id, { layoutMode: mode })}
+                                    layoutMode={(activeView?.layoutMode as any) || 'grid'}
+                                    onSetLayoutMode={(mode) => activeView && updateItem(activeView.id, { layoutMode: mode as any })}
                                     onUpdateItem={updateItem}
                                     onAddItem={addItemToView}
                                     onPaste={() => {
@@ -1597,7 +1851,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                         state.setItemToSave(item);
                                     }}
                                     gridSize={gridSize}
-                                    isSuspended={activeTab?.isSuspended || false}
+                                    isSuspended={isSuspended}
                                 />
                             )}
                          </div>
@@ -1616,14 +1870,10 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                 isOpen={isMiniMapOpen}
                                 onToggle={setIsMiniMapOpen}
                                 onToggleControlPin={(groupId, pinned) => state.togglePlayerControlMiniMapPin(groupId, pinned)}
-                                size={activeView?.minimapSize as any || (activeView as any)?.coverPreset || miniMapSize}
-                                onSizeChange={setMiniMapSize}
                                 maxItems={(activeView as any)?.coverMaxItems ?? 20}
-                                blurFallback={(activeView as any)?.coverBlurFallback ?? true}
-                                boldTitle={(activeView as any)?.coverBoldTitle ?? false}
+                                viewportRect={viewportRect}
                                 onItemClick={handleMiniMapItemClick}
                                 selectedItemIds={state.selectedItemIds}
-                                viewportRect={viewportRect}
                             />
                             <Tabs defaultValue="description" className="w-full">
                                 {/* Bottom Control Bar - Tabs sol, Controls sağ */}
@@ -1650,7 +1900,22 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                         isCollapsed={isBottomPanelCollapsed} 
                                         onToggleCollapse={setIsBottomPanelCollapsed}
                                         gridSize={gridSize}
-                                        onGridSizeChange={setGridSize}
+                                        onGridSizeChange={(val) => {
+                                          setGridSize(val);
+                                          // Canvas modunda scale güncelle (60-200% zoom)
+                                          if ((activeView?.layoutMode as any) === 'canvas' && activeView) {
+                                            // Grid size: 160-600px arası
+                                            // Scale: 60-200% arası
+                                            // 160px = 60%, 280px = 100%, 600px = 200%
+                                            const minSize = 160;
+                                            const maxSize = 600;
+                                            const minScale = 60;
+                                            const maxScale = 200;
+                                            const normalized = Math.max(0, Math.min(1, (val - minSize) / (maxSize - minSize)));
+                                            const newScale = Math.round(minScale + normalized * (maxScale - minScale));
+                                            updateItem(activeView.id, { scale: newScale });
+                                          }
+                                        }}
                                         showMiniMapToggle
                                         isMiniMapOpen={isMiniMapOpen}
                                         onToggleMiniMap={setIsMiniMapOpen}
@@ -1701,6 +1966,31 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                         )}
                     </div>
                     
+                    <div 
+                        className={cn(
+                            'relative z-40 transition-all duration-300 ease-in-out', 
+                            isUiHidden ? 'fixed right-0 top-0 bottom-0 z-50 shadow-2xl' : 'relative',
+                            isUiHidden && !isRightSidebarHovered ? 'translate-x-full' : 'translate-x-0'
+                        )}
+                        style={{ width: state.isViewportEditorOpen ? `${rightSidebarWidth}px` : '0px' }}
+                        onMouseEnter={() => isUiHidden && setIsRightSidebarHovered(true)}
+                        onMouseLeave={() => isUiHidden && setIsRightSidebarHovered(false)}
+                    >
+                        {state.isViewportEditorOpen && (
+                            <ViewportEditor
+                                item={state.selectedItemIds.length > 0 ? allItems.find(i => i.id === state.selectedItemIds[0]) || activeView : activeView}
+                                onUpdateItem={(updates) => {
+                                    const targetItemId = state.selectedItemIds[0];
+                                    const targetItem = targetItemId ? allItems.find(i => i.id === targetItemId) : activeView;
+                                    if (targetItem) {
+                                        updateItem(targetItem.id, updates);
+                                    }
+                                }}
+                                onClose={() => state.togglePanel('isViewportEditorOpen')}
+                            />
+                        )}
+                    </div>
+                    
                     {state.chatPanels.map(panel => (
                         <AiChatDialog
                             key={panel.id}
@@ -1745,8 +2035,8 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                         title: 'Yeni Cihaz',
                                         icon: 'monitor',
                                         deviceInfo: {
-                                            os: navigator.platform || 'Unknown',
-                                            browser: navigator.userAgent.split(' ').pop() || 'Unknown'
+                                            os: (navigator.platform || 'Unknown') as any,
+                                            browser: (navigator.userAgent.split(' ').pop() || 'Unknown') as any
                                         }
                                     },
                                     'devices-folder'
@@ -1785,15 +2075,19 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                         }}
                     />
                     <ItemInfoDialog item={state.itemForInfo} allItems={allItems} onOpenChange={handleItemInfoDialogOpenChange} onUpdateItem={updateItem} />
-                     <SettingsDialog isOpen={isSettingsOpen} onOpenChange={setIsSettingsOpen} onClearHistory={() => {}}
-                        allItems={allItems} onRestoreItem={() => {}} onPermanentlyDeleteItem={(item) => deleteItem(item.id)} onEmptyTrash={() => {}}
+                     <SettingsDialog 
+                        isOpen={isSettingsOpen} 
+                        onOpenChange={setIsSettingsOpen}
+                        allItems={allItems} 
+                        onRestoreItem={() => {}} 
+                        onPermanentlyDeleteItem={(item: any) => deleteItem(item.id)} 
+                        onEmptyTrash={() => {}}
                         sessionId={"session-123"}
                         onResetData={() => {
                             localStorage.clear();
                             window.location.reload();
                         }}
                     />
-                    <SettingsDialog isOpen={isApiKeysOpen} onOpenChange={setIsApiKeysOpen} />
                      <PreviewDialog
                         item={state.itemForPreview} context={{items: activeViewChildren, currentIndex: activeViewChildren.findIndex(i => i.id === state.itemForPreview?.id) }} 
                         isOpen={!!state.itemForPreview} onOpenChange={handlePreviewDialogOpenChange}

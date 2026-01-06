@@ -22,6 +22,7 @@ import { SearchPanelState } from '@/lib/store';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import MiniGridPreview from '@/components/mini-grid-preview';
+import { MultiSourceSearchDialog } from '@/components/multi-source-search-dialog';
 
 type SearchableItem = {
   id: string;
@@ -420,6 +421,20 @@ function GlobalSearch({
             <Button variant="ghost" size="icon" className='h-9 w-9' onClick={() => handleOpenChange(false)}><X className='h-5 w-5'/></Button>
        </div>
        <div className='flex-1 flex flex-col min-h-0'>
+           {/* 4-Category Multi-Source Search Dialog */}
+           <MultiSourceSearchDialog
+               query={query}
+               onQueryChange={setQuery}
+               libraryItems={allItems}
+               onSelectLibraryItem={setActiveView}
+               socialUsers={[]}
+               socialContent={[]}
+               onSelectSocialUser={() => {}}
+               onSelectSocialContent={() => {}}
+               marketplaceListings={[]}
+               onSelectMarketplaceListing={() => {}}
+               isLoading={false}
+           />
             {isAiLoading && (
                 <div className='flex items-center justify-center p-8'>
                     <Loader2 className='h-8 w-8 animate-spin text-primary' />

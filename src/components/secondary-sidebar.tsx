@@ -11,7 +11,9 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { ContentItem, SortDirection, SortOption, widgetTemplates, RatingEvent, ItemType } from '@/lib/initial-content';
 import { useAppStore } from '@/lib/store';
 import { SocialPanel } from './social-panel';
+import { ProfilePanel } from './profile-panel';
 import { MessagingPanel } from './messaging/messaging-panel';
+import { useRealtimeConversations, useRealtimeMessages } from '@/lib/supabase-realtime';
 import {
   ThumbsUp,
   Save,
@@ -55,6 +57,7 @@ import {
   Home,
   MonitorSmartphone,
   Library,
+  Bookmark,
   Columns2,
   Globe,
   Image as ImageIcon,
@@ -120,6 +123,7 @@ import { AppLogo } from './icons/app-logo';
 import { analyzeContent } from '@/ai/flows/content-analysis-flow';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Textarea } from './ui/textarea';
@@ -155,30 +159,30 @@ const TimeAgo = ({ date }: { date: string | Date | undefined }) => {
 const SocialFeedCard = memo(function SocialFeedCard({ item, onSetView, onPreviewItem, onSaveItem }: { item: ContentItem, onSetView: (item: ContentItem) => void, onPreviewItem: (item: ContentItem) => void, onSaveItem: (item: ContentItem) => void }) {
   const { toast } = useToast();
   return (
-    <div className="bg-card p-3 rounded-lg border">
-      <div className="flex items-start gap-3">
-        <Avatar className="h-8 w-8">
+    <div className="bg-card p-2 rounded-lg border border-border/60 hover:border-border transition-all hover:shadow-sm">
+      <div className="flex items-start gap-2">
+        <Avatar className="h-7 w-7">
           <AvatarImage src={`https://robohash.org/${item.author_name}.png`} />
           <AvatarFallback>{item.author_name?.charAt(0)}</AvatarFallback>
         </Avatar>
-        <div className="flex-1">
-          <p className="text-sm font-semibold">{item.author_name}</p>
-          <p className="text-xs text-muted-foreground">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold truncate">{item.author_name}</p>
+          <p className="text-[10px] text-muted-foreground">
             <TimeAgo date={item.published_at || item.createdAt} />
           </p>
         </div>
-        <div className="flex items-center gap-1">
-             <Button variant="ghost" size="sm" className="h-8 gap-2" onClick={(e) => { e.stopPropagation(); onPreviewItem(item); }}>
-                <Eye className="h-4 w-4" /> Önizle
+        <div className="flex items-center gap-0.5">
+             <Button variant="ghost" size="sm" className="h-6 gap-1 px-2 text-[10px] hover:scale-105 transition-transform" onClick={(e) => { e.stopPropagation(); onPreviewItem(item); }}>
+                <Eye className="h-3 w-3" /> Önizle
             </Button>
         </div>
       </div>
-      <p className="text-sm mt-2 font-semibold">{item.title}</p>
-      <div className="mt-2 aspect-video rounded-md overflow-hidden bg-muted cursor-pointer" onClick={() => onSetView(item)}>
+      <p className="text-xs mt-1.5 font-medium line-clamp-2">{item.title}</p>
+      <div className="mt-1.5 aspect-video rounded-md overflow-hidden bg-muted cursor-pointer hover:opacity-90 transition-opacity" onClick={() => onSetView(item)}>
         <PlayerFrame 
             item={item} 
             isEditMode={false} 
-            layoutMode='free' 
+            layoutMode='grid' 
             onLoad={()=>{}} 
             isSelected={false}
             isPlayerHeaderVisible={false}
@@ -196,23 +200,23 @@ const SocialFeedCard = memo(function SocialFeedCard({ item, onSetView, onPreview
           <MiniGridPreview item={item} onLoad={() => {}} />
         </PlayerFrame>
       </div>
-      <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
-        <div className="flex gap-1">
-          <Button variant="ghost" size="sm" className="flex items-center gap-1 h-7" onClick={() => toast({ title: 'Beğenildi!', description: `"${item.title}" gönderisini beğendiniz.` })}>
-            <ThumbsUp className="h-4 w-4" /> {formatCompactNumber(item.likeCount || 0)}
+      <div className="flex justify-between items-center mt-1.5 text-xs text-muted-foreground">
+        <div className="flex gap-0.5">
+          <Button variant="ghost" size="sm" className="flex items-center gap-0.5 h-6 px-1.5 hover:scale-105 transition-transform" onClick={() => toast({ title: 'Beğenildi!', description: `"${item.title}" gönderisini beğendiniz.` })}>
+            <ThumbsUp className="h-3 w-3" /> <span className="text-[10px]">{formatCompactNumber(item.likeCount || 0)}</span>
           </Button>
-          <Button variant="ghost" size="sm" className="flex items-center gap-1 h-7">
-            <MessageCircle className="h-4 w-4" /> {formatCompactNumber(item.viewCount || 0)}
+          <Button variant="ghost" size="sm" className="flex items-center gap-0.5 h-6 px-1.5 hover:scale-105 transition-transform">
+            <MessageCircle className="h-3 w-3" /> <span className="text-[10px]">{formatCompactNumber(item.viewCount || 0)}</span>
           </Button>
         </div>
-        <div className="flex gap-1">
-            <Button variant="ghost" size="sm" className="h-7" onClick={() => onSaveItem(item)}>
-                <Save className="h-4 w-4" />
+        <div className="flex gap-0.5">
+            <Button variant="ghost" size="sm" className="h-6 w-6 hover:scale-110 transition-transform" onClick={() => onSaveItem(item)}>
+                <Save className="h-3 w-3" />
             </Button>
-            <Button variant="ghost" size="sm" className="h-7" onClick={() => {
+            <Button variant="ghost" size="sm" className="h-6 w-6 hover:scale-110 transition-transform" onClick={() => {
                 alert(`"${item.title}" paylaşılıyor...`);
             }}>
-                <Share2 className="h-4 w-4" />
+                <Share2 className="h-3 w-3" />
             </Button>
         </div>
       </div>
@@ -229,31 +233,31 @@ const UserCard = memo(function UserCard({
 }) {
   return (
     <div
-      className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer"
+      className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-accent cursor-pointer transition-all hover:shadow-sm"
       onClick={onClick}
     >
-      <Avatar>
+      <Avatar className="h-7 w-7">
         <AvatarImage
           src={
             user.isBot ? undefined : `https://robohash.org/${user.name}.png`
           }
         />
-        <AvatarFallback>
+        <AvatarFallback className="text-xs">
           {user.isBot ? (
-            <SocialLogo className="h-7 w-7" />
+            <SocialLogo className="h-5 w-5" />
           ) : (
             user.name.charAt(0)
           )}
         </AvatarFallback>
       </Avatar>
-      <div className="flex-1">
-        <p className="font-semibold">{user.name}</p>
-        <p className="text-xs text-muted-foreground">
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold truncate">{user.name}</p>
+        <p className="text-[10px] text-muted-foreground truncate">
           @{user.name?.toLowerCase().replace(/ /g, '') || 'user'}
         </p>
       </div>
       {!user.isBot && (
-        <Button size="sm" variant="outline">
+        <Button size="sm" variant="outline" className="h-6 px-2 text-[10px] hover:scale-105 transition-transform">
           Takip Et
         </Button>
       )}
@@ -262,30 +266,30 @@ const UserCard = memo(function UserCard({
 });
 
 const OrganizationCard = ({ name, members }: { name: string, members: string[] }) => (
-    <div className="bg-card p-3 rounded-lg border">
+    <div className="bg-card p-2 rounded-lg border border-border/60 hover:border-border transition-all hover:shadow-sm">
         <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded-md">
-                    <Building className="h-5 w-5 text-foreground" />
+            <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-muted rounded-md">
+                    <Building className="h-4 w-4 text-foreground" />
                 </div>
                 <div>
-                    <p className="font-semibold">{name}</p>
-                    <p className="text-xs text-muted-foreground">{members.length} üye</p>
+                    <p className="text-xs font-semibold">{name}</p>
+                    <p className="text-[10px] text-muted-foreground">{members.length} üye</p>
                 </div>
             </div>
-            <Button variant="outline" size="sm">Yönet</Button>
+            <Button variant="outline" size="sm" className="h-6 px-2 text-[10px] hover:scale-105 transition-transform">Yönet</Button>
         </div>
-        <div className="flex items-center gap-2 mt-3">
-            <div className="flex -space-x-2 overflow-hidden">
+        <div className="flex items-center gap-1.5 mt-2">
+            <div className="flex -space-x-1.5 overflow-hidden">
                 {members.slice(0, 5).map((member) => (
-                    <Avatar key={member} className="inline-block h-6 w-6 border-2 border-card">
+                    <Avatar key={member} className="inline-block h-5 w-5 border-2 border-card">
                         <AvatarImage src={`https://robohash.org/${member}.png`} />
-                        <AvatarFallback>{member.charAt(0)}</AvatarFallback>
+                        <AvatarFallback className="text-[10px]">{member.charAt(0)}</AvatarFallback>
                     </Avatar>
                 ))}
             </div>
             {members.length > 5 && (
-                <span className="text-xs text-muted-foreground">+{members.length - 5} daha</span>
+                <span className="text-[10px] text-muted-foreground">+{members.length - 5} daha</span>
             )}
         </div>
     </div>
@@ -309,32 +313,32 @@ const MessagePreviewCard = memo(function MessagePreviewCard({
 }) {
   const getAvatar = () => {
     switch (message.type) {
-        case 'bot': return <Bot className="h-6 w-6 text-primary"/>;
+        case 'bot': return <Bot className="h-5 w-5 text-primary"/>;
         case 'user': return <AvatarImage src={`https://robohash.org/${message.avatar}.png`} />;
-        case 'group': return <Users className="h-6 w-6" />;
-        case 'channel': return <Building className="h-6 w-6" />;
-        case 'social': return <Sparkles className="h-6 w-6 text-primary" />;
+        case 'group': return <Users className="h-5 w-5" />;
+        case 'channel': return <Building className="h-5 w-5" />;
+        case 'social': return <Sparkles className="h-5 w-5 text-primary" />;
         default: return message.name.charAt(0);
     }
   }
   return (
     <div
-      className={cn("flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer", isPinned && 'bg-accent/50')}
+      className={cn("flex items-center gap-2 p-1.5 rounded-lg hover:bg-accent cursor-pointer transition-all", isPinned && 'bg-accent/50')}
       onClick={message.action ? message.action : onClick}
     >
       <div className="relative">
-        <Avatar>
-            <AvatarFallback>
+        <Avatar className="h-7 w-7">
+            <AvatarFallback className="text-xs">
                 {getAvatar()}
             </AvatarFallback>
         </Avatar>
-        <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-card" />
+        <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-1 ring-card" />
       </div>
       <div className="flex-1 overflow-hidden">
-        <p className="font-semibold truncate">{message.name}</p>
+        <p className="text-xs font-semibold truncate">{message.name}</p>
         <p
           className={cn(
-            'text-xs truncate',
+            'text-[10px] truncate',
             message.type === 'list' || message.type === 'social'
               ? 'text-primary italic'
               : 'text-muted-foreground'
@@ -343,7 +347,7 @@ const MessagePreviewCard = memo(function MessagePreviewCard({
           {message.lastMessage}
         </p>
       </div>
-      {isPinned && <Pin className="h-4 w-4 text-primary flex-shrink-0" />}
+      {isPinned && <Pin className="h-3 w-3 text-primary flex-shrink-0" />}
     </div>
   );
 });
@@ -476,7 +480,7 @@ const WidgetCard = memo(function WidgetCard({
                 <PlayerFrame
                     item={{...widget, id: `preview-${widget.title}`, createdAt: '', updatedAt: ''} as any}
                     isEditMode={false}
-                    layoutMode='free'
+                    layoutMode='grid'
                     onLoad={() => {}}
                     isSelected={false}
                     isPlayerHeaderVisible={false}
@@ -502,7 +506,7 @@ const WidgetCard = memo(function WidgetCard({
 
 
 type SecondarySidebarProps = {
-  type: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat';
+  type: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping';
   // Library props
   allItems?: ContentItem[];
   onSetView?: (item: ContentItem | null, event?: React.MouseEvent | React.TouchEvent) => void;
@@ -689,6 +693,7 @@ const LibraryGridCard = memo(function LibraryGridCard({
 const LibraryItem = memo(function LibraryItem({
   item,
   index,
+  itemNumber,
   activeView,
   onSetView,
   onShowInfo,
@@ -699,6 +704,7 @@ const LibraryItem = memo(function LibraryItem({
   onRenameItem,
   onPreviewItem,
   isExpanded,
+  hasChildren,
   toggleExpansion,
   activeDeviceId,
   onDeviceClick,
@@ -750,12 +756,18 @@ const LibraryItem = memo(function LibraryItem({
       return;
     }
     
-    // Single click - flash border animation
+    // Single click - flash border animation and open in canvas
     setIsFlashing(true);
     setTimeout(() => setIsFlashing(false), 600);
     
+    // Selection handling
     if (onItemClick) {
         onItemClick(item, e);
+    }
+    
+    // Open in canvas (active view)
+    if (onSetView) {
+        onSetView(item, e);
     }
   };
   
@@ -819,8 +831,6 @@ const LibraryItem = memo(function LibraryItem({
     }
   }
 
-  const hasChildren = item.children && item.children.length > 0;
-  
   const isActive = activeView?.id === item.id || (isDevice && activeDeviceId === item.id) || isSelected;
 
   return (
@@ -875,10 +885,9 @@ const LibraryItem = memo(function LibraryItem({
                 }}
                 onDoubleClick={(e) => { 
                     e.stopPropagation();
-                    const isContainer = ['folder', 'list', 'inventory', 'space', 'calendar', 'saved-items', 'root'].includes(item.type);
-                    // Double click - open folder/list in same tab
-                    if (isContainer && onSetView) {
-                        onSetView(item, e);
+                    // Double click - open in new tab
+                    if (onOpenInNewTab && (isContainer || ['video', 'website', 'iframe', '3dplayer'].includes(item.type))) {
+                        onOpenInNewTab(item, allItems);
                     }
                 }}
                 onTouchStart={handleTouchStart}
@@ -886,15 +895,35 @@ const LibraryItem = memo(function LibraryItem({
                 onTouchMove={handleTouchMove} 
                 {...dragHandleProps}
             >
-                <div className="flex items-center gap-1 w-8 flex-shrink-0 text-muted-foreground font-mono text-xs">
-                {(isContainer || isDevice) && hasChildren ? (
-                    <ChevronRight
-                        className={cn('h-4 w-4 flex-shrink-0 transition-transform duration-200', isExpanded && 'rotate-90')}
-                        onClick={(e) => { e.stopPropagation(); toggleExpansion(item.id); }}
-                    />
-                ) : <div className="w-4 h-4 flex-shrink-0" />}
-                <span>{item.hierarchyId}</span>
+                {/* Collapsible accordion with item number */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Item Number */}
+                    <span className="text-muted-foreground font-mono text-xs w-6 text-right">{itemNumber}.</span>
+                    
+                    {/* Chevron for folders/containers */}
+                    {hasChildren ? (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 p-0 hover:bg-transparent"
+                            onClick={(e) => { 
+                                e.stopPropagation(); 
+                                toggleExpansion(item.id); 
+                            }}
+                        >
+                            <ChevronRight
+                                className={cn(
+                                    'h-4 w-4 transition-transform duration-200 text-muted-foreground',
+                                    isExpanded && 'rotate-90'
+                                )}
+                            />
+                        </Button>
+                    ) : (
+                        <div className="w-5 h-5" />
+                    )}
                 </div>
+                
+                {/* Icon */}
                 <div className="flex items-center justify-center h-4 w-4 flex-shrink-0">
                   {item.thumbnail_url ? (
                     <div className="relative h-4 w-4 rounded-sm overflow-hidden">
@@ -923,10 +952,10 @@ const LibraryItem = memo(function LibraryItem({
                 <span className="truncate flex-1 min-w-0">{item.title}</span>
                 )}
                 <div className="flex items-center ml-auto opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 gap-2">
-                    {item.averageRating !== undefined && visibleColumns.has('rating') && (
-                         <div className="flex items-center gap-1 font-bold text-sm text-amber-500">
+                    {(item.averageRating !== undefined || item.tenPointRating !== undefined) && visibleColumns.has('rating') && (
+                         <div className="flex items-center gap-1 font-bold text-sm text-amber-500" title={item.tenPointRating !== undefined ? `${(item.tenPointRating || 0).toFixed(1)}/10` : `${(item.averageRating || 0).toFixed(1)}/5`}>
                             <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-                            <span>{(item.averageRating || 0).toFixed(1)}</span>
+                            <span>{item.tenPointRating !== undefined ? (item.tenPointRating || 0).toFixed(1) : (item.averageRating || 0).toFixed(1)}</span>
                         </div>
                     )}
                     {item.likeCount !== undefined && visibleColumns.has('likes') && (
@@ -1002,7 +1031,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
     const [libraryViewMode, setLibraryViewMode] = useState<'list' | 'grid'>('list');
     const [librarySearchQuery, setLibrarySearchQuery] = useState('');
     const [filterType, setFilterType] = useState<ItemType[]>([]);
-    const [contentTabValue, setContentTabValue] = useState<'all' | 'my-content' | 'discover'>('all');
+    const [contentTabValue, setContentTabValue] = useState<'my-library' | 'shared-by-me' | 'shared-with-me' | 'saved'>('my-library');
     
     // Default state managed locally
     const [sortOption, setSortOption] = useState<SortOption>('manual');
@@ -1055,6 +1084,48 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
 
     const currentUserId = user?.id ?? 'guest';
   
+    // Messages hooks - must be at top level
+    const { conversations: realtimeConversations, loading: convsLoading } = useRealtimeConversations();
+    const [selectedConversationId, setSelectedConversationId] = useState<string | undefined>();
+    const { messages: conversationMessages } = useRealtimeMessages(selectedConversationId || '');
+    
+    // Notifications hooks - must be at top level (will be populated with real notifications later)
+    const [activeNotifications, setActiveNotifications] = useState<any[]>([]);
+    
+    const handleDismissNotification = useCallback((id: string) => {
+        setActiveNotifications(prev => prev.filter(n => n.id !== id));
+    }, []);
+    
+    const handleMarkAllRead = useCallback(() => {
+        setActiveNotifications([]);
+    }, []);
+
+    // Shopping panel hooks - must be at top level for Rules of Hooks
+    const products = useAppStore((state) => state.products);
+    const shoppingCart = useAppStore((state) => state.shoppingCart);
+    const ecommerceView = useAppStore((state) => state.ecommerceView);
+    const setEcommerceView = useAppStore((state) => state.setEcommerceView);
+    const addToCart = useAppStore((state) => state.addToCart);
+    const marketplaceListings = useAppStore((state) => state.marketplaceListings);
+    const myInventoryItems = useAppStore((state) => state.myInventoryItems);
+    const orders = useAppStore((state) => state.orders);
+    const router = useRouter(); // For shopping navigation
+
+    useEffect(() => {
+        // Populate activeNotifications with real notifications when component mounts
+        // This is a safe place to initialize because useState has already been called
+        if (activeNotifications.length === 0) {
+            const defaultNotifications: Notification[] = [
+              { id: '1', type: 'like', user: { name: 'Zeynep Kaya', avatar: 'https://robohash.org/zeynep.png'}, content: `<b>Yaz Koleksiyonu</b> listenizi beğendi.`, time: '5 dakika önce' },
+              { id: '2', type: 'follow', user: { name: 'Ahmet Yılmaz', avatar: 'https://robohash.org/ahmet.png'}, content: `sizi takip etmeye başladı.`, time: '1 saat önce' },
+              { id: '3', type: 'task', user: { name: 'Proje Ekibi', avatar: 'https://robohash.org/proje.png'}, content: `sizi bir göreve atadı: <b>Giriş sayfasını tasarla</b>`, time: '3 saat önce' },
+              { id: '4', type: 'message', user: { name: 'Can', avatar: 'https://robohash.org/can.png'}, content: `size bir mesaj gönderdi.`, time: 'dün' },
+              { id: '5', type: 'share', user: { name: 'Elif', avatar: 'https://robohash.org/elif.png'}, content: `sizinle <b>Sunum</b> listesini paylaştı.`, time: '2 gün önce' },
+            ];
+            setActiveNotifications(defaultNotifications);
+        }
+    }, [activeNotifications, setActiveNotifications]);
+  
     const handleSetView = useCallback((item: ContentItem | null, event?: React.MouseEvent | React.TouchEvent) => {
         if(onSetView) {
             onSetView(item, event);
@@ -1106,25 +1177,24 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
         let itemsToSort = allItems.filter(i => i.parentId === (activeView?.id ?? null));
 
         // İçerikler tab filtresi (sadece library için)
-        if (type === 'library' && contentTabValue !== 'all') {
-            if (contentTabValue === 'my-content') {
-                // Kullanıcının kendi içerikleri (örnek: owner veya creator alanı varsa)
-                // Şimdilik basit bir filtre: sharing.sharedBy === username veya createdBy === username
-                itemsToSort = itemsToSort.filter(i => 
-                    i.sharing?.sharedBy === username || 
-                    (i as any).createdBy === username ||
-                    i.parentId === 'saved-items' // Kaydedilenler de kendi içeriği sayılır
+        if (type === 'library' && contentTabValue !== 'my-library') {
+            if (contentTabValue === 'shared-by-me') {
+                // Paylaştıklarım: Tüm sistemdeki paylaştığım öğeler
+                itemsToSort = allItems.filter(i => 
+                    (i.sharing as any)?.sharedBy === username || 
+                    (i as any).createdBy === username
                 );
-            } else if (contentTabValue === 'discover') {
-                // Global feed: Paylaşılan içerikler, zaman sırasıyla
-                // sharing.isPublic === true veya sharing.visibility === 'public'
-                itemsToSort = itemsToSort.filter(i => 
-                    i.sharing?.isPublic === true || 
-                    i.sharing?.visibility === 'public'
+            } else if (contentTabValue === 'shared-with-me') {
+                // Benimle paylaşılanlar: Tüm sistemdeki benimle paylaşılanlar
+                itemsToSort = allItems.filter(i => 
+                    i.sharing?.allowedUsers?.includes(username || '')
                 );
-                // Keşfet'te varsayılan olarak zaman sırasıyla sırala
-                itemsToSort.sort((a, b) => 
-                    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            } else if (contentTabValue === 'saved') {
+                // Kaydedilenler: Tüm sistemdeki kaydedilenler
+                itemsToSort = allItems.filter(i => 
+                    i.parentId === 'saved-items' || 
+                    (i as any).isSaved === true ||
+                    i.isPinned === true
                 );
             }
         }
@@ -1166,10 +1236,10 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                 return sortDirection === 'asc' ? (a.itemCount || 0) - (b.itemCount || 0) : (b.itemCount || 0) - (a.itemCount || 0);
             }
             if (sortOption === 'platformViews') {
-                return sortDirection === 'asc' ? (a.platformViewCount || 0) - (b.platformViewCount || 0) : (b.platformViewCount || 0) - (a.platformViewCount || 0);
+                return sortDirection === 'asc' ? ((a as any).platformViewCount || 0) - ((b as any).platformViewCount || 0) : ((b as any).platformViewCount || 0) - ((a as any).platformViewCount || 0);
             }
             if (sortOption === 'platformLikes') {
-                return sortDirection === 'asc' ? (a.platformLikeCount || 0) - (b.platformLikeCount || 0) : (b.platformLikeCount || 0) - (a.platformLikeCount || 0);
+                return sortDirection === 'asc' ? ((a as any).platformLikeCount || 0) - ((b as any).platformLikeCount || 0) : ((b as any).platformLikeCount || 0) - ((a as any).platformLikeCount || 0);
             }
             if (sortOption === 'sourceViews') {
                 return sortDirection === 'asc' ? (a.viewCount || 0) - (b.viewCount || 0) : (b.viewCount || 0) - (a.viewCount || 0);
@@ -1191,17 +1261,22 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
     
     const renderItems = (items: ContentItem[], level = 0): React.ReactNode[] => {
         return items.map((item, index) => {
-             const children = allItems.filter(child => child.parentId === item.id);
-             children.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
+            const children = allItems.filter(child => child.parentId === item.id);
+            children.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            const isExpanded = (props.expandedItems || []).includes(item.id);
+            const hasChildren = children.length > 0;
+            const itemNumber = index + 1; // Her seviyede 1'den başlar
+            
             return (
-                 <Fragment key={item.id}>
+                <Fragment key={item.id}>
                     <LibraryItem
                         item={{...item, level}}
                         index={index}
+                        itemNumber={itemNumber}
                         activeView={props.activeView}
                         onSetView={handleSetView}
-                        isExpanded={(props.expandedItems || []).includes(item.id)}
+                        isExpanded={isExpanded}
+                        hasChildren={hasChildren}
                         toggleExpansion={props.onToggleExpansion!}
                         onShowInfo={props.onShowInfo!}
                         onShare={props.onShare!}
@@ -1226,7 +1301,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             }
                         }}
                     />
-                    {(props.expandedItems || []).includes(item.id) && children.length > 0 &&
+                    {isExpanded && hasChildren &&
                         renderItems(children, level + 1)
                     }
                 </Fragment>
@@ -1263,7 +1338,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             
             return (
               <div className="h-full flex flex-col bg-card/60 backdrop-blur-md hidden lg:flex" data-testid={`${props.type}-panel`}>
-                                <div className="p-3 border-b flex items-center justify-between h-16">
+                <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
                   <h2 className="font-bold text-lg px-2 flex items-center gap-2">
                     {headerIconMap[type]} {panelTitleMap[type]}
                   </h2>
@@ -1299,15 +1374,15 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             </Button>
                         </>
                     )}
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8"
-                                            onClick={() => setSidebarOpen(false)}
-                                            title="Paneli Kapat"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setSidebarOpen(false)}
+                        title="Paneli Kapat"
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
                 
@@ -1361,18 +1436,22 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                 {type === 'library' && (
                     <div className="px-3 pt-2 border-b">
                         <Tabs value={contentTabValue} onValueChange={(value: any) => setContentTabValue(value)} className="w-full">
-                            <TabsList className="grid w-full grid-cols-3 mb-2">
-                                <TabsTrigger value="all" className="text-xs">
-                                    <Library className="h-3.5 w-3.5 mr-1" />
-                                    Tümü
+                            <TabsList className="grid w-full grid-cols-4 mb-2 h-9">
+                                <TabsTrigger value="my-library" className="text-[10px] px-1 flex flex-col gap-0.5 py-1">
+                                    <Library className="h-3 w-3 shrink-0" />
+                                    <span className="truncate leading-none">Kitaplığım</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="my-content" className="text-xs">
-                                    <User className="h-3.5 w-3.5 mr-1" />
-                                    İçeriklerim
+                                <TabsTrigger value="shared-by-me" className="text-[10px] px-1 flex flex-col gap-0.5 py-1">
+                                    <Share2 className="h-3 w-3 shrink-0" />
+                                    <span className="truncate leading-none">Paylaştıklarım</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="discover" className="text-xs">
-                                    <Compass className="h-3.5 w-3.5 mr-1" />
-                                    Keşfet
+                                <TabsTrigger value="shared-with-me" className="text-[10px] px-1 flex flex-col gap-0.5 py-1">
+                                    <Users className="h-3 w-3 shrink-0" />
+                                    <span className="truncate leading-none">Benimle</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="saved" className="text-[10px] px-1 flex flex-col gap-0.5 py-1">
+                                    <Bookmark className="h-3 w-3 shrink-0" />
+                                    <span className="truncate leading-none">Kaydedilenler</span>
                                 </TabsTrigger>
                             </TabsList>
                         </Tabs>
@@ -1591,7 +1670,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                                                                             <Info className="h-3 w-3" />
                                                                         </Button>
                                                                         <div className="flex items-center gap-1">
-                                                                            {item.averageRating !== undefined && <span className="text-[9px] text-amber-500 flex items-center gap-0.5 font-semibold"><Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />{(item.averageRating || 0).toFixed(1)}</span>}
+                                                                            {(item.averageRating !== undefined || item.tenPointRating !== undefined) && <span className="text-[9px] text-amber-500 flex items-center gap-0.5 font-semibold" title={item.tenPointRating !== undefined ? `${(item.tenPointRating || 0).toFixed(1)}/10` : `${(item.averageRating || 0).toFixed(1)}/5`}><Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />{item.tenPointRating !== undefined ? (item.tenPointRating || 0).toFixed(1) : (item.averageRating || 0).toFixed(1)}</span>}
                                                                             {item.itemCount !== undefined && <span className="text-[9px] text-muted-foreground flex items-center gap-0.5"><List className="h-2.5 w-2.5" />{item.itemCount}</span>}
                                                                         </div>
                                                                     </div>
@@ -1673,10 +1752,21 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
         case 'social':
             return (
                 <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="social-panel">
-                    <div className="p-3 border-b flex items-center justify-between h-16">
-                        <h2 className="font-bold text-lg px-2 flex items-center gap-2"><Users /> Sosyal Merkez</h2>
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <Users className="h-5 w-5" /> Sosyal Merkez
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
                     </div>
-                    <div className='flex-1 min-h-0 p-4'>
+                    <div className='flex-1 min-h-0 overflow-hidden'>
                         <SocialPanel onOpenContent={(item) => {
                             if (props.onOpenInNewTab) {
                                 props.onOpenInNewTab(item, allItems);
@@ -1686,54 +1776,57 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                 </div>
             );
         case 'messages': {
-            const handleAddMessage = useCallback(addMessage, [addMessage]);
-            const handleSearchMessages = useCallback(searchMessages, [searchMessages]);
-            const handleCreateGroup = useCallback(createGroup, [createGroup]);
-            const handleUpdateGroup = useCallback(updateGroup, [updateGroup]);
-            const handleRemoveGroupMember = useCallback(removeGroupMember, [removeGroupMember]);
-            const handleUpdateMemberRole = useCallback(updateMemberRole, [updateMemberRole]);
-            const handleStartCall = useCallback(startCall, [startCall]);
-            const handleSetCurrentConversation = useCallback(setCurrentConversation, [setCurrentConversation]);
-            const handleSetCurrentGroup = useCallback(setCurrentGroup, [setCurrentGroup]);
+            // Use hooks from component level
+            const conversationsToUse = realtimeConversations || conversations;
+            
+            // Combine all messages from state
+            const messagesMap: Record<string, any[]> = {};
+            conversationsToUse.forEach(conv => {
+                messagesMap[conv.id] = messages[conv.id] || conversationMessages || [];
+            });
 
             return (
-                <MessagingPanel
-                    conversations={conversations}
-                    groups={groups}
-                    messages={messages}
-                    calls={calls}
-                    currentUserId={currentUserId}
-                    currentConversationId={currentConversationId}
-                    currentGroupId={currentGroupId}
-                    onAddMessage={handleAddMessage}
-                    onSearchMessages={handleSearchMessages}
-                    onCreateGroup={handleCreateGroup}
-                    onUpdateGroup={handleUpdateGroup}
-                    onRemoveGroupMember={handleRemoveGroupMember}
-                    onUpdateMemberRole={handleUpdateMemberRole}
-                    onStartCall={handleStartCall}
-                    onSetCurrentConversation={handleSetCurrentConversation}
-                    onSetCurrentGroup={handleSetCurrentGroup}
-                />
+                <div className='flex-1 min-h-0 overflow-hidden'>
+                    {convsLoading ? (
+                        <div className='flex items-center justify-center h-full'>
+                            <div className='text-center'>
+                                <Sparkles className='h-8 w-8 animate-spin mx-auto mb-2 text-primary' />
+                                <p className='text-sm text-muted-foreground'>Sohbetler yükleniyor...</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <MessagingPanel
+                            conversations={conversationsToUse}
+                            groups={groups}
+                            messages={messagesMap}
+                            calls={calls}
+                            currentUserId={user?.id || ''}
+                            currentConversationId={selectedConversationId || currentConversationId}
+                            currentGroupId={currentGroupId}
+                            onAddMessage={addMessage}
+                            onSearchMessages={searchMessages}
+                            onCreateGroup={createGroup}
+                            onUpdateGroup={updateGroup}
+                            onRemoveGroupMember={removeGroupMember}
+                            onUpdateMemberRole={updateMemberRole}
+                            onStartCall={startCall}
+                            onSetCurrentConversation={(id) => {
+                                setSelectedConversationId(id);
+                                setCurrentConversation(id);
+                            }}
+                            onSetCurrentGroup={setCurrentGroup}
+                        />
+                    )}
+                </div>
             );
         }
         case 'notifications':
-            const [activeNotifications, setActiveNotifications] = useState(notifications);
-            
-            const handleDismissNotification = (id: string) => {
-                setActiveNotifications(prev => prev.filter(n => n.id !== id));
-            };
-            
-            const handleMarkAllRead = () => {
-                // Clear all notifications
-                setActiveNotifications([]);
-            };
-            
+            // Use hooks from component level
             return (
                  <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="notifications-panel">
-                    <div className="p-3 border-b flex items-center justify-between h-16">
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
                         <h2 className="font-bold text-lg px-2 flex items-center gap-2">
-                            <Bell /> Bildirimler
+                            <Bell className="h-5 w-5" /> Bildirimler
                             {activeNotifications.length > 0 && (
                                 <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
                                     {activeNotifications.length}
@@ -1746,39 +1839,90 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                                 size="sm"
                                 onClick={handleMarkAllRead}
                                 disabled={activeNotifications.length === 0}
+                                className="h-8"
                              >
-                                <CheckCheck className="mr-2 h-4 w-4"/>Tümünü Temizle
+                                <CheckCheck className="mr-1 h-4 w-4"/>Temizle
                              </Button>
-                             <Button variant="ghost" size="icon"><Settings className="h-4 w-4"/></Button>
+                             <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <Settings className="h-4 w-4"/>
+                             </Button>
+                             <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setSidebarOpen(false)}
+                                title="Paneli Kapat"
+                             >
+                                <X className="h-4 w-4" />
+                             </Button>
                          </div>
                     </div>
-                    <ScrollArea className='flex-1 p-1'>
+                    <ScrollArea className='flex-1 min-h-0'>
                         {activeNotifications.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
                                 <Bell className="h-12 w-12 mb-4 opacity-20" />
                                 <p className="text-sm">Bildiriminiz yok</p>
                             </div>
                         ) : (
-                            activeNotifications.map((n, index) => (
-                               <Fragment key={n.id}>
-                                 <NotificationCard 
-                                    notification={n} 
-                                    onDismiss={handleDismissNotification}
-                                 />
-                                 {index < activeNotifications.length - 1 && <Separator className="mx-2" />}
-                               </Fragment>
-                            ))
+                            <div className="p-2">
+                                {activeNotifications.map((n, index) => (
+                                   <Fragment key={n.id}>
+                                     <NotificationCard 
+                                        notification={n} 
+                                        onDismiss={handleDismissNotification}
+                                     />
+                                     {index < activeNotifications.length - 1 && <Separator className="my-2" />}
+                                   </Fragment>
+                                ))}
+                            </div>
                         )}
                     </ScrollArea>
+                </div>
+            );
+        case 'profile':
+            return (
+                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="profile-panel">
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <User className="h-5 w-5" /> Profilim
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <ProfilePanel onOpenContent={(item) => {
+                            if (props.onOpenInNewTab) {
+                                props.onOpenInNewTab(item, allItems);
+                            }
+                        }} />
+                    </div>
                 </div>
             );
         case 'ai-chat':
             return (
                 <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="ai-chat-panel">
-                    <div className="p-3 border-b flex items-center justify-between h-16">
-                        <h2 className="font-bold text-lg px-2 flex items-center gap-2"><Bot /> Yapay Zeka Asistanı</h2>
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <Bot className="h-5 w-5" /> Yapay Zeka Asistanı
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
                     </div>
-                    <div className="flex-1 min-h-0">
+                    <div className="flex-1 min-h-0 overflow-hidden">
                         <AiChatDialog 
                             panelState={{
                                 id: 'asistan',
@@ -1814,29 +1958,52 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
 
             return (
                 <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="widgets-panel">
-                                        <div className="p-3 border-b flex items-center justify-between h-16">
-                         <h2 className="font-bold text-lg px-2 flex items-center gap-2"><Puzzle /> Araç Takımları</h2>
-                         <div className='flex items-center gap-1 p-1'>
-                            <Button variant={isWidgetSearchOpen ? 'secondary': 'ghost'} size="icon" className="h-8 w-8" onClick={() => setIsWidgetSearchOpen(!isWidgetSearchOpen)}><Search className="h-4 w-4"/></Button>
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <Puzzle className="h-5 w-5" /> Araç Takımları
+                        </h2>
+                        <div className='flex items-center gap-1'>
+                            <Button 
+                                variant={isWidgetSearchOpen ? 'secondary': 'ghost'} 
+                                size="icon" 
+                                className="h-8 w-8" 
+                                onClick={() => setIsWidgetSearchOpen(!isWidgetSearchOpen)}
+                            >
+                                <Search className="h-4 w-4"/>
+                            </Button>
                             <div className='flex items-center gap-1 p-0.5 rounded-md border bg-muted'>
-                                <Button variant={widgetViewMode === 'preview' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setWidgetViewMode('preview')}><View className="h-4 w-4"/></Button>
-                                <Button variant={widgetViewMode === 'icon' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7" onClick={() => setWidgetViewMode('icon')}><Columns2 className="h-4 w-4"/></Button>
+                                <Button 
+                                    variant={widgetViewMode === 'preview' ? 'secondary' : 'ghost'} 
+                                    size="icon" 
+                                    className="h-7 w-7" 
+                                    onClick={() => setWidgetViewMode('preview')}
+                                >
+                                    <View className="h-4 w-4"/>
+                                </Button>
+                                <Button 
+                                    variant={widgetViewMode === 'icon' ? 'secondary' : 'ghost'} 
+                                    size="icon" 
+                                    className="h-7 w-7" 
+                                    onClick={() => setWidgetViewMode('icon')}
+                                >
+                                    <Columns2 className="h-4 w-4"/>
+                                </Button>
                             </div>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8"
-                                                            onClick={() => setSidebarOpen(false)}
-                                                            title="Paneli Kapat"
-                                                        >
-                                                            <X className="h-4 w-4" />
-                                                        </Button>
-                         </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setSidebarOpen(false)}
+                                title="Paneli Kapat"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
-                    <div className='flex-1 min-h-0 flex flex-col'>
-                         <Tabs defaultValue="Genel" className="w-full h-full flex flex-col">
+                    <div className='flex-1 min-h-0 flex flex-col overflow-hidden'>
+                        <Tabs defaultValue="Genel" className="w-full h-full flex flex-col">
                             {isWidgetSearchOpen && (
-                                <div className='p-2 border-b'>
+                                <div className='p-3 border-b shrink-0'>
                                     <Input
                                         placeholder='Araç takımı ara...'
                                         value={widgetSearchQuery}
@@ -1845,41 +2012,45 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                                     />
                                 </div>
                             )}
-                            <ScrollArea>
-                                <TabsList className="p-2 h-auto flex-wrap justify-start">
-                                    {Object.keys(filteredTemplates).map(category => (
-                                        <TabsTrigger key={category} value={category} className="text-xs">{category}</TabsTrigger>
-                                    ))}
-                                </TabsList>
-                                <ScrollBar orientation='horizontal' />
-                            </ScrollArea>
-                             <div className="flex-1 min-h-0 mt-auto">
-                                <ScrollArea className="h-full">
-                                    {Object.entries(filteredTemplates).map(([category, widgets]) => (
-                                        <TabsContent key={category} value={category}>
-                                             <div className={cn("p-2", widgetViewMode === 'preview' ? 'space-y-4' : 'grid grid-cols-3 gap-2')}>
-                                                 {widgets.map(widget => (
-                                                    <WidgetCard 
-                                                        key={widget.title}
-                                                        widget={widget} 
-                                                        viewMode={widgetViewMode}
-                                                        onWidgetClick={onWidgetClick!}
-                                                        onDragStart={(e) => {
-                                                            if (setDraggedItem && widget.type) {
-                                                                e.dataTransfer.setData('application/json', JSON.stringify({ ...widget, isNew: true }));
-                                                                setDraggedItem(widget);
-                                                            }
-                                                        }}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </TabsContent>
-                                    ))}
+                            <div className="border-b shrink-0">
+                                <ScrollArea className="w-full">
+                                    <TabsList className="p-3 h-auto flex-wrap justify-start w-max">
+                                        {Object.keys(filteredTemplates).map(category => (
+                                            <TabsTrigger key={category} value={category} className="text-xs">{category}</TabsTrigger>
+                                        ))}
+                                    </TabsList>
+                                    <ScrollBar orientation='horizontal' />
                                 </ScrollArea>
-                             </div>
+                            </div>
+                            <div className="flex-1 min-h-0">
+                                <ScrollArea className="h-full">
+                                    <div className="p-2">
+                                        {Object.entries(filteredTemplates).map(([category, widgets]) => (
+                                            <TabsContent key={category} value={category} className="mt-0">
+                                                <div className={cn(widgetViewMode === 'preview' ? 'space-y-4' : 'grid grid-cols-3 gap-2')}>
+                                                    {widgets.map(widget => (
+                                                        <WidgetCard 
+                                                            key={widget.title}
+                                                            widget={widget} 
+                                                            viewMode={widgetViewMode}
+                                                            onWidgetClick={onWidgetClick!}
+                                                            onDragStart={(e) => {
+                                                                if (setDraggedItem && widget.type) {
+                                                                    e.dataTransfer.setData('application/json', JSON.stringify({ ...widget, isNew: true }));
+                                                                    setDraggedItem(widget);
+                                                                }
+                                                            }}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </TabsContent>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </div>
                          </Tabs>
                     </div>
-                    <div className="p-2 border-t mt-auto space-y-2">
+                    <div className="p-2 border-t shrink-0 space-y-2">
                         <UrlInputWidget onAddItem={onAddItem} onAddFolderWithItems={onAddFolderWithItems} parentId={activeView?.id ?? null} activeView={activeView}/>
                         <div className="grid grid-cols-6 gap-1">
                             <Button variant="ghost" className="flex-col h-auto p-2 text-xs" onClick={onNewPlayer}><Play className="h-5 w-5 mb-1" /> Oynatıcı</Button>
@@ -1893,6 +2064,268 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                                 </Button>
                             </Link>
                         </div>
+                    </div>
+                </div>
+            );
+        }
+        case 'shopping': {
+            // Hooks are now at component top level - just use the variables here
+
+            return (
+                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md">
+                    {/* Header */}
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            🛒 E-Ticaret
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+
+                    {/* View Buttons */}
+                    <div className="p-3 border-b flex gap-2 shrink-0 flex-wrap">
+                        <Button
+                            variant={ecommerceView === 'products' ? 'default' : 'outline'}
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => setEcommerceView('products')}
+                        >
+                            📦 Ürünler
+                        </Button>
+                        <Button
+                            variant={ecommerceView === 'marketplace' ? 'default' : 'outline'}
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => setEcommerceView('marketplace')}
+                        >
+                            🏪 Market
+                        </Button>
+                        <Button
+                            variant={ecommerceView === 'cart' ? 'default' : 'outline'}
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => setEcommerceView('cart')}
+                        >
+                            🛍️ Sepet ({shoppingCart.items.length})
+                        </Button>
+                        <Button
+                            variant={ecommerceView === 'orders' ? 'default' : 'outline'}
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => setEcommerceView('orders')}
+                        >
+                            📋 Siparişler
+                        </Button>
+                    </div>
+
+                    {/* Content Area */}
+                    <div className="flex-1 min-h-0 overflow-y-auto">
+                        {ecommerceView === 'products' && (
+                            <div className="p-3 space-y-3">
+                                <div className="text-xs font-semibold text-muted-foreground">Ürün Listesi ({products.length})</div>
+                                <ScrollArea className="h-96">
+                                    <div className="space-y-2 pr-4">
+                                        {products.slice(0, 6).map((product) => {
+                                            return (
+                                                <div
+                                                    key={product.id}
+                                                    className="p-2 rounded-lg border border-border/60 hover:bg-accent/50 transition-all"
+                                                >
+                                                    <div className="flex gap-2 items-start">
+                                                        {product.image && (
+                                                            <img 
+                                                                src={product.image} 
+                                                                alt={product.title}
+                                                                className="h-12 w-12 rounded object-cover"
+                                                            />
+                                                        )}
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-semibold truncate">{product.title}</p>
+                                                            <p className="text-[10px] text-muted-foreground">${(product.price / 100).toFixed(2)}</p>
+                                                            <div className="flex items-center gap-1 mt-1">
+                                                                <span className={cn(
+                                                                    "inline-block text-[9px] px-1.5 py-0.5 rounded",
+                                                                    product.type === 'digital' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'
+                                                                )}>
+                                                                    {product.type === 'digital' ? '💾 Dijital' : '📦 Fiziksel'}
+                                                                </span>
+                                                                <Button 
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="text-[9px] h-5 px-1.5 ml-auto"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        addToCart(product, 1);
+                                                                    }}
+                                                                >
+                                                                    🛒 Ekle
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                        )}
+
+                        {ecommerceView === 'cart' && (
+                            <div className="p-3 space-y-3">
+                                <div className="text-xs font-semibold text-muted-foreground">Sepet ({shoppingCart.items.length})</div>
+                                {shoppingCart.items.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                                        <p className="text-sm text-muted-foreground">Sepetiniz boş</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <ScrollArea className="h-48">
+                                            <div className="space-y-2 pr-4">
+                                                {shoppingCart.items.map((item: any) => (
+                                                    <div key={item.id} className="p-2 rounded-lg border border-border/60 bg-accent/30">
+                                                        <div className="flex justify-between items-start gap-2">
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs font-semibold truncate">{item.productName}</p>
+                                                                <p className="text-[10px] text-muted-foreground">
+                                                                    {item.quantity}x ${(item.unitPrice / 100).toFixed(2)}
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xs font-semibold whitespace-nowrap">
+                                                                ${(item.totalPrice / 100).toFixed(2)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                        <div className="space-y-2 p-2 bg-muted/50 rounded-lg text-xs">
+                                            <div className="flex justify-between">
+                                                <span>Toplam:</span>
+                                                <span className="font-semibold text-blue-400">${(shoppingCart.total / 100).toFixed(2)}</span>
+                                            </div>
+                                            <Button 
+                                                size="sm" 
+                                                className="w-full text-xs mt-2"
+                                                onClick={() => {
+                                                    setEcommerceView('cart');
+                                                    const params = new URLSearchParams(window.location.search);
+                                                    params.set('ecommerce', 'cart');
+                                                    window.history.pushState({}, '', `?${params.toString()}`);
+                                                }}
+                                            >
+                                                Sepete Git →
+                                            </Button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {ecommerceView === 'marketplace' && (
+                            <div className="p-3 space-y-3">
+                                <div className="text-xs font-semibold text-muted-foreground">Market Yeri - Satış Listelerim</div>
+                                {(() => {
+                                    const userListings = marketplaceListings.filter(l => 
+                                        l.sellerId === (user?.id || 'guest')
+                                    );
+                                    
+                                    if (userListings.length === 0) {
+                                        return (
+                                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                                                <p className="text-sm text-muted-foreground mb-3">Henüz satış listeleriniz yok</p>
+                                                <Button size="sm" variant="outline" className="text-xs">
+                                                    + Satış Listesi Oluştur
+                                                </Button>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <ScrollArea className="h-96">
+                                            <div className="space-y-2 pr-4">
+                                                {userListings.map((listing) => (
+                                                    <div 
+                                                        key={listing.id}
+                                                        className="p-2 rounded-lg border border-border/60 hover:bg-accent cursor-pointer transition-all"
+                                                    >
+                                                        <div className="flex gap-2 items-start">
+                                                            {listing.images?.[0] && (
+                                                                <img 
+                                                                    src={listing.images[0]} 
+                                                                    alt={listing.title}
+                                                                    className="h-12 w-12 rounded object-cover"
+                                                                />
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs font-semibold truncate">{listing.title}</p>
+                                                                <p className="text-[10px] text-muted-foreground">${(listing.price / 100).toFixed(2)}</p>
+                                                                <span className={cn(
+                                                                    "inline-block text-[9px] px-1.5 py-0.5 rounded mt-1",
+                                                                    listing.status === 'active' ? 'bg-green-500/20 text-green-400' : listing.status === 'sold' ? 'bg-gray-500/20 text-gray-400' : 'bg-orange-500/20 text-orange-400'
+                                                                )}>
+                                                                    {listing.status === 'active' ? '🟢 Aktif' : listing.status === 'sold' ? '✓ Satıldı' : '⏸️ Durduruldu'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                    );
+                                })()}
+                            </div>
+                        )}
+
+                        {ecommerceView === 'orders' && (
+                            <div className="p-3 space-y-3">
+                                <div className="text-xs font-semibold text-muted-foreground">Sipariş Geçmişi</div>
+                                {(() => {
+                                    if (orders.length === 0) {
+                                        return (
+                                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                                                <p className="text-sm text-muted-foreground">Siparişleriniz yok</p>
+                                            </div>
+                                        );
+                                    }
+
+                                    return (
+                                        <ScrollArea className="h-96">
+                                            <div className="space-y-2 pr-4">
+                                                {orders.slice(0, 10).map((order) => (
+                                                    <div 
+                                                        key={order.id}
+                                                        className="p-2 rounded-lg border border-border/60 hover:bg-accent cursor-pointer transition-all"
+                                                    >
+                                                        <div className="flex justify-between items-start gap-2">
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-xs font-semibold truncate">#{order.id.slice(-6)}</p>
+                                                                <p className="text-[10px] text-muted-foreground">
+                                                                    {order.items.length} ürün • ${(order.total / 100).toFixed(2)}
+                                                                </p>
+                                                                <span className={cn(
+                                                                    "inline-block text-[9px] px-1.5 py-0.5 rounded mt-1",
+                                                                    order.status === 'completed' ? 'bg-green-500/20 text-green-400' : order.status === 'pending' ? 'bg-orange-500/20 text-orange-400' : order.status === 'cancelled' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
+                                                                )}>
+                                                                    {order.status === 'completed' ? '✓ Tamamlandı' : order.status === 'pending' ? '⏳ Bekleniyor' : order.status === 'cancelled' ? '✗ İptal Edildi' : '📦 Gönderiliyor'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                    );
+                                })()}
+                            </div>
+                        )}
                     </div>
                 </div>
             );

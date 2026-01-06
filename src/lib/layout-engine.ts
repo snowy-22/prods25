@@ -65,7 +65,8 @@ export function calculateLayout(
     // Grid Square Mode: Equal columns and responsive grid
     if (mode === 'grid-square' || mode === 'grid') {
         // Responsive threshold: container genişliğine göre maksimum span hesapla
-        const baseGridSize = 280;
+        // XXL ekranlarda daha büyük grid size kullan
+        const baseGridSize = containerWidth >= 2560 ? 480 : containerWidth >= 1920 ? 360 : 280;
         const gap = 24;
         const safeWidth = Math.max(containerWidth, 320);
         const maxColumns = Math.max(1, Math.floor((safeWidth + gap) / (baseGridSize + gap)));
@@ -78,13 +79,11 @@ export function calculateLayout(
             styles: {
                 gridColumn: `span ${effectiveColSpan}`,
                 gridRow: `span ${effectiveRowSpan}`,
-                aspectRatio: '1',
                 position: 'relative',
                 width: '100%',
-                height: 'auto',
+                height: '100%',
                 zIndex: 1,
-                minHeight: '160px',
-                maxHeight: '600px'
+                minHeight: '200px'
             }
         };
     }

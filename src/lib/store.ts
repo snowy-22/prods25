@@ -1,11 +1,51 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ContentItem, KeyboardShortcut, Gesture, MacroDefinition, MacroPadLayout, PlayerControlGroup } from './initial-content';
+import { ContentItem, KeyboardShortcut, Gesture, MacroDefinition, MacroPadLayout, PlayerControlGroup, Account, CorporateAccount, CorporateMember, AccountType } from './initial-content';
 import { User } from '@supabase/supabase-js';
-import { Message, Conversation, Group, Call, GroupMember, PermissionLevel, PrivateAccount, MessageSearchFilter } from './messaging-types';
+import { Message as MessageData, MessageType, Conversation as ConversationData, Group, Call, GroupMember, PermissionLevel, PrivateAccount, MessageSearchFilter, CallStatus } from './messaging-types';
+
+// Simplified conversation interface for store (backward compatible)
+export interface Conversation {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+  isOnline: boolean;
+  isTyping: boolean;
+  isPinned: boolean;
+  isMuted: boolean;
+  isArchived: boolean;
+  isGroup: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Simplified message interface for store
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  type: MessageType;
+  content: string;
+  mediaUrl?: string;
+  createdAt: string;
+  isRead: boolean;
+  isEdited?: boolean;
+  editedAt?: string;
+  replyToId?: string;
+  reactions: Array<{ emoji: string; userId: string; userName: string }>;
+}
 import { HueBridge, HueLight, HueScene, HueSync } from './hue-types';
 import { GridModeState } from './layout-engine';
+import { ShoppingCart, CartItem, Product, Order } from './ecommerce-types';
+import { SubscriptionTier } from './subscription-types';
+import { createClient } from './supabase/client';
 import { 
   subscribeToCanvasChanges, 
   unsubscribeFromCanvasChanges, 
@@ -14,9 +54,50 @@ import {
   debouncedSyncToCloud,
   saveUserPreferences,
   migrateLocalStorageToCloud,
-  SyncDataType 
+  SyncDataType,
+  // Toolkit sync functions
+  syncKeyboardShortcuts,
+  syncGestures,
+  syncMacros,
+  syncMacroPads,
+  syncPlayerControls,
+  loadKeyboardShortcuts,
+  loadGestures,
+  loadMacros,
+  loadMacroPads,
+  loadPlayerControls,
+  subscribeToToolkitChanges
 } from './supabase-sync';
 import { AIProviderConfig, AIAgentConfig, DEFAULT_PROVIDERS } from './ai-providers';
+import {
+  MarketplaceListing,
+  ProductLifecycleTracking,
+  Warranty,
+  Insurance,
+  Appraisal,
+  FinancingOption,
+  InventoryTransaction,
+  WishlistItem,
+  MarketplaceViewMode,
+  InventorySettings,
+  InventoryItemStatus,
+} from './marketplace-types';
+import {
+  TrashItem,
+  TrashBucket,
+  TrashStats,
+  RecoveryLog,
+  RestoreOption,
+} from './trash-types';
+import {
+  Scene,
+  Presentation,
+  TransitionEffect,
+  Animation,
+  ViewportEditorState,
+  BroadcastSession,
+  StreamSettings,
+} from './scene-types';
 
 export type SearchPanelState = {
   isOpen: boolean;
@@ -64,10 +145,19 @@ export type Tab = ContentItem & {
 
 export type NewTabBehavior = 'chrome-style' | 'library' | 'folder' | 'custom';
 export type StartupBehavior = 'last-session' | 'new-tab' | 'library' | 'folder' | 'custom';
+export type EcommerceView = 'products' | 'marketplace' | 'cart' | 'orders';
 
 interface AppStore {
   user: User | null;
   username: string | null;
+  
+  // Multi-Account System
+  accounts: Account[];
+  currentAccountId: string | null;
+  currentAccount: Account | null;
+  corporateAccounts: CorporateAccount[];
+  corporateMembers: CorporateMember[];
+  
   tabs: Tab[];
   tabGroups: TabGroup[];
   activeTabId: string;
@@ -77,16 +167,19 @@ interface AppStore {
   customNewTabContent?: ContentItem;
   customStartupContent?: ContentItem;
   isSecondLeftSidebarOpen: boolean;
-  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | null;
+  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | null;
   isStyleSettingsOpen: boolean;
+  isViewportEditorOpen: boolean;
   isSpacesPanelOpen: boolean;
   isDevicesPanelOpen: boolean;
+  ecommerceView: EcommerceView;
   searchPanelState: SearchPanelState;
   chatPanels: ChatPanelState[];
   itemToShare: ContentItem | null;
   itemToSave: ContentItem | null;
   itemForInfo: ContentItem | null;
   itemForPreview: ContentItem | null;
+  itemToMessage: ContentItem | null;
   clipboard: { item: ContentItem; operation: 'copy' | 'cut' }[];
   expandedItems: string[];
   hoveredItemId: string | null;
@@ -166,9 +259,63 @@ interface AppStore {
     translation?: string;
   };
 
+  // E-Commerce & Marketplace State
+  shoppingCart: ShoppingCart;
+  products: Product[];
+  orders: Order[];
+  userSubscriptionTier: SubscriptionTier;
+  stripeCustomerId?: string;
+
+  // Marketplace & Inventory Management
+  marketplaceListings: MarketplaceListing[];
+  myInventoryItems: ContentItem[];
+  lifecycleTrackings: Record<string, ProductLifecycleTracking>;
+  warranties: Warranty[];
+  insurances: Insurance[];
+  appraisals: Appraisal[];
+  financingOptions: FinancingOption[];
+  inventoryTransactions: InventoryTransaction[];
+  wishlistItems: WishlistItem[];
+  marketplaceViewMode: MarketplaceViewMode;
+  inventorySettings: InventorySettings;
+
+  // Trash/Recycle Bin System
+  trashItems: TrashItem[];
+  trashBucket: TrashBucket | null;
+  trashStats: TrashStats | null;
+  isTrashLoading: boolean;
+
+  // Scenes & Presentations
+  scenes: Scene[];
+  presentations: Presentation[];
+  currentPresentationId: string | null;
+  currentSceneId: string | null;
+  viewportEditorState: ViewportEditorState;
+  broadcastSessions: BroadcastSession[];
+  isSceneEditorOpen: boolean;
+  isPreviewMode: boolean;
+
+  // Profile & Social State
+  profileCanvasId: string | null;
+  socialPosts: ContentItem[];
+  mySharedItems: ContentItem[];
+
   // Actions
   setUser: (user: User | null) => void;
   setUsername: (username: string | null) => void;
+  
+  // Multi-Account Actions
+  switchAccount: (accountId: string) => Promise<void>;
+  switchToCorporateAccount: (corporateId: string) => Promise<void>;
+  addAccount: (account: Account) => void;
+  removeAccount: (accountId: string) => void;
+  updateAccount: (accountId: string, updates: Partial<Account>) => void;
+  createCorporateAccount: (account: Omit<CorporateAccount, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  addCorporateMember: (member: Omit<CorporateMember, 'id' | 'joinedAt'>) => void;
+  removeCorporateMember: (memberId: string) => void;
+  updateCorporateMember: (memberId: string, updates: Partial<CorporateMember>) => void;
+  setCurrentAccount: (account: Account | null) => void;
+  
   setActiveTab: (tabId: string) => void;
   setTabs: (tabs: Tab[]) => void;
   setLayoutMode: (mode: 'grid' | 'canvas') => void;
@@ -189,13 +336,15 @@ interface AppStore {
   createNewTab: () => void;
   updateTab: (tabId: string, updates: Partial<Tab>) => void;
   closeTab: (tabId: string) => void;
-  togglePanel: (panel: 'isSecondLeftSidebarOpen' | 'isStyleSettingsOpen' | 'isSpacesPanelOpen' | 'isDevicesPanelOpen', open?: boolean) => void;
+  togglePanel: (panel: 'isSecondLeftSidebarOpen' | 'isStyleSettingsOpen' | 'isSpacesPanelOpen' | 'isDevicesPanelOpen' | 'isViewportEditorOpen', open?: boolean) => void;
   setActiveSecondaryPanel: (panel: AppStore['activeSecondaryPanel']) => void;
+  setEcommerceView: (view: EcommerceView) => void;
   updateSearchPanel: (update: Partial<SearchPanelState>) => void;
   setItemToShare: (item: ContentItem | null) => void;
   setItemToSave: (item: ContentItem | null) => void;
   setItemForInfo: (item: ContentItem | null) => void;
   setItemForPreview: (item: ContentItem | null) => void;
+  setItemToMessage: (item: ContentItem | null) => void;
   setClipboard: (items: { item: ContentItem; operation: 'copy' | 'cut' }[]) => void;
   toggleExpansion: (itemId: string) => void;
   setHoveredItem: (itemId: string | null) => void;
@@ -310,8 +459,139 @@ interface AppStore {
   initializeCloudSync: () => Promise<void>;
   syncToCloud: (dataType: SyncDataType, data: any) => void;
   loadFromCloud: () => Promise<void>;
-  isSyncEnabled: boolean;
-  lastSyncTime: number | null;
+
+  // Toolkit Cloud Sync Actions
+  syncToolkitKeyboardShortcuts: () => Promise<void>;
+  syncToolkitGestures: () => Promise<void>;
+  syncToolkitMacros: () => Promise<void>;
+  syncToolkitMacroPads: () => Promise<void>;
+  syncToolkitPlayerControls: () => Promise<void>;
+  loadToolkitFromCloud: () => Promise<void>;
+  initializeToolkitCloudSync: () => Promise<void>;
+
+  // Comprehensive Live Data Sync Actions
+  syncCanvasItem: (item: ContentItem) => Promise<void>;
+  syncAllCanvasItems: (items: ContentItem[]) => Promise<void>;
+  loadCanvasItemsFromCloud: () => Promise<ContentItem[]>;
+  saveSearchQuery: (query: string, type: string, resultsCount?: number, metadata?: any) => Promise<void>;
+  loadSearchHistory: (limit?: number) => Promise<any[]>;
+  saveAIConversation: (conversationId: string, title: string, contextItems?: any[], metadata?: any) => Promise<void>;
+  saveAIMessage: (conversationId: string, role: 'user' | 'assistant' | 'system', content: string, sequenceNumber: number, toolCalls?: any[], toolResults?: any[], metadata?: any) => Promise<void>;
+  loadAIConversations: () => Promise<any[]>;
+  loadAIMessages: (conversationId: string) => Promise<any[]>;
+  saveFrameStyleUpdate: (itemId: string, styleType: string, previousValue: any, newValue: any, appliedBy?: string, metadata?: any) => Promise<void>;
+  loadFrameStyleHistory: (itemId?: string, limit?: number) => Promise<any[]>;
+  saveLayoutState: (viewId: string, layoutMode: string, viewportSettings?: any, zoomLevel?: number, scrollPosition?: any, visibleItems?: string[]) => Promise<void>;
+  loadLayoutState: (viewId: string) => Promise<any | null>;
+  trackInteraction: (itemId: string, interactionType: string, durationMs?: number, metadata?: any) => Promise<void>;
+  subscribeToCanvasItemsChanges: () => () => void;
+  subscribeToSearchHistoryChanges: () => () => void;
+  subscribeToAIChatChanges: () => () => void;
+
+  // Multi-Tab Sync Actions (Tüm Sekmeler Arası Senkronizasyon)
+  trackMultiTabSync: (deviceId: string, tabId: string, entityType: any, entityId: string, action: any, changeData?: any) => Promise<void>;
+  subscribeToMultiTabSync: () => () => void;
+
+  // Sharing System Actions (Paylaşım Sistemi)
+  createSharedItem: (itemId: string, itemType: string) => Promise<any>;
+  grantSharingPermission: (sharedItemId: string, granteeUserId: string | null, granteeEmail: string | null, role: string, permissions: any, expiresAt?: string) => Promise<any>;
+  createSharingLink: (sharedItemId: string, settings: any) => Promise<any>;
+  logSharingAccess: (sharingLinkId: string, userId: string | null, ipAddress: string | null, userAgent: string, action: string) => Promise<void>;
+  getSharedItems: () => Promise<any[]>;
+
+  // Social Realtime Actions (Sosyal Canlı Güncellemeler)
+  logSocialEvent: (eventType: string, targetEntityType: string, targetEntityId: string, actorId: string, eventData?: any) => Promise<void>;
+  subscribeSocialEvents: () => () => void;
+
+  // Message Delivery Actions (Mesaj Gönderimi)
+  updateMessageDelivery: (messageId: string, status: 'sent' | 'delivered' | 'read', deviceId?: string, tabIds?: string[]) => Promise<void>;
+  subscribeMessageDelivery: () => () => void;
+
+  // Unified AI Service Actions (Vercel AI Gateway + Supabase)
+  sendAIMessage: (message: string, options?: { conversationId?: string; streaming?: boolean; priority?: 'speed' | 'quality' | 'cost' }) => Promise<any>;
+  sendVisionMessage: (message: string, imageUrl: string, options?: { conversationId?: string; streaming?: boolean }) => Promise<any>;
+  getAIConversations: (options?: { includeArchived?: boolean; limit?: number }) => Promise<any[]>;
+  deleteAIConversation: (conversationId: string) => Promise<void>;
+  archiveAIConversation: (conversationId: string, archived: boolean) => Promise<void>;
+  pinAIConversation: (conversationId: string, pinned: boolean) => Promise<void>;
+  getAIConversationWithMessages: (conversationId: string) => Promise<any>;
+  updateAIConversationTitle: (conversationId: string, title: string) => Promise<void>;
+
+  // E-Commerce & Marketplace Actions
+  addToCart: (product: Product, quantity: number, variantId?: string) => void;
+  removeFromCart: (itemId: string) => void;
+  updateCartItemQuantity: (itemId: string, quantity: number) => void;
+  clearCart: () => void;
+  applyDiscountCode: (code: string) => Promise<boolean>;
+  removeDiscountCode: () => void;
+  addProduct: (product: Product) => void;
+  updateProduct: (productId: string, updates: Partial<Product>) => void;
+  removeProduct: (productId: string) => void;
+  fetchOrders: (userId: string) => Promise<void>;
+  createOrder: (orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Order>;
+  updateOrderStatus: (orderId: string, status: Order['status']) => void;
+  setUserSubscriptionTier: (tier: SubscriptionTier) => void;
+  setStripeCustomerId: (customerId: string) => void;
+
+  // Marketplace & Inventory Actions
+  createMarketplaceListing: (item: ContentItem, price: number, description: string) => void;
+  updateMarketplaceListing: (listingId: string, updates: Partial<MarketplaceListing>) => void;
+  cancelMarketplaceListing: (listingId: string) => void;
+  completeSale: (listingId: string, buyerId: string) => void;
+  addToWishlist: (item: Partial<WishlistItem>) => void;
+  updateWishlistItem: (itemId: string, updates: Partial<WishlistItem>) => void;
+  removeFromWishlist: (itemId: string) => void;
+  enableLifecycleTracking: (itemId: string) => void;
+  updateLifecycleTracking: (itemId: string, updates: Partial<ProductLifecycleTracking>) => void;
+  addMaintenanceRecord: (itemId: string, record: Omit<any, 'id'>) => void;
+  addWarranty: (warranty: Warranty) => void;
+  updateWarranty: (warrantyId: string, updates: Partial<Warranty>) => void;
+  addInsurance: (insurance: Insurance) => void;
+  updateInsurance: (insuranceId: string, updates: Partial<Insurance>) => void;
+  addAppraisal: (appraisal: Appraisal) => void;
+  addFinancingOption: (option: FinancingOption) => void;
+  updateInventorySettings: (updates: Partial<InventorySettings>) => void;
+  setMarketplaceViewMode: (mode: Partial<MarketplaceViewMode>) => void;
+  logInventoryTransaction: (transaction: Omit<InventoryTransaction, 'id' | 'timestamp'>) => void;
+
+  // Trash/Recycle Bin Actions
+  moveToTrash: (item: ContentItem, reason?: string) => Promise<void>;
+  restoreFromTrash: (trashItemId: string, restorePosition?: { x: number; y: number }) => Promise<void>;
+  permanentlyDeleteTrash: (trashItemId: string) => Promise<void>;
+  loadTrashBucket: () => Promise<void>;
+  getTrashStats: () => Promise<void>;
+  clearExpiredTrash: () => Promise<void>;
+
+  // Scene & Presentation Actions
+  createPresentation: (title: string, description?: string) => Promise<Presentation>;
+  updatePresentation: (presentationId: string, updates: Partial<Presentation>) => Promise<void>;
+  deletePresentation: (presentationId: string) => Promise<void>;
+  loadPresentation: (presentationId: string) => Promise<void>;
+  loadPresentations: () => Promise<void>;
+  
+  createScene: (presentationId: string, title: string) => Promise<Scene>;
+  updateScene: (sceneId: string, updates: Partial<Scene>) => Promise<void>;
+  deleteScene: (sceneId: string) => Promise<void>;
+  addSceneAnimation: (sceneId: string, animation: Animation) => Promise<void>;
+  updateSceneAnimation: (sceneId: string, animationId: string, updates: Partial<Animation>) => Promise<void>;
+  
+  setCurrentPresentation: (presentationId: string) => void;
+  setCurrentScene: (sceneId: string) => void;
+  setViewportEditorState: (state: Partial<ViewportEditorState>) => void;
+  setIsSceneEditorOpen: (isOpen: boolean) => void;
+  setIsPreviewMode: (isPreview: boolean) => void;
+  
+  startBroadcastSession: (presentationId: string, streamSettings: StreamSettings) => Promise<BroadcastSession>;
+  endBroadcastSession: (sessionId: string) => Promise<void>;
+  updateBroadcastStats: (sessionId: string, stats: Partial<BroadcastSession>) => void;
+
+  // Profile & Social Actions
+  setProfileCanvasId: (id: string | null) => void;
+  addSocialPost: (post: ContentItem) => void;
+  updateSocialPost: (postId: string, updates: Partial<ContentItem>) => void;
+  removeSocialPost: (postId: string) => void;
+  addMySharedItem: (item: ContentItem) => void;
+  removeMySharedItem: (itemId: string) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -319,6 +599,14 @@ export const useAppStore = create<AppStore>()(
     (set, get) => ({
       user: null,
       username: null,
+      
+      // Multi-Account defaults
+      accounts: [],
+      currentAccountId: null,
+      currentAccount: null,
+      corporateAccounts: [],
+      corporateMembers: [],
+      
       tabs: [],
       tabGroups: [],
       activeTabId: '',
@@ -328,7 +616,9 @@ export const useAppStore = create<AppStore>()(
       isSecondLeftSidebarOpen: true,
       activeSecondaryPanel: 'library',
       isStyleSettingsOpen: false,
+      isViewportEditorOpen: false,
       isSpacesPanelOpen: false,
+      ecommerceView: 'products',
       isDevicesPanelOpen: false,
       searchPanelState: { isOpen: false, isDraggable: true, x: 50, y: 50, width: 600, height: 500 },
       chatPanels: [],
@@ -336,6 +626,7 @@ export const useAppStore = create<AppStore>()(
       itemToSave: null,
       itemForInfo: null,
       itemForPreview: null,
+      itemToMessage: null,
       clipboard: [],
       expandedItems: [],
       hoveredItemId: null,
@@ -364,9 +655,164 @@ export const useAppStore = create<AppStore>()(
       },
 
       // Messaging defaults
-      conversations: [],
+      conversations: [
+        // AI Asistan ile sohbet
+        {
+          id: 'conv-ai-assistant',
+          userId: 'ai-assistant',
+          userName: 'AI Asistan',
+          userAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=ai-assistant',
+          lastMessage: 'Merhaba! Size nasıl yardımcı olabilirim?',
+          lastMessageTime: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 dakika önce
+          unreadCount: 0,
+          isOnline: true,
+          isTyping: false,
+          isPinned: true,
+          isMuted: false,
+          isArchived: false,
+          isGroup: false,
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(), // 1 hafta önce
+          updatedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+        },
+        // Kendi notlarınız
+        {
+          id: 'conv-self-notes',
+          userId: 'self',
+          userName: 'Kendi Notlarım',
+          userAvatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Ben',
+          lastMessage: 'Proje için yapılacaklar listesi',
+          lastMessageTime: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 dakika önce
+          unreadCount: 0,
+          isOnline: true,
+          isTyping: false,
+          isPinned: true,
+          isMuted: false,
+          isArchived: false,
+          isGroup: false,
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(), // 1 ay önce
+          updatedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+        },
+      ],
       groups: [],
-      messages: {},
+      messages: {
+        'conv-ai-assistant': [
+          {
+            id: 'msg-ai-1',
+            conversationId: 'conv-ai-assistant',
+            senderId: 'ai-assistant',
+            senderName: 'AI Asistan',
+            senderAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=ai-assistant',
+            type: MessageType.TEXT,
+            content: 'Merhaba! Ben CanvasFlow AI asistanınızım. Size nasıl yardımcı olabilirim?',
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
+            isRead: true,
+            reactions: [],
+          },
+          {
+            id: 'msg-user-1',
+            conversationId: 'conv-ai-assistant',
+            senderId: 'current-user',
+            senderName: 'Siz',
+            type: MessageType.TEXT,
+            content: 'Merhaba! Projem için yardım istiyorum.',
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7 + 1000 * 60).toISOString(),
+            isRead: true,
+            reactions: [],
+          },
+          {
+            id: 'msg-ai-2',
+            conversationId: 'conv-ai-assistant',
+            senderId: 'ai-assistant',
+            senderName: 'AI Asistan',
+            senderAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=ai-assistant',
+            type: MessageType.TEXT,
+            content: 'Tabii ki! Hangi konuda yardıma ihtiyacınız var? Canvas düzenlemeleri, widget ekleme, AI entegrasyonları veya başka bir konu mu?',
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7 + 1000 * 60 * 2).toISOString(),
+            isRead: true,
+            reactions: [],
+          },
+          {
+            id: 'msg-user-2',
+            conversationId: 'conv-ai-assistant',
+            senderId: 'current-user',
+            senderName: 'Siz',
+            type: MessageType.TEXT,
+            content: 'Video playerlar ve layout düzenlemeleri hakkında bilgi almak istiyorum.',
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7 + 1000 * 60 * 5).toISOString(),
+            isRead: true,
+            reactions: [],
+          },
+          {
+            id: 'msg-ai-3',
+            conversationId: 'conv-ai-assistant',
+            senderId: 'ai-assistant',
+            senderName: 'AI Asistan',
+            senderAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=ai-assistant',
+            type: MessageType.TEXT,
+            content: 'Harika! CanvasFlow\'da video playerlar için birkaç seçeneğiniz var:\n\n1. **YouTube Player**: Doğrudan YouTube URL\'lerini ekleyebilirsiniz\n2. **Video Widget**: Kendi video dosyalarınızı yükleyebilirsiniz\n3. **Iframe Player**: Vimeo, Twitch gibi platformları embed edebilirsiniz\n\nLayout düzenlemelerinde ise Grid ve Canvas modları arasında seçim yapabilirsiniz. Hangi modu tercih edersiniz?',
+            createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+            isRead: true,
+            reactions: [{ emoji: '👍', userId: 'current-user', userName: 'Siz' }],
+          },
+        ],
+        'conv-self-notes': [
+          {
+            id: 'msg-note-1',
+            conversationId: 'conv-self-notes',
+            senderId: 'current-user',
+            senderName: 'Siz',
+            type: MessageType.TEXT,
+            content: '📝 Proje için yapılacaklar:\n\n✅ Canvas layout düzeni\n✅ Widget entegrasyonları\n⏳ AI asistan konfigürasyonu\n⏳ Philips Hue entegrasyonu\n📌 E-commerce modülü\n📌 Recording studio özellikleri',
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
+            isRead: true,
+            reactions: [],
+          },
+          {
+            id: 'msg-note-2',
+            conversationId: 'conv-self-notes',
+            senderId: 'current-user',
+            senderName: 'Siz',
+            type: MessageType.TEXT,
+            content: '🎨 Tasarım notları:\n- Ana renk paleti: Mavi-mor gradient\n- Font: Inter (sistem fontu)\n- Animasyonlar: Framer Motion\n- UI Components: Radix UI + Tailwind',
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 25).toISOString(),
+            isRead: true,
+            reactions: [],
+          },
+          {
+            id: 'msg-note-3',
+            conversationId: 'conv-self-notes',
+            senderId: 'current-user',
+            senderName: 'Siz',
+            type: MessageType.TEXT,
+            content: '💡 Fikirler:\n- Drag & drop ile widget ekleme\n- Klavye kısayolları sistemi\n- Macro pad desteği\n- Multi-tab workspace\n- Real-time collaboration',
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 20).toISOString(),
+            isRead: true,
+            reactions: [{ emoji: '💡', userId: 'current-user', userName: 'Siz' }],
+          },
+          {
+            id: 'msg-note-4',
+            conversationId: 'conv-self-notes',
+            senderId: 'current-user',
+            senderName: 'Siz',
+            type: MessageType.TEXT,
+            content: '🔧 Teknik detaylar:\n- Next.js 16 + React 19\n- Supabase (PostgreSQL)\n- Zustand state management\n- Genkit AI framework\n- Tailwind CSS 4',
+            createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
+            isRead: true,
+            reactions: [],
+          },
+          {
+            id: 'msg-note-5',
+            conversationId: 'conv-self-notes',
+            senderId: 'current-user',
+            senderName: 'Siz',
+            type: MessageType.TEXT,
+            content: '📊 Performans hedefleri:\n- First Load: < 2s\n- Time to Interactive: < 3s\n- Lighthouse Score: 90+\n- Bundle size: Optimize edilmiş',
+            createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+            isRead: true,
+            reactions: [],
+          },
+        ],
+      },
       calls: [],
       privateAccounts: {},
 
@@ -380,17 +826,20 @@ export const useAppStore = create<AppStore>()(
       // YouTube & Google API defaults
       youtubeMetadataEnabled: true,
 
-      // AI Provider defaults
+      // AI Provider defaults - Gemini 3.5 Flash ekonomik setup
       aiProviders: DEFAULT_PROVIDERS.map((p, idx) => ({
         ...p,
         id: `provider-${idx}`,
-        apiKey: p.type === 'gemini' ? process.env.NEXT_PUBLIC_GEMINI_API_KEY : undefined
+        // Gemini API key from environment or window object (user can set it in settings)
+        apiKey: p.type === 'gemini' 
+          ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (typeof window !== 'undefined' ? (window as any).__GEMINI_API_KEY : undefined))
+          : undefined
       })),
       aiAgentConfig: {
         mode: 'auto',
-        defaultProvider: 'provider-0', // Gemini by default
+        defaultProvider: 'provider-0', // Gemini by default (ekonomik)
         fallbackProviders: ['provider-1', 'provider-3'], // OpenAI, Groq
-        autoSelectByCost: true,
+        autoSelectByCost: true, // Ekonomik seçim
         autoSelectBySpeed: false,
         autoSelectByCapability: true
       },
@@ -409,11 +858,228 @@ export const useAppStore = create<AppStore>()(
       isSyncEnabled: false,
       lastSyncTime: null,
 
+      // E-Commerce & Marketplace defaults
+      shoppingCart: {
+        id: '',
+        userId: '',
+        items: [],
+        subtotal: 0,
+        discount: 0,
+        tax: 0,
+        shipping: 0,
+        total: 0,
+        discountCode: undefined,
+        lastModified: new Date().toISOString(),
+      },
+      products: [
+        {
+          id: 'prod-1',
+          title: 'Premium Video Kursu',
+          description: 'Web geliştirme üzerine kapsamlı video eğitim serisi. 50+ saat içerik, proje dosyaları ve sertifika dahil.',
+          price: 9900, // $99.00
+          currency: 'USD' as const,
+          type: 'digital' as const,
+          status: 'active' as const,
+          sku: 'COURSE-WEB-001',
+          quantity: 999,
+          unlimited: true,
+          image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400',
+          images: ['https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400'],
+          category: 'Eğitim',
+          tags: ['video', 'kurs', 'web development', 'dijital'],
+          metadata: { duration: '50 hours', level: 'intermediate' },
+          sellerId: 'system',
+          sellerName: 'CanvasFlow Academy',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'prod-2',
+          title: 'Designer Mouse Pad',
+          description: 'Profesyonel tasarımcılar için büyük boy mousepad. Anti-slip taban, yıkanabilir yüzey.',
+          price: 2999, // $29.99
+          currency: 'USD' as const,
+          type: 'physical' as const,
+          status: 'active' as const,
+          sku: 'ACC-MOUSE-001',
+          quantity: 45,
+          lowStockThreshold: 10,
+          unlimited: false,
+          image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400',
+          images: ['https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400'],
+          category: 'Aksesuar',
+          tags: ['mouse pad', 'gaming', 'design', 'fiziksel'],
+          metadata: { dimensions: '90x40cm', material: 'fabric' },
+          sellerId: 'system',
+          sellerName: 'CanvasFlow Store',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'prod-3',
+          title: 'UI/UX Design Template Pack',
+          description: 'Figma ve Sketch için 100+ hazır UI komponenti. Dashboard, landing page ve mobil app şablonları.',
+          price: 4900, // $49.00
+          currency: 'USD' as const,
+          type: 'digital' as const,
+          status: 'active' as const,
+          sku: 'TEMPLATE-UI-001',
+          quantity: 999,
+          unlimited: true,
+          image: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400',
+          images: ['https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400'],
+          category: 'Tasarım',
+          tags: ['figma', 'sketch', 'ui', 'template', 'dijital'],
+          metadata: { format: 'figma, sketch', components: 100 },
+          sellerId: 'system',
+          sellerName: 'CanvasFlow Design',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'prod-4',
+          title: 'Premium Mechanical Keyboard',
+          description: 'RGB aydınlatmalı, hot-swap mekanik klavye. Cherry MX Blue switch, alüminyum kasa.',
+          price: 14900, // $149.00
+          currency: 'USD' as const,
+          type: 'physical' as const,
+          status: 'active' as const,
+          sku: 'KB-MECH-001',
+          quantity: 12,
+          lowStockThreshold: 5,
+          unlimited: false,
+          image: 'https://images.unsplash.com/photo-1595225476474-87563907a212?w=400',
+          images: ['https://images.unsplash.com/photo-1595225476474-87563907a212?w=400'],
+          category: 'Elektronik',
+          tags: ['keyboard', 'mechanical', 'gaming', 'fiziksel'],
+          metadata: { switch: 'Cherry MX Blue', layout: 'TKL' },
+          sellerId: 'system',
+          sellerName: 'CanvasFlow Store',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'prod-5',
+          title: 'AI Chatbot Development Kit',
+          description: 'OpenAI GPT-4 entegrasyonu için hazır kod paketi. React, Node.js ve Python örnekleri dahil.',
+          price: 7900, // $79.00
+          currency: 'USD' as const,
+          type: 'digital' as const,
+          status: 'active' as const,
+          sku: 'CODE-AI-001',
+          quantity: 999,
+          unlimited: true,
+          image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400',
+          images: ['https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400'],
+          category: 'Yazılım',
+          tags: ['ai', 'chatbot', 'development', 'code', 'dijital'],
+          metadata: { includes: 'React, Node.js, Python', api: 'OpenAI GPT-4' },
+          sellerId: 'system',
+          sellerName: 'CanvasFlow Dev Tools',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'prod-6',
+          title: 'Wireless Webcam 4K',
+          description: 'Profesyonel streaming için 4K webcam. Auto-focus, geniş açı lens, dahili mikrofon.',
+          price: 8900, // $89.00
+          currency: 'USD' as const,
+          type: 'physical' as const,
+          status: 'active' as const,
+          sku: 'CAM-4K-001',
+          quantity: 28,
+          lowStockThreshold: 10,
+          unlimited: false,
+          image: 'https://images.unsplash.com/photo-1625948515291-69613efd103f?w=400',
+          images: ['https://images.unsplash.com/photo-1625948515291-69613efd103f?w=400'],
+          category: 'Elektronik',
+          tags: ['webcam', '4k', 'streaming', 'fiziksel'],
+          metadata: { resolution: '4K 30fps', connection: 'USB-C' },
+          sellerId: 'system',
+          sellerName: 'CanvasFlow Store',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+      orders: [],
+      userSubscriptionTier: 'guest',
+      stripeCustomerId: undefined,
+
+      // Marketplace & Inventory defaults
+      marketplaceListings: [],
+      myInventoryItems: [],
+      lifecycleTrackings: {},
+      warranties: [],
+      insurances: [],
+      appraisals: [],
+      financingOptions: [],
+      inventoryTransactions: [],
+      wishlistItems: [],
+      marketplaceViewMode: {
+        mode: 'grid',
+        showImages: true,
+        showPrices: true,
+        showCondition: true,
+        showLifecycle: false,
+        columns: 3,
+      },
+      inventorySettings: {
+        enableLifecycleTracking: true,
+        autoDepreciation: true,
+        depreciationMethod: 'linear',
+        enableInsuranceTracking: true,
+        enableWarrantyTracking: true,
+        enableAppraisals: true,
+        reminderDays: 30,
+        defaultCurrency: 'USD',
+      },
+
+      // Trash/Recycle Bin defaults
+      trashItems: [],
+      trashBucket: null,
+      trashStats: null,
+      isTrashLoading: false,
+
+      // Scenes & Presentations defaults
+      scenes: [],
+      presentations: [],
+      currentPresentationId: null,
+      currentSceneId: null,
+      viewportEditorState: {
+        currentSceneId: null,
+        zoom: 1,
+        pan: { x: 0, y: 0 },
+        selectedItems: [],
+        currentTool: 'select',
+        showGrid: true,
+        showRulers: true,
+        snapToGrid: true,
+        gridSize: 10,
+        showLayers: true,
+        showProperties: true,
+        showTimeline: true,
+        isFullscreen: false,
+        previewMode: false,
+        remoteControls: [],
+        codeSnapshots: [],
+      },
+      broadcastSessions: [],
+      isSceneEditorOpen: false,
+      isPreviewMode: false,
+
+      // Profile & Social defaults
+      profileCanvasId: null,
+      socialPosts: [],
+      mySharedItems: [],
+
       setUser: (user) => {
         set({ user });
         if (user) {
-          // Initialize cloud sync when user logs in
-          get().initializeCloudSync();
+          // Initialize cloud sync when user logs in (fire and forget with error handling)
+          get().initializeCloudSync().catch(err => {
+            console.error('Cloud sync initialization failed:', err);
+          });
         } else {
           // Cleanup when user logs out
           unsubscribeFromCanvasChanges();
@@ -421,6 +1087,56 @@ export const useAppStore = create<AppStore>()(
         }
       },
       setUsername: (username) => set({ username }),
+      
+      // Multi-Account Actions
+      switchAccount: async (accountId) => {
+        const account = get().accounts.find(a => a.id === accountId);
+        if (!account) throw new Error(`Account ${accountId} not found`);
+        set({ currentAccountId: accountId, currentAccount: account });
+      },
+      switchToCorporateAccount: async (corporateId) => {
+        const account = get().corporateAccounts.find(a => a.id === corporateId);
+        if (!account) throw new Error(`Corporate account ${corporateId} not found`);
+        set({ currentAccountId: corporateId, currentAccount: account });
+      },
+      addAccount: (account) => set((state) => ({
+        accounts: [...state.accounts, account]
+      })),
+      removeAccount: (accountId) => set((state) => ({
+        accounts: state.accounts.filter(a => a.id !== accountId),
+        currentAccountId: state.currentAccountId === accountId ? null : state.currentAccountId,
+        currentAccount: state.currentAccount?.id === accountId ? null : state.currentAccount
+      })),
+      updateAccount: (accountId, updates) => set((state) => ({
+        accounts: state.accounts.map(a => a.id === accountId ? { ...a, ...updates } : a),
+        currentAccount: state.currentAccount?.id === accountId ? { ...state.currentAccount, ...updates } : state.currentAccount
+      })),
+      createCorporateAccount: (account) => set((state) => {
+        const now = new Date().toISOString();
+        const newAccount: CorporateAccount = {
+          ...account,
+          id: `corp-${Date.now()}`,
+          createdAt: now,
+          updatedAt: now
+        };
+        return { corporateAccounts: [...state.corporateAccounts, newAccount] };
+      }),
+      addCorporateMember: (member) => set((state) => {
+        const newMember: CorporateMember = {
+          ...member,
+          id: `member-${Date.now()}`,
+          joinedAt: new Date().toISOString()
+        };
+        return { corporateMembers: [...state.corporateMembers, newMember] };
+      }),
+      removeCorporateMember: (memberId) => set((state) => ({
+        corporateMembers: state.corporateMembers.filter(m => m.id !== memberId)
+      })),
+      updateCorporateMember: (memberId, updates) => set((state) => ({
+        corporateMembers: state.corporateMembers.map(m => m.id === memberId ? { ...m, ...updates } : m)
+      })),
+      setCurrentAccount: (account) => set({ currentAccount: account, currentAccountId: account?.id || null }),
+      
       setActiveTab: (activeTabId) => {
         const { tabs } = get();
         const activeTab = tabs.find(t => t.id === activeTabId);
@@ -682,12 +1398,14 @@ export const useAppStore = create<AppStore>()(
         set({ tabs: newTabs, activeTabId: newActiveId });
       },
       togglePanel: (panel, open) => set((state) => ({ [panel]: open !== undefined ? open : !state[panel] })),
+      setEcommerceView: (view) => set({ ecommerceView: view }),
       setActiveSecondaryPanel: (panel) => set({ activeSecondaryPanel: panel, isSecondLeftSidebarOpen: !!panel }),
       updateSearchPanel: (update) => set((state) => ({ searchPanelState: { ...state.searchPanelState, ...update } })),
       setItemToShare: (item) => set({ itemToShare: item }),
       setItemToSave: (item) => set({ itemToSave: item }),
       setItemForInfo: (item) => set({ itemForInfo: item }),
       setItemForPreview: (item) => set({ itemForPreview: item }),
+      setItemToMessage: (item) => set({ itemToMessage: item }),
       setClipboard: (clipboard) => set({ clipboard }),
       toggleExpansion: (itemId) => set((state) => {
         const newExpanded = state.expandedItems.includes(itemId)
@@ -834,7 +1552,7 @@ export const useAppStore = create<AppStore>()(
         return {
           tabGroups: state.tabGroups.map(g => 
             g.id === groupId 
-              ? { ...g, tabIds: [...new Set([...g.tabIds, tabId])] }
+              ? { ...g, tabIds: Array.from(new Set([...g.tabIds, tabId])) }
               : g
           ),
           tabs: state.tabs.map(tab => 
@@ -932,10 +1650,17 @@ export const useAppStore = create<AppStore>()(
         calls: [...state.calls, call],
         activeCall: call
       })),
-      endCall: (callId) => set((state) => ({
-        calls: state.calls.map(c => c.id === callId ? { ...c, status: 'ended' as const, endedAt: new Date().toISOString() } : c),
-        activeCall: state.activeCall?.id === callId ? undefined : state.activeCall
-      })),
+      endCall: (callId) => set((state) => {
+        const calls = state.calls.map(c => 
+          c.id === callId 
+            ? { ...c, status: CallStatus.ENDED, endedAt: new Date().toISOString() }
+            : c
+        );
+        return {
+          calls,
+          activeCall: state.activeCall?.id === callId ? undefined : state.activeCall
+        };
+      }),
       addCallParticipant: (callId, participant) => set((state) => ({
         calls: state.calls.map(c => 
           c.id === callId 
@@ -958,7 +1683,7 @@ export const useAppStore = create<AppStore>()(
             ...state.privateAccounts,
             [currentUser]: {
               ...account,
-              blockedUsers: [...new Set([...account.blockedUsers, userId])]
+              blockedUsers: Array.from(new Set([...account.blockedUsers, userId]))
             }
           }
         };
@@ -982,56 +1707,56 @@ export const useAppStore = create<AppStore>()(
       setCurrentGroup: (groupId) => set({ currentGroupId: groupId }),
 
       // Hue Actions
-      addHueBridge: (bridge) => set((state) => ({
+      addHueBridge: (bridge: HueBridge) => set((state) => ({
         hueBridges: [...state.hueBridges, bridge]
       })),
-      updateHueBridge: (bridgeId, updates) => set((state) => ({
+      updateHueBridge: (bridgeId: string, updates: Partial<HueBridge>) => set((state) => ({
         hueBridges: state.hueBridges.map(b => 
           b.id === bridgeId ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b
         )
       })),
-      removeHueBridge: (bridgeId) => set((state) => ({
+      removeHueBridge: (bridgeId: string) => set((state) => ({
         hueBridges: state.hueBridges.filter(b => b.id !== bridgeId),
         hueLights: state.hueLights.filter(l => l.bridgeId !== bridgeId),
         hueScenes: state.hueScenes.filter(s => s.bridgeId !== bridgeId),
         hueSyncs: state.hueSyncs.filter(sy => sy.bridgeId !== bridgeId)
       })),
-      setSelectedBridgeId: (bridgeId) => set({ selectedBridgeId: bridgeId }),
-      addHueLight: (light) => set((state) => ({
+      setSelectedBridgeId: (bridgeId: string) => set({ selectedBridgeId: bridgeId }),
+      addHueLight: (light: HueLight) => set((state) => ({
         hueLights: [...state.hueLights, light]
       })),
-      updateHueLight: (lightId, updates) => set((state) => ({
+      updateHueLight: (lightId: string, updates: Partial<HueLight>) => set((state) => ({
         hueLights: state.hueLights.map(l => 
           l.id === lightId ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l
         )
       })),
-      removeHueLight: (lightId) => set((state) => ({
+      removeHueLight: (lightId: string) => set((state) => ({
         hueLights: state.hueLights.filter(l => l.id !== lightId)
       })),
-      addHueScene: (scene) => set((state) => ({
+      addHueScene: (scene: HueScene) => set((state) => ({
         hueScenes: [...state.hueScenes, scene]
       })),
-      updateHueScene: (sceneId, updates) => set((state) => ({
+      updateHueScene: (sceneId: string, updates: Partial<HueScene>) => set((state) => ({
         hueScenes: state.hueScenes.map(s => 
           s.id === sceneId ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s
         )
       })),
-      removeHueScene: (sceneId) => set((state) => ({
+      removeHueScene: (sceneId: string) => set((state) => ({
         hueScenes: state.hueScenes.filter(s => s.id !== sceneId)
       })),
-      addHueSync: (sync) => set((state) => ({
+      addHueSync: (sync: HueSync) => set((state) => ({
         hueSyncs: [...state.hueSyncs, sync]
       })),
-      updateHueSync: (syncId, updates) => set((state) => ({
+      updateHueSync: (syncId: string, updates: Partial<HueSync>) => set((state) => ({
         hueSyncs: state.hueSyncs.map(sy => 
           sy.id === syncId ? { ...sy, ...updates, updatedAt: new Date().toISOString() } : sy
         )
       })),
-      removeHueSync: (syncId) => set((state) => ({
+      removeHueSync: (syncId: string) => set((state) => ({
         hueSyncs: state.hueSyncs.filter(sy => sy.id !== syncId)
       })),
-      setHueLoading: (loading) => set({ hueIsLoading: loading }),
-      setHueError: (error) => set({ hueError: error }),
+      setHueLoading: (loading: boolean) => set({ hueIsLoading: loading }),
+      setHueError: (error: string | undefined) => set({ hueError: error }),
 
       // YouTube & Google API Actions
       setYoutubeApiKey: (key) => set({ youtubeApiKey: key }),
@@ -1252,35 +1977,1563 @@ export const useAppStore = create<AppStore>()(
             if (data.expandedItems) set({ expandedItems: data.expandedItems });
           }
 
-          // Load preferences
+          // Load preferences - now automatically creates defaults if not exists
           const prefs = await loadUserPreferences(user.id);
           if (prefs) {
             set({
-              layoutMode: prefs.layout_mode,
-              newTabBehavior: prefs.new_tab_behavior,
-              startupBehavior: prefs.startup_behavior,
+              layoutMode: prefs.layout_mode || 'grid',
+              newTabBehavior: prefs.new_tab_behavior || 'chrome-style',
+              startupBehavior: prefs.startup_behavior || 'last-session',
               gridModeState: prefs.grid_mode_state || get().gridModeState,
             });
 
             if (prefs.ui_settings) {
               const ui = prefs.ui_settings;
               set({
-                isSecondLeftSidebarOpen: ui.isSecondLeftSidebarOpen ?? true,
-                activeSecondaryPanel: ui.activeSecondaryPanel ?? 'library',
-                pointerFrameEnabled: ui.pointerFrameEnabled ?? false,
-                audioTrackerEnabled: ui.audioTrackerEnabled ?? false,
-                mouseTrackerEnabled: ui.mouseTrackerEnabled ?? false,
-                virtualizerMode: ui.virtualizerMode ?? false,
-                visualizerMode: ui.visualizerMode ?? 'off',
+                isSecondLeftSidebarOpen: ui.isSecondLeftSidebarOpen !== false, // default true
+                activeSecondaryPanel: (ui.activeSecondaryPanel as AppStore['activeSecondaryPanel']) || 'library',
+                pointerFrameEnabled: ui.pointerFrameEnabled === true,
+                audioTrackerEnabled: ui.audioTrackerEnabled === true,
+                mouseTrackerEnabled: ui.mouseTrackerEnabled === true,
+                virtualizerMode: ui.virtualizerMode === true,
+                visualizerMode: (ui.visualizerMode as any) || 'off',
               });
             }
           }
 
           set({ lastSyncTime: Date.now() });
+          console.log('User preferences loaded from cloud');
         } catch (error) {
           console.error('Failed to load from cloud:', error);
         }
       },
+
+      // Toolkit Cloud Sync Actions
+      syncToolkitKeyboardShortcuts: async () => {
+        const { user, keyboardShortcuts } = get();
+        if (!user || !keyboardShortcuts.length) return;
+        
+        try {
+          await syncKeyboardShortcuts(user.id, keyboardShortcuts);
+          set({ lastSyncTime: Date.now() });
+        } catch (error) {
+          console.error('Failed to sync keyboard shortcuts:', error);
+        }
+      },
+
+      syncToolkitGestures: async () => {
+        const { user, gestures } = get();
+        if (!user || !gestures.length) return;
+        
+        try {
+          await syncGestures(user.id, gestures);
+          set({ lastSyncTime: Date.now() });
+        } catch (error) {
+          console.error('Failed to sync gestures:', error);
+        }
+      },
+
+      syncToolkitMacros: async () => {
+        const { user, macros } = get();
+        if (!user || !macros.length) return;
+        
+        try {
+          await syncMacros(user.id, macros);
+          set({ lastSyncTime: Date.now() });
+        } catch (error) {
+          console.error('Failed to sync macros:', error);
+        }
+      },
+
+      syncToolkitMacroPads: async () => {
+        const { user, macroPadLayouts } = get();
+        if (!user || !macroPadLayouts.length) return;
+        
+        try {
+          await syncMacroPads(user.id, macroPadLayouts);
+          set({ lastSyncTime: Date.now() });
+        } catch (error) {
+          console.error('Failed to sync macro pads:', error);
+        }
+      },
+
+      syncToolkitPlayerControls: async () => {
+        const { user, playerControlGroups } = get();
+        if (!user || !playerControlGroups.length) return;
+        
+        try {
+          await syncPlayerControls(user.id, playerControlGroups);
+          set({ lastSyncTime: Date.now() });
+        } catch (error) {
+          console.error('Failed to sync player controls:', error);
+        }
+      },
+
+      loadToolkitFromCloud: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          const [shortcuts, gestures, macros, pads, controls] = await Promise.all([
+            loadKeyboardShortcuts(user.id),
+            loadGestures(user.id),
+            loadMacros(user.id),
+            loadMacroPads(user.id),
+            loadPlayerControls(user.id),
+          ]);
+
+          set({
+            keyboardShortcuts: shortcuts,
+            gestures,
+            macros,
+            macroPadLayouts: pads,
+            playerControlGroups: controls,
+            lastSyncTime: Date.now(),
+          });
+
+          console.log('Toolkit data loaded from cloud');
+        } catch (error) {
+          console.error('Failed to load toolkit from cloud:', error);
+        }
+      },
+
+      initializeToolkitCloudSync: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          // Load toolkit data from cloud
+          await get().loadToolkitFromCloud();
+
+          // Subscribe to toolkit changes
+          subscribeToToolkitChanges(user.id, (payload) => {
+            const state = get();
+            
+            switch (payload.entityType) {
+              case 'keyboard':
+                // Reload keyboard shortcuts
+                loadKeyboardShortcuts(user.id).then(data => {
+                  set({ keyboardShortcuts: data });
+                });
+                break;
+              case 'gesture':
+                // Reload gestures
+                loadGestures(user.id).then(data => {
+                  set({ gestures: data });
+                });
+                break;
+              case 'macro':
+                // Reload macros
+                loadMacros(user.id).then(data => {
+                  set({ macros: data });
+                });
+                break;
+              case 'macro_pad':
+                // Reload macro pads
+                loadMacroPads(user.id).then(data => {
+                  set({ macroPadLayouts: data });
+                });
+                break;
+              case 'player_control':
+                // Reload player controls
+                loadPlayerControls(user.id).then(data => {
+                  set({ playerControlGroups: data });
+                });
+                break;
+            }
+          });
+
+          console.log('Toolkit cloud sync initialized');
+        } catch (error) {
+          console.error('Failed to initialize toolkit cloud sync:', error);
+        }
+      },
+
+      // E-Commerce & Marketplace Actions
+      addToCart: (product, quantity, variantId) => set((state) => {
+        const now = new Date().toISOString();
+        const cart = state.shoppingCart;
+        
+        // Check if item already exists in cart
+        const existingItemIndex = cart.items.findIndex(
+          item => item.productId === product.id
+        );
+
+        let newItems: CartItem[];
+        if (existingItemIndex >= 0) {
+          // Update quantity
+          newItems = cart.items.map((item, idx) => 
+            idx === existingItemIndex 
+              ? { ...item, quantity: item.quantity + quantity }
+              : item
+          );
+        } else {
+          // Add new item
+          const newItem: CartItem = {
+            id: `cart-item-${Date.now()}`,
+            productId: product.id,
+            quantity,
+            price: product.price,
+            selectedVariant: variantId ? { color: variantId } : undefined,
+            addedAt: now,
+          };
+          
+          newItems = [...cart.items, newItem];
+        }
+
+        // Recalculate totals - simple calculation
+        const subtotal = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const tax = Math.round(subtotal * 0.10); // 10% tax
+        const shipping = 1000; // $10 flat rate in cents
+        const discountAmount = cart.discount || 0;
+        const total = subtotal + tax + shipping - discountAmount;
+
+        return {
+          shoppingCart: {
+            ...cart,
+            items: newItems,
+            subtotal,
+            tax,
+            shipping,
+            total,
+            lastModified: now,
+          }
+        };
+      }),
+
+      removeFromCart: (itemId) => set((state) => {
+        const now = new Date().toISOString();
+        const cart = state.shoppingCart;
+        const newItems = cart.items.filter(item => item.id !== itemId);
+
+        // Recalculate totals
+        const subtotal = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const tax = Math.round(subtotal * 0.10);
+        const shipping = 1000;
+        const discountAmount = cart.discount || 0;
+        const total = subtotal + tax + shipping - discountAmount;
+
+        return {
+          shoppingCart: {
+            ...cart,
+            items: newItems,
+            subtotal,
+            tax,
+            shipping,
+            total,
+            lastModified: now,
+          }
+        };
+      }),
+
+      updateCartItemQuantity: (itemId, quantity) => set((state) => {
+        const now = new Date().toISOString();
+        const cart = state.shoppingCart;
+        
+        if (quantity <= 0) {
+          // Remove item if quantity is 0 or less
+          const newItems = cart.items.filter(item => item.id !== itemId);
+          const subtotal = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+          const tax = Math.round(subtotal * 0.10);
+          const shipping = 1000;
+          const discountAmount = cart.discount || 0;
+          const total = subtotal + tax + shipping - discountAmount;
+          
+          return {
+            shoppingCart: {
+              ...cart,
+              items: newItems,
+              subtotal,
+              tax,
+              shipping,
+              total,
+              lastModified: now,
+            }
+          };
+        }
+
+        const newItems = cart.items.map(item => 
+          item.id === itemId 
+            ? { ...item, quantity }
+            : item
+        );
+
+        // Recalculate totals
+        const subtotal = newItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const tax = Math.round(subtotal * 0.10);
+        const shipping = 1000;
+        const discountAmount = cart.discount || 0;
+        const total = subtotal + tax + shipping - discountAmount;
+
+        return {
+          shoppingCart: {
+            ...cart,
+            items: newItems,
+            subtotal,
+            tax,
+            shipping,
+            total,
+            lastModified: now,
+          }
+        };
+      }),
+
+      clearCart: () => set((state) => ({
+        shoppingCart: {
+          id: state.shoppingCart.id,
+          userId: state.shoppingCart.userId,
+          items: [],
+          subtotal: 0,
+          discount: 0,
+          tax: 0,
+          shipping: 0,
+          total: 0,
+          discountCode: undefined,
+          lastModified: new Date().toISOString(),
+        }
+      })),
+
+      applyDiscountCode: async (code) => {
+        // TODO: Validate discount code with backend
+        // For now, simple validation
+        const validCodes: Record<string, number> = {
+          'WELCOME10': 0.10,
+          'SAVE20': 0.20,
+          'VIP30': 0.30,
+        };
+
+        const discountPercent = validCodes[code.toUpperCase()];
+        if (!discountPercent) {
+          return false;
+        }
+
+        set((state) => {
+          const now = new Date().toISOString();
+          const cart = state.shoppingCart;
+          const discountAmount = Math.round(cart.subtotal * discountPercent);
+          const total = cart.subtotal + cart.tax + cart.shipping - discountAmount;
+
+          return {
+            shoppingCart: {
+              ...cart,
+              discountCode: code.toUpperCase(),
+              discount: discountAmount,
+              total,
+              lastModified: now,
+            }
+          };
+        });
+
+        return true;
+      },
+
+      removeDiscountCode: () => set((state) => {
+        const now = new Date().toISOString();
+        const cart = state.shoppingCart;
+        const total = cart.subtotal + cart.tax + cart.shipping;
+
+        return {
+          shoppingCart: {
+            ...cart,
+            discountCode: undefined,
+            discount: 0,
+            total,
+            lastModified: now,
+          }
+        };
+      }),
+
+      addProduct: (product) => set((state) => ({
+        products: [...state.products, product]
+      })),
+
+      updateProduct: (productId, updates) => set((state) => ({
+        products: state.products.map(p => 
+          p.id === productId ? { ...p, ...updates } : p
+        )
+      })),
+
+      removeProduct: (productId) => set((state) => ({
+        products: state.products.filter(p => p.id !== productId)
+      })),
+
+      fetchOrders: async (userId) => {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+        
+        if (!error && data) {
+          // Transform Supabase data to match store Order type
+          const orders = data.map(order => ({
+            id: order.id,
+            userId: order.user_id,
+            items: Array.isArray(order.items) ? order.items : [],
+            subtotal: order.subtotal || 0,
+            tax: order.tax || 0,
+            shipping: order.shipping || 0,
+            discount: order.discount || 0,
+            total: order.total || 0,
+            shippingAddress: order.shipping_address,
+            paymentStatus: order.payment_status || 'pending',
+            paymentMethod: order.payment_method || '',
+            transactionId: order.payment_id,
+            status: order.status || 'pending',
+            trackingNumber: order.tracking_number,
+            estimatedDelivery: order.estimated_delivery,
+            notes: order.notes,
+            createdAt: order.created_at,
+            updatedAt: order.updated_at,
+            completedAt: order.completed_at,
+          }));
+          set({ orders });
+        }
+      },
+
+      createOrder: async (orderData) => {
+        const user = get().user;
+        if (!user) throw new Error('User not authenticated');
+        
+        const supabase = createClient();
+        const now = new Date().toISOString();
+        const orderId = `order-${Date.now()}`;
+        
+        // Transform store Order type to Supabase schema
+        const supabaseOrder = {
+          id: orderId,
+          user_id: user.id,
+          status: orderData.status || 'pending',
+          payment_status: orderData.paymentStatus || 'pending',
+          items: orderData.items || [],
+          subtotal: orderData.subtotal || 0,
+          tax: orderData.tax || 0,
+          shipping: orderData.shipping || 0,
+          discount: orderData.discount || 0,
+          total: orderData.total || 0,
+          shipping_address: orderData.shippingAddress || null,
+          billing_address: orderData.shippingAddress || null, // Use shipping as billing if not provided
+          payment_method: orderData.paymentMethod || null,
+          payment_id: orderData.transactionId || null,
+          tracking_number: orderData.trackingNumber || null,
+          estimated_delivery: orderData.estimatedDelivery || null,
+          notes: orderData.notes || null,
+          created_at: now,
+          updated_at: now,
+        };
+        
+        const { data, error } = await supabase
+          .from('orders')
+          .insert([supabaseOrder])
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('Failed to create order in Supabase:', error);
+          throw error;
+        }
+        
+        // Transform back to store Order type
+        const newOrder: Order = {
+          id: data.id,
+          userId: data.user_id,
+          items: data.items || [],
+          subtotal: data.subtotal || 0,
+          tax: data.tax || 0,
+          shipping: data.shipping || 0,
+          discount: data.discount || 0,
+          total: data.total || 0,
+          shippingAddress: data.shipping_address,
+          paymentStatus: data.payment_status || 'pending',
+          paymentMethod: data.payment_method || '',
+          transactionId: data.payment_id,
+          status: data.status || 'pending',
+          trackingNumber: data.tracking_number,
+          estimatedDelivery: data.estimated_delivery,
+          notes: data.notes,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at,
+          completedAt: data.completed_at,
+        };
+        
+        set((state) => ({
+          orders: [...state.orders, newOrder]
+        }));
+        
+        return newOrder;
+      },
+
+      updateOrderStatus: (orderId, status) => set((state) => {
+        const now = new Date().toISOString();
+        return {
+          orders: state.orders.map(o => 
+            o.id === orderId 
+              ? { ...o, status, updatedAt: now }
+              : o
+          )
+        };
+      }),
+
+      setUserSubscriptionTier: (tier) => set({ userSubscriptionTier: tier }),
+
+      setStripeCustomerId: (customerId) => set({ stripeCustomerId: customerId }),
+
+      // Comprehensive Live Data Sync Actions
+      syncCanvasItem: async (item) => {
+        const { user } = get();
+        if (!user) return;
+        
+        await (await import('./supabase-sync')).syncCanvasItem(user.id, item);
+      },
+
+      syncAllCanvasItems: async (items) => {
+        const { user } = get();
+        if (!user) return;
+        
+        await (await import('./supabase-sync')).syncCanvasItems(user.id, items);
+      },
+
+      loadCanvasItemsFromCloud: async () => {
+        const { user } = get();
+        if (!user) return [];
+        
+        return await (await import('./supabase-sync')).loadCanvasItems(user.id);
+      },
+
+      saveSearchQuery: async (query, type, resultsCount, metadata) => {
+        const { user } = get();
+        if (!user) return;
+        
+        await (await import('./supabase-sync')).saveSearchQuery(
+          user.id,
+          query,
+          type as any,
+          resultsCount,
+          metadata
+        );
+      },
+
+      loadSearchHistory: async (limit) => {
+        const { user } = get();
+        if (!user) return [];
+        
+        return await (await import('./supabase-sync')).loadSearchHistory(user.id, limit);
+      },
+
+      saveAIConversation: async (conversationId, title, contextItems, metadata) => {
+        const { user } = get();
+        if (!user) return;
+        
+        await (await import('./supabase-sync')).saveAIConversation(
+          user.id,
+          conversationId,
+          title,
+          contextItems,
+          metadata
+        );
+      },
+
+      saveAIMessage: async (conversationId, role, content, sequenceNumber, toolCalls, toolResults, metadata) => {
+        const { user } = get();
+        if (!user) return;
+        
+        await (await import('./supabase-sync')).saveAIMessage(
+          user.id,
+          conversationId,
+          role,
+          content,
+          sequenceNumber,
+          toolCalls,
+          toolResults,
+          metadata
+        );
+      },
+
+      loadAIConversations: async () => {
+        const { user } = get();
+        if (!user) return [];
+        
+        return await (await import('./supabase-sync')).loadAIConversations(user.id);
+      },
+
+      loadAIMessages: async (conversationId) => {
+        return await (await import('./supabase-sync')).loadAIMessages(conversationId);
+      },
+
+      saveFrameStyleUpdate: async (itemId, styleType, previousValue, newValue, appliedBy, metadata) => {
+        const { user } = get();
+        if (!user) return;
+        
+        await (await import('./supabase-sync')).saveFrameStyleUpdate(
+          user.id,
+          itemId,
+          styleType as any,
+          previousValue,
+          newValue,
+          appliedBy as any,
+          metadata
+        );
+      },
+
+      loadFrameStyleHistory: async (itemId, limit) => {
+        const { user } = get();
+        if (!user) return [];
+        
+        return await (await import('./supabase-sync')).loadFrameStyleHistory(user.id, itemId, limit);
+      },
+
+      saveLayoutState: async (viewId, layoutMode, viewportSettings, zoomLevel, scrollPosition, visibleItems) => {
+        const { user } = get();
+        if (!user) return;
+        
+        await (await import('./supabase-sync')).saveLayoutState(
+          user.id,
+          viewId,
+          layoutMode as any,
+          undefined, // gridColumns
+          undefined, // gridRows
+          viewportSettings,
+          zoomLevel,
+          scrollPosition,
+          visibleItems
+        );
+      },
+
+      loadLayoutState: async (viewId) => {
+        const { user } = get();
+        if (!user) return null;
+        
+        return await (await import('./supabase-sync')).loadLayoutState(user.id, viewId);
+      },
+
+      trackInteraction: async (itemId, interactionType, durationMs, metadata) => {
+        const { user } = get();
+        if (!user) return;
+        
+        await (await import('./supabase-sync')).trackInteraction(
+          user.id,
+          itemId,
+          interactionType as any,
+          durationMs,
+          metadata
+        );
+      },
+
+      subscribeToCanvasItemsChanges: () => {
+        const { user } = get();
+        if (!user) return () => {};
+        
+        (async () => {
+          const { subscribeToCanvasItems } = await import('./supabase-sync');
+          subscribeToCanvasItems(user.id, (payload) => {
+            console.log('Canvas items changed:', payload);
+            get().loadCanvasItemsFromCloud();
+          });
+        })();
+        
+        return () => {};
+      },
+
+      subscribeToSearchHistoryChanges: () => {
+        const { user } = get();
+        if (!user) return () => {};
+        
+        (async () => {
+          const { subscribeToSearchHistory } = await import('./supabase-sync');
+          subscribeToSearchHistory(user.id, (payload) => {
+            console.log('Search history changed:', payload);
+          });
+        })();
+        
+        return () => {};
+      },
+
+      subscribeToAIChatChanges: () => {
+        const { user } = get();
+        if (!user) return () => {};
+        
+        (async () => {
+          const { subscribeToAIChat } = await import('./supabase-sync');
+          subscribeToAIChat(user.id, (payload) => {
+            console.log('AI chat changed:', payload);
+          });
+        })();
+        
+        return () => {};
+      },
+
+      // Multi-Tab Sync Actions (Tüm Sekmeler Arası Senkronizasyon)
+      trackMultiTabSync: async (deviceId, tabId, entityType, entityId, action, changeData) => {
+        const { user } = get();
+        if (!user) return;
+        
+        const { trackMultiTabSync } = await import('./supabase-sync');
+        await trackMultiTabSync(
+          user.id,
+          deviceId,
+          tabId,
+          entityType,
+          entityId,
+          action,
+          changeData
+        );
+      },
+
+      subscribeToMultiTabSync: () => {
+        const { user } = get();
+        if (!user) return () => {};
+        
+        const { subscribeToMultiTabSync } = require('./supabase-sync');
+        const unsubscribe = subscribeToMultiTabSync(user.id, (payload) => {
+          console.log('Multi-tab sync event:', payload);
+          // Tüm sekmelerde otomatik güncelle
+          if (payload.new) {
+            const { entity_type, action, new_state } = payload.new;
+            // UI'ı güncelle
+            console.log(`Updated ${entity_type} (${action}):`, new_state);
+          }
+        });
+        
+        return unsubscribe;
+      },
+
+      // Sharing System Actions (Paylaşım Sistemi)
+      createSharedItem: async (itemId, itemType) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        
+        const { createSharedItem } = await import('./supabase-sync');
+        return await createSharedItem(user.id, itemId, itemType);
+      },
+
+      grantSharingPermission: async (sharedItemId, granteeUserId, granteeEmail, role, permissions, expiresAt) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        
+        const { grantSharingPermission } = await import('./supabase-sync');
+        return await grantSharingPermission(
+          sharedItemId,
+          granteeUserId,
+          granteeEmail,
+          role,
+          permissions,
+          user.id,
+          expiresAt
+        );
+      },
+
+      createSharingLink: async (sharedItemId, settings) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        
+        const { createSharingLink } = await import('./supabase-sync');
+        return await createSharingLink(sharedItemId, user.id, settings);
+      },
+
+      logSharingAccess: async (sharingLinkId, userId, ipAddress, userAgent, action) => {
+        const { logSharingAccess } = await import('./supabase-sync');
+        await logSharingAccess(sharingLinkId, userId, ipAddress, userAgent, action);
+      },
+
+      getSharedItems: async () => {
+        const { user } = get();
+        if (!user) return [];
+        
+        const { getSharedItems } = await import('./supabase-sync');
+        return await getSharedItems(user.id);
+      },
+
+      // Social Realtime Actions (Sosyal Canlı Güncellemeler)
+      logSocialEvent: async (eventType, targetEntityType, targetEntityId, actorId, eventData) => {
+        const { user } = get();
+        if (!user) return;
+        
+        const { logSocialEvent } = await import('./supabase-sync');
+        await logSocialEvent(
+          user.id,
+          eventType,
+          targetEntityType,
+          targetEntityId,
+          actorId,
+          eventData
+        );
+      },
+
+      subscribeSocialEvents: () => {
+        const { user } = get();
+        if (!user) return () => {};
+        
+        const { subscribeToSocialEvents } = require('./supabase-sync');
+        const unsubscribe = subscribeToSocialEvents(user.id, (payload) => {
+          console.log('Social event:', payload);
+          // Post, comment, like vb. güncellemeler burada işlenir
+          if (payload.new) {
+            const { event_type, target_entity_type } = payload.new;
+            console.log(`Social event: ${event_type} on ${target_entity_type}`);
+          }
+        });
+        
+        return unsubscribe;
+      },
+
+      // Message Delivery Actions (Mesaj Gönderimi)
+      updateMessageDelivery: async (messageId, status, deviceId, tabIds) => {
+        const { user } = get();
+        if (!user) return;
+        
+        const { updateMessageDelivery } = await import('./supabase-sync');
+        await updateMessageDelivery(messageId, user.id, status, deviceId, tabIds);
+      },
+
+      subscribeMessageDelivery: () => {
+        const { user } = get();
+        if (!user) return () => {};
+        
+        const { subscribeToMessageDelivery } = require('./supabase-sync');
+        const unsubscribe = subscribeToMessageDelivery(user.id, (payload) => {
+          console.log('Message delivery status:', payload);
+          // Mesaj durumu güncellemelerini işle
+          if (payload.new) {
+            const { status, delivered_at, read_at } = payload.new;
+            console.log(`Message status: ${status}`);
+          }
+        });
+        
+        return unsubscribe;
+      },
+
+      // AI Conversation Management Actions (Genkit AI + Supabase)
+      sendAIMessage: async (message, options) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        
+        // Import conversation service and assistant flow
+        const { aiConversationService } = await import('./ai-conversation-service');
+        const { askAi } = await import('@/ai/flows/assistant-flow');
+        
+        // Generate or use existing conversation ID
+        const conversationId = options?.conversationId || `conv-${Date.now()}-${user.id.slice(0, 8)}`;
+        
+        // Create conversation if new
+        if (!options?.conversationId) {
+          await aiConversationService.createConversation(
+            user.id,
+            conversationId,
+            message.slice(0, 50) + (message.length > 50 ? '...' : '')
+          );
+        }
+        
+        // Load history for context
+        const history = await aiConversationService.loadConversationHistory(conversationId);
+        const messageCount = history.length;
+        
+        // Save user message
+        await aiConversationService.saveMessage(
+          user.id,
+          conversationId,
+          'user',
+          message,
+          messageCount
+        );
+        
+        // Call Genkit AI assistant
+        const result = await askAi({ message, history });
+        
+        // Save assistant response
+        await aiConversationService.saveMessage(
+          user.id,
+          conversationId,
+          'assistant',
+          result.response || '',
+          messageCount + 1,
+          result.toolCalls,
+          result.toolResults
+        );
+        
+        return {
+          conversationId,
+          response: result.response,
+          toolCalls: result.toolCalls,
+          toolResults: result.toolResults,
+        };
+      },
+
+      sendVisionMessage: async (message, imageUrl, options) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        
+        // Vision messages use same flow as regular messages
+        // but with image URL in the message
+        return await get().sendAIMessage(
+          `${message}\n\nImage: ${imageUrl}`,
+          options
+        );
+      },
+
+      getAIConversations: async (options) => {
+        const { user } = get();
+        if (!user) return [];
+        
+        const { aiConversationService } = await import('./ai-conversation-service');
+        return await aiConversationService.getConversations(user.id, options);
+      },
+
+      deleteAIConversation: async (conversationId) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        
+        const { aiConversationService } = await import('./ai-conversation-service');
+        await aiConversationService.deleteConversation(user.id, conversationId);
+      },
+
+      archiveAIConversation: async (conversationId, archived) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        
+        const { aiConversationService } = await import('./ai-conversation-service');
+        await aiConversationService.archiveConversation(user.id, conversationId, archived);
+      },
+
+      pinAIConversation: async (conversationId, pinned) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        
+        const { aiConversationService } = await import('./ai-conversation-service');
+        await aiConversationService.pinConversation(user.id, conversationId, pinned);
+      },
+
+      getAIConversationWithMessages: async (conversationId) => {
+        const { user } = get();
+        if (!user) throw new Error('Conversation not found');
+        
+        const { aiConversationService } = await import('./ai-conversation-service');
+        return await aiConversationService.getConversationWithMessages(user.id, conversationId);
+      },
+
+      updateAIConversationTitle: async (conversationId, title) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        
+        const { aiConversationService } = await import('./ai-conversation-service');
+        await aiConversationService.updateConversationTitle(user.id, conversationId, title);
+      },
+
+      // Marketplace & Inventory Actions
+      createMarketplaceListing: (item, price, description) => set((state) => {
+        const now = new Date().toISOString();
+        const listing: MarketplaceListing = {
+          id: `listing-${Date.now()}`,
+          itemId: item.id,
+          sellerId: state.user?.id || 'unknown',
+          sellerName: state.username || 'Unknown User',
+          status: 'active',
+          title: item.title || 'Untitled Item',
+          description,
+          price: price * 100, // Convert to cents
+          images: (item as any).images || [],
+          category: (item as any).category || 'Other',
+          condition: 'good',
+          shippingOptions: [{
+            id: 'standard',
+            method: 'standard',
+            price: 1000, // $10
+            estimatedDays: 5,
+          }],
+          views: 0,
+          favorites: 0,
+          questions: [],
+          offers: [],
+          createdAt: now,
+          updatedAt: now,
+          listedAt: now,
+        };
+
+        // Log transaction
+        const transaction: InventoryTransaction = {
+          id: `trans-${Date.now()}`,
+          itemId: item.id,
+          type: 'sale',
+          fromStatus: 'owned',
+          toStatus: 'for-sale',
+          amount: price * 100,
+          timestamp: now,
+        };
+
+        return {
+          marketplaceListings: [...state.marketplaceListings, listing],
+          inventoryTransactions: [...state.inventoryTransactions, transaction],
+        };
+      }),
+
+      updateMarketplaceListing: (listingId, updates) => set((state) => ({
+        marketplaceListings: state.marketplaceListings.map(l =>
+          l.id === listingId
+            ? { ...l, ...updates, updatedAt: new Date().toISOString() }
+            : l
+        ),
+      })),
+
+      cancelMarketplaceListing: (listingId) => set((state) => {
+        const listing = state.marketplaceListings.find(l => l.id === listingId);
+        if (!listing) return state;
+
+        const transaction: InventoryTransaction = {
+          id: `trans-${Date.now()}`,
+          itemId: listing.itemId,
+          type: 'transfer',
+          fromStatus: 'for-sale',
+          toStatus: 'owned',
+          notes: 'Listing cancelled',
+          timestamp: new Date().toISOString(),
+        };
+
+        return {
+          marketplaceListings: state.marketplaceListings.map(l =>
+            l.id === listingId
+              ? { ...l, status: 'cancelled', updatedAt: new Date().toISOString() }
+              : l
+          ),
+          inventoryTransactions: [...state.inventoryTransactions, transaction],
+        };
+      }),
+
+      completeSale: (listingId, buyerId) => set((state) => {
+        const listing = state.marketplaceListings.find(l => l.id === listingId);
+        if (!listing) return state;
+
+        const now = new Date().toISOString();
+        const transaction: InventoryTransaction = {
+          id: `trans-${Date.now()}`,
+          itemId: listing.itemId,
+          type: 'sale',
+          fromStatus: 'for-sale',
+          toStatus: 'sold',
+          amount: listing.price,
+          counterparty: buyerId,
+          notes: `Sold for $${(listing.price / 100).toFixed(2)}`,
+          timestamp: now,
+        };
+
+        return {
+          marketplaceListings: state.marketplaceListings.map(l =>
+            l.id === listingId
+              ? { ...l, status: 'sold', soldAt: now, updatedAt: now }
+              : l
+          ),
+          inventoryTransactions: [...state.inventoryTransactions, transaction],
+        };
+      }),
+
+      addToWishlist: (item) => set((state) => ({
+        wishlistItems: [...state.wishlistItems, {
+          id: `wishlist-${Date.now()}`,
+          userId: state.user?.id || 'unknown',
+          status: 'interested',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ...item,
+        } as WishlistItem],
+      })),
+
+      updateWishlistItem: (itemId, updates) => set((state) => ({
+        wishlistItems: state.wishlistItems.map(item =>
+          item.id === itemId
+            ? { ...item, ...updates, updatedAt: new Date().toISOString() }
+            : item
+        ),
+      })),
+
+      removeFromWishlist: (itemId) => set((state) => ({
+        wishlistItems: state.wishlistItems.filter(item => item.id !== itemId),
+      })),
+
+      enableLifecycleTracking: (itemId) => set((state) => {
+        if (state.lifecycleTrackings[itemId]) return state;
+
+        const now = new Date().toISOString();
+        const tracking: ProductLifecycleTracking = {
+          itemId,
+          currentStage: 'good',
+          maintenanceHistory: [],
+          condition: {
+            overall: 100,
+            appearance: 100,
+            functionality: 100,
+          },
+          isTrackingEnabled: true,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        return {
+          lifecycleTrackings: {
+            ...state.lifecycleTrackings,
+            [itemId]: tracking,
+          },
+        };
+      }),
+
+      updateLifecycleTracking: (itemId, updates) => set((state) => {
+        const existing = state.lifecycleTrackings[itemId];
+        if (!existing) return state;
+
+        return {
+          lifecycleTrackings: {
+            ...state.lifecycleTrackings,
+            [itemId]: {
+              ...existing,
+              ...updates,
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        };
+      }),
+
+      addMaintenanceRecord: (itemId: string, record: Omit<any, 'id'>) => set((state) => {
+        const existing = state.lifecycleTrackings[itemId];
+        if (!existing) return state;
+
+        const newRecord: any = {
+          ...record,
+          id: `maint-${Date.now()}`,
+          date: record.date || new Date().toISOString(),
+          type: record.type || 'service',
+          description: record.description || '',
+        };
+
+        return {
+          lifecycleTrackings: {
+            ...state.lifecycleTrackings,
+            [itemId]: {
+              ...existing,
+              maintenanceHistory: [...(existing.maintenanceHistory || []), newRecord],
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        };
+      }),
+
+      addWarranty: (warranty) => set((state) => ({
+        warranties: [...state.warranties, warranty],
+      })),
+
+      updateWarranty: (warrantyId, updates) => set((state) => ({
+        warranties: state.warranties.map(w =>
+          w.id === warrantyId
+            ? { ...w, ...updates, updatedAt: new Date().toISOString() }
+            : w
+        ),
+      })),
+
+      addInsurance: (insurance) => set((state) => ({
+        insurances: [...state.insurances, insurance],
+      })),
+
+      updateInsurance: (insuranceId, updates) => set((state) => ({
+        insurances: state.insurances.map(ins =>
+          ins.id === insuranceId
+            ? { ...ins, ...updates, updatedAt: new Date().toISOString() }
+            : ins
+        ),
+      })),
+
+      addAppraisal: (appraisal) => set((state) => ({
+        appraisals: [...state.appraisals, appraisal],
+      })),
+
+      addFinancingOption: (option) => set((state) => ({
+        financingOptions: [...state.financingOptions, option],
+      })),
+
+      updateInventorySettings: (updates) => set((state) => ({
+        inventorySettings: { ...state.inventorySettings, ...updates },
+      })),
+
+      setMarketplaceViewMode: (mode) => set((state) => ({
+        marketplaceViewMode: { ...state.marketplaceViewMode, ...mode },
+      })),
+
+      logInventoryTransaction: (transaction) => set((state) => ({
+        inventoryTransactions: [...state.inventoryTransactions, {
+          ...transaction,
+          id: `trans-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+        }],
+      })),
+
+      // Trash/Recycle Bin Actions
+      moveToTrash: async (item, reason) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { moveToTrash } = await import('./supabase-sync');
+          await moveToTrash(user.id, item.id, item, reason);
+          const { loadTrashBucket } = await import('./supabase-sync');
+          const items = await loadTrashBucket(user.id);
+          set({ trashItems: items });
+        } catch (error) {
+          console.error('Failed to move item to trash:', error);
+        }
+      },
+
+      restoreFromTrash: async (trashItemId, restorePosition) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { restoreFromTrash, loadTrashBucket } = await import('./supabase-sync');
+          await restoreFromTrash(user.id, trashItemId, restorePosition);
+          const items = await loadTrashBucket(user.id);
+          set({ trashItems: items });
+        } catch (error) {
+          console.error('Failed to restore item from trash:', error);
+        }
+      },
+
+      permanentlyDeleteTrash: async (trashItemId) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { permanentlyDeleteTrash, loadTrashBucket } = await import('./supabase-sync');
+          await permanentlyDeleteTrash(user.id, trashItemId);
+          const items = await loadTrashBucket(user.id);
+          set({ trashItems: items });
+        } catch (error) {
+          console.error('Failed to permanently delete trash item:', error);
+        }
+      },
+
+      loadTrashBucket: async () => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          set({ isTrashLoading: true });
+          const { loadTrashBucket } = await import('./supabase-sync');
+          const items = await loadTrashBucket(user.id);
+          set({ trashItems: items, isTrashLoading: false });
+        } catch (error) {
+          console.error('Failed to load trash bucket:', error);
+          set({ isTrashLoading: false });
+        }
+      },
+
+      getTrashStats: async () => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { getTrashStats } = await import('./supabase-sync');
+          const stats = await getTrashStats(user.id);
+          set({ trashStats: stats as any });
+        } catch (error) {
+          console.error('Failed to get trash stats:', error);
+        }
+      },
+
+      clearExpiredTrash: async () => {
+        try {
+          await get().loadTrashBucket();
+        } catch (error) {
+          console.error('Failed to clear expired trash:', error);
+        }
+      },
+
+      // Scene & Presentation Actions
+      createPresentation: async (title, description) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        try {
+          const { savePresentation } = await import('./supabase-sync');
+          const presentation: Presentation = {
+            id: `pres-${Date.now()}`,
+            user_id: user.id,
+            title,
+            description,
+            scene_ids: [],
+            total_duration: 0,
+            settings: {
+              autoPlay: false,
+              autoPlayDelay: 5000,
+              loop: false,
+              loopDelay: 0,
+              quality: 'high',
+              recordingEnabled: false,
+              analyticsEnabled: true
+            },
+            tags: [],
+            category: 'uncategorized',
+            is_draft: true,
+            is_published: false,
+            is_featured: false,
+            is_archived: false,
+            metadata: {},
+            statistics: {
+              views: 0,
+              totalDuration: 0,
+              completionRate: 0,
+              avgWatchTime: 0,
+              viewHistory: []
+            },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          await savePresentation(user.id, presentation);
+          set((state) => ({ presentations: [...state.presentations, presentation] }));
+          return presentation;
+        } catch (error) {
+          console.error('Failed to create presentation:', error);
+          throw error;
+        }
+      },
+
+      updatePresentation: async (presentationId, updates) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { savePresentation } = await import('./supabase-sync');
+          const presentation = get().presentations.find(p => p.id === presentationId);
+          if (!presentation) return;
+          const updated = { ...presentation, ...updates, updated_at: new Date().toISOString() };
+          await savePresentation(user.id, updated);
+          set((state) => ({
+            presentations: state.presentations.map(p => p.id === presentationId ? updated : p)
+          }));
+        } catch (error) {
+          console.error('Failed to update presentation:', error);
+        }
+      },
+
+      deletePresentation: async (presentationId) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          set((state) => ({
+            presentations: state.presentations.filter(p => p.id !== presentationId),
+            scenes: state.scenes.filter(s => s.presentation_id !== presentationId)
+          }));
+        } catch (error) {
+          console.error('Failed to delete presentation:', error);
+        }
+      },
+
+      loadPresentation: async (presentationId) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { loadPresentation } = await import('./supabase-sync');
+          const data = await loadPresentation(user.id, presentationId);
+          if (data) {
+            set({
+              currentPresentationId: presentationId,
+              scenes: data.scenes || []
+            });
+          }
+        } catch (error) {
+          console.error('Failed to load presentation:', error);
+        }
+      },
+
+      loadPresentations: async () => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { getPopularPresentations } = await import('./supabase-sync');
+          const presentations = await getPopularPresentations(user.id);
+          set({ presentations: presentations as any });
+        } catch (error) {
+          console.error('Failed to load presentations:', error);
+        }
+      },
+
+      createScene: async (presentationId, title) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        try {
+          const { saveScene } = await import('./supabase-sync');
+          const sceneCount = get().scenes.filter(s => s.presentation_id === presentationId).length;
+          const scene: Scene = {
+            id: `scene-${Date.now()}`,
+            user_id: user.id,
+            presentation_id: presentationId,
+            title,
+            background: { type: 'color', value: '#ffffff' },
+            items: [],
+            width: 1920,
+            height: 1080,
+            aspect_ratio: '16:9',
+            duration: 5000,
+            auto_advance: true,
+            advance_delay: 0,
+            transition: { type: 'fade', duration: 500, ease: 'ease-in-out' },
+            animations: [],
+            order: sceneCount,
+            is_visible: true,
+            is_locked: false,
+            tags: [],
+            metadata: {},
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            accessed_at: new Date().toISOString()
+          };
+          await saveScene(user.id, scene);
+          set((state) => ({ scenes: [...state.scenes, scene] }));
+          return scene;
+        } catch (error) {
+          console.error('Failed to create scene:', error);
+          throw error;
+        }
+      },
+
+      updateScene: async (sceneId, updates) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { saveScene } = await import('./supabase-sync');
+          const scene = get().scenes.find(s => s.id === sceneId);
+          if (!scene) return;
+          const updated = { ...scene, ...updates, updated_at: new Date().toISOString() };
+          await saveScene(user.id, updated);
+          set((state) => ({
+            scenes: state.scenes.map(s => s.id === sceneId ? updated : s)
+          }));
+        } catch (error) {
+          console.error('Failed to update scene:', error);
+        }
+      },
+
+      deleteScene: async (sceneId) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const scene = get().scenes.find(s => s.id === sceneId);
+          if (!scene) return;
+          set((state) => ({
+            scenes: state.scenes.filter(s => s.id !== sceneId)
+          }));
+        } catch (error) {
+          console.error('Failed to delete scene:', error);
+        }
+      },
+
+      addSceneAnimation: async (sceneId, animation) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const scene = get().scenes.find(s => s.id === sceneId);
+          if (!scene) return;
+          const updated = {
+            ...scene,
+            animations: [...(scene.animations || []), animation],
+            updated_at: new Date().toISOString()
+          };
+          const { saveScene } = await import('./supabase-sync');
+          await saveScene(user.id, updated);
+          set((state) => ({
+            scenes: state.scenes.map(s => s.id === sceneId ? updated : s)
+          }));
+        } catch (error) {
+          console.error('Failed to add animation:', error);
+        }
+      },
+
+      updateSceneAnimation: async (sceneId, animationId, updates) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const scene = get().scenes.find(s => s.id === sceneId);
+          if (!scene) return;
+          const updated = {
+            ...scene,
+            animations: (scene.animations || []).map(a => 
+              a.id === animationId ? { ...a, ...updates } : a
+            ),
+            updated_at: new Date().toISOString()
+          };
+          const { saveScene } = await import('./supabase-sync');
+          await saveScene(user.id, updated);
+          set((state) => ({
+            scenes: state.scenes.map(s => s.id === sceneId ? updated : s)
+          }));
+        } catch (error) {
+          console.error('Failed to update animation:', error);
+        }
+      },
+
+      setCurrentPresentation: (presentationId) => set({ currentPresentationId: presentationId }),
+
+      setCurrentScene: (sceneId) => set({ currentSceneId: sceneId }),
+
+      setViewportEditorState: (state) => set((s) => ({
+        viewportEditorState: { ...s.viewportEditorState, ...state }
+      })),
+
+      setIsSceneEditorOpen: (isOpen) => set({ isSceneEditorOpen: isOpen }),
+
+      setIsPreviewMode: (isPreview) => set({ isPreviewMode: isPreview }),
+
+      startBroadcastSession: async (presentationId, streamSettings) => {
+        const { user } = get();
+        if (!user) throw new Error('User not authenticated');
+        try {
+          const session: BroadcastSession = {
+            id: `broadcast-${Date.now()}`,
+            user_id: user.id,
+            presentation_id: presentationId,
+            stream_settings: streamSettings,
+            status: 'starting',
+            started_at: new Date().toISOString(),
+            viewers: 0,
+            peak_viewers: 0,
+            comments: 0,
+            likes: 0,
+            shares: 0,
+            metadata: {},
+            created_at: new Date().toISOString()
+          };
+          set((state) => ({ broadcastSessions: [...state.broadcastSessions, session] }));
+          return session;
+        } catch (error) {
+          console.error('Failed to start broadcast:', error);
+          throw error;
+        }
+      },
+
+      endBroadcastSession: async (sessionId) => {
+        try {
+          set((state) => ({
+            broadcastSessions: state.broadcastSessions.map(s => 
+              s.id === sessionId
+                ? { ...s, status: 'ended', ended_at: new Date().toISOString() }
+                : s
+            )
+          }));
+        } catch (error) {
+          console.error('Failed to end broadcast:', error);
+        }
+      },
+
+      updateBroadcastStats: (sessionId, stats) => set((state) => ({
+        broadcastSessions: state.broadcastSessions.map(s => 
+          s.id === sessionId ? { ...s, ...stats } : s
+        )
+      })),
+
+      // Profile & Social Actions
+      setProfileCanvasId: (id) => set({ profileCanvasId: id }),
+      addSocialPost: (post) => set((state) => ({
+        socialPosts: [post, ...state.socialPosts]
+      })),
+      updateSocialPost: (postId, updates) => set((state) => ({
+        socialPosts: state.socialPosts.map(p => p.id === postId ? { ...p, ...updates } : p)
+      })),
+      removeSocialPost: (postId) => set((state) => ({
+        socialPosts: state.socialPosts.filter(p => p.id !== postId)
+      })),
+      addMySharedItem: (item) => set((state) => ({
+        mySharedItems: [...state.mySharedItems, item]
+      })),
+      removeMySharedItem: (itemId) => set((state) => ({
+        mySharedItems: state.mySharedItems.filter(i => i.id !== itemId)
+      })),
     }),
     {
       name: 'tv25-storage',

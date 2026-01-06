@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export type Breakpoint = 'mobile' | 'tablet' | 'desktop' | 'wide';
+export type Breakpoint = 'mobile' | 'tablet' | 'desktop' | 'wide' | 'xxl';
 
 export interface ResponsiveLayout {
   breakpoint: Breakpoint;
@@ -8,6 +8,7 @@ export interface ResponsiveLayout {
   isTablet: boolean;
   isDesktop: boolean;
   isWide: boolean;
+  isXXL: boolean;
   windowWidth: number;
   windowHeight: number;
   isTouchDevice: boolean;
@@ -22,6 +23,7 @@ export function useResponsiveLayout(): ResponsiveLayout {
     isTablet: false,
     isDesktop: true,
     isWide: false,
+    isXXL: false,
     windowWidth: 0,
     windowHeight: 0,
     isTouchDevice: false,
@@ -51,6 +53,7 @@ export function useResponsiveLayout(): ResponsiveLayout {
       let isTablet = false;
       let isDesktop = false;
       let isWide = false;
+      let isXXL = false;
 
       if (width < 640) {
         breakpoint = 'mobile';
@@ -61,9 +64,15 @@ export function useResponsiveLayout(): ResponsiveLayout {
       } else if (width < 1280) {
         breakpoint = 'desktop';
         isDesktop = true;
-      } else {
+      } else if (width < 2560) {
         breakpoint = 'wide';
         isWide = true;
+        isDesktop = true; // Wide screens are also desktop
+      } else {
+        breakpoint = 'xxl';
+        isXXL = true;
+        isWide = true; // XXL screens are also wide
+        isDesktop = true; // and desktop
       }
 
       const isPortrait = height > width;
@@ -75,6 +84,7 @@ export function useResponsiveLayout(): ResponsiveLayout {
         isTablet,
         isDesktop,
         isWide,
+        isXXL,
         windowWidth: width,
         windowHeight: height,
         isTouchDevice: isTouch,

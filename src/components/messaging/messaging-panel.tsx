@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,10 @@ import {
   Call,
   CallStatus,
 } from '@/lib/messaging-types';
-import { MessageCircle, Users, Search, Phone, Video, Clock, Send } from 'lucide-react';
+import { MessageCircle, Users, Search, Phone, Video, Clock, Send, X, Share2, Box } from 'lucide-react';
 import { GroupManagement } from './group-management';
+import { useAppStore } from '@/lib/store';
+import { ContentItem } from '@/lib/initial-content';
 
 interface MessagingPanelProps {
   conversations: Conversation[];
@@ -57,11 +59,21 @@ export function MessagingPanel({
   onSetCurrentConversation,
   onSetCurrentGroup,
 }: MessagingPanelProps) {
+  const { itemToMessage, setItemToMessage } = useAppStore();
   const [messageInput, setMessageInput] = useState('');
+  const [attachedItem, setAttachedItem] = useState<ContentItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'direct' | 'groups' | 'search' | 'calls'>(
     'direct'
   );
+
+  // Handle external item to message
+  useEffect(() => {
+    if (itemToMessage) {
+      setAttachedItem(itemToMessage);
+      setItemToMessage(null);
+    }
+  }, [itemToMessage, setItemToMessage]);
 
   const directConversations = useMemo(
     () => conversations.filter((c) => c.type === 'direct'),
@@ -89,7 +101,7 @@ export function MessagingPanel({
   const currentMessages = currentConversationId ? messages[currentConversationId] || [] : [];
 
   const handleSendMessage = () => {
-    if (!messageInput.trim() || !currentConversationId) return;
+    if (!messageInput.trim() && !attachedItem || !currentConversationId) return;
 
     const newMessage: Message = {
       id: `msg-${Date.now()}`,
@@ -97,7 +109,8 @@ export function MessagingPanel({
       senderId: currentUserId,
       senderName: 'You',
       content: messageInput,
-      type: MessageType.TEXT,
+      type: attachedItem ? MessageType.SHARED_ITEM : MessageType.TEXT,
+      metadata: attachedItem ? { sharedItem: attachedItem } : undefined,
       reactions: {},
       mentions: [],
       isEdited: false,
@@ -108,6 +121,7 @@ export function MessagingPanel({
 
     onAddMessage(newMessage);
     setMessageInput('');
+    setAttachedItem(null);
   };
 
   return (
@@ -186,6 +200,12 @@ export function MessagingPanel({
                           : 'bg-muted/50 mr-6'
                       )}
                     >
+                      {msg.type === MessageType.SHARED_ITEM && (
+                        <div className="mb-2 p-2 bg-background/50 rounded border border-primary/20 text-left flex items-center gap-2">
+                          <Box className="h-4 w-4 text-primary" />
+                          <span className="text-xs font-bold truncate">{(msg.metadata as any)?.sharedItem?.title || 'Paylaşılan Öğe'}</span>
+                        </div>
+                      )}
                       <p>{msg.content}</p>
                       <span className="text-xs text-muted-foreground">
                         {new Date(msg.createdAt).toLocaleTimeString('tr-TR', {
@@ -197,6 +217,27 @@ export function MessagingPanel({
                   ))}
                 </div>
               </ScrollArea>
+
+              {/* Attached Item Preview */}
+              {attachedItem && (
+                <div className="relative bg-primary/10 border border-primary/20 rounded-md p-2 flex items-center gap-2 mb-2">
+                  <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center shrink-0">
+                    <Share2 className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-tighter">Paylaşılacak Öğe</p>
+                    <p className="text-xs truncate font-medium">{attachedItem.title}</p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 shrink-0 hover:bg-destructive/20 hover:text-destructive"
+                    onClick={() => setAttachedItem(null)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
 
               {/* Message Input */}
               <div className="flex gap-2">

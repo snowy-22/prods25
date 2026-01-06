@@ -7,7 +7,7 @@ import { useWindowSize } from 'react-use';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
-import { Bot, User, Send, Loader2, X, Pin, PinOff, Paperclip, Smile, Mic, Video, Phone, MoreHorizontal, Image as ImageIcon, Users, Info, ExternalLink, Share2, Camera, ArrowLeft, Search } from 'lucide-react';
+import { Bot, User, Send, Loader2, X, Pin, PinOff, Paperclip, Smile, Mic, MoreHorizontal, Users, ArrowLeft, Search, Volume2, VolumeX, UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type Message } from '@/ai/flows/assistant-schema';
 import { AppLogo } from './icons/app-logo';
@@ -107,6 +107,10 @@ export function AiChatDialog({
   const { toast } = useToast();
 
   const processedMessagesRef = useRef<Set<number>>(new Set());
+  const recognitionRef = useRef<any>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceOverEnabled, setVoiceOverEnabled] = useState(false);
+  const lastSpokenRef = useRef('');
 
   const callAssistant = async (history: Message[]): Promise<Message[]> => {
     const response = await fetch('/api/ai/assistant', {
@@ -139,6 +143,29 @@ export function AiChatDialog({
       }
     });
   }, [messages, onToolCall]);
+
+  useEffect(() => {
+    if (!voiceOverEnabled || typeof window === 'undefined') return;
+    const lastAssistant = [...messages].reverse().find(m => m.role === 'model');
+    if (!lastAssistant) return;
+    const text = lastAssistant.content
+      .map(part => ('text' in part ? part.text : ''))
+      .join(' ')
+      .trim();
+    if (!text || text === lastSpokenRef.current) return;
+
+    lastSpokenRef.current = text;
+    try {
+      window.speechSynthesis?.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'tr-TR';
+      window.speechSynthesis?.speak(utterance);
+    } catch (err) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Speech synthesis failed', err);
+      }
+    }
+  }, [messages, voiceOverEnabled]);
 
   const scrollToBottom = () => {
     if (scrollAreaRef.current) {
@@ -221,6 +248,15 @@ export function AiChatDialog({
     setMessages(initialMessages || exampleMessages[panelState.id] || []);
   }, [panelState.id, initialMessages]);
 
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop?.();
+      if (typeof window !== 'undefined') {
+        window.speechSynthesis?.cancel();
+      }
+    };
+  }, []);
+
 
   useEffect(() => {
     scrollToBottom();
@@ -252,9 +288,48 @@ export function AiChatDialog({
     toast({ title: 'Çok Yakında!', description: 'Gelişmiş emoji seçici bu alanda yer alacak.' });
   }
 
-  const handleVoiceInput = () => {
-    toast({ title: 'Çok Yakında!', description: 'Sesli mesaj, sesli komutlar ve sesli dikte özellikleri bu alanda yer alacak.' });
-  }
+    const handleVoiceInput = () => {
+    if (isListening) {
+      recognitionRef.current?.stop?.();
+      setIsListening(false);
+      return;
+    }
+
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({ title: 'Ses girişi desteklenmiyor', description: 'Tarayıcınızda Web Speech API bulunamadı.' });
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'tr-TR';
+    recognition.interimResults = true;
+    let transcript = '';
+
+    recognition.onresult = (event: any) => {
+      transcript = Array.from(event.results)
+        .map((result: any) => result[0].transcript)
+        .join(' ');
+      setInput(transcript);
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+      if (transcript.trim()) {
+        handleSendMessage(transcript.trim());
+      }
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+    };
 
   // Contact List Component (Mobile + Desktop Panel)
   const ContactListView = () => (
@@ -352,35 +427,43 @@ export function AiChatDialog({
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Video className="h-4 w-4" />
+            <Button
+              variant={isListening ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={toggleVoiceInput}
+            >
+              <Mic className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Phone className="h-4 w-4" />
+            <Button
+              variant={voiceOverEnabled ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setVoiceOverEnabled(!voiceOverEnabled)}
+            >
+              {voiceOverEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
+                  <UserCircle className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem>
-                  <ImageIcon className="mr-2 h-4 w-4" />
-                  Paylaşılan Öğeler
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowContactPanel(!showContactPanel)}>
                   <Users className="mr-2 h-4 w-4" />
                   {showContactPanel ? 'Kişi Listesini Gizle' : 'Kişi Listesini Göster'}
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={onPinToggle}>
+                  {panelState.isPinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />}
+                  {panelState.isPinned ? 'Sabitle Kaldır' : 'Sabitle'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onOpenChange(false)}>
+                  <X className="mr-2 h-4 w-4" />
+                  Kapat
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPinToggle}>
-              {panelState.isPinned ? <PinOff className="h-4 w-4 text-primary" /> : <Pin className="h-4 w-4" />}
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onOpenChange(false)}>
-              <X className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 

@@ -35,6 +35,10 @@ type HeaderInfoProps = {
     canNavigateForward?: boolean;
     onNavigateBack?: () => void;
     onNavigateForward?: () => void;
+    canUndo?: boolean;
+    canRedo?: boolean;
+    onUndo?: () => void;
+    onRedo?: () => void;
 };
 
 const HeaderInfoComponent = ({ 

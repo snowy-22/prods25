@@ -4,10 +4,9 @@ import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ContentItem, PlayerControlGroup } from '@/lib/initial-content';
-import { Map, X, GripVertical, Pin, PinOff } from 'lucide-react';
+import { Map, X, GripVertical, Pin } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
-import { getIconByName } from '@/lib/icons';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 interface MiniMapOverlayProps {
   items: ContentItem[];
@@ -19,11 +18,11 @@ interface MiniMapOverlayProps {
   gridCols?: number;
   gridRows?: number;
   slidePosition?: { x: number; y: number };
+  // Viewport rectangle from canvas scroll container (fractions of height)
+  viewportRect?: { top: number; height: number };
   onItemClick?: (item: ContentItem) => void;
   selectedItemIds?: string[];
   maxItems?: number;
-  blurFallback?: boolean;
-  boldTitle?: boolean;
   onToggleControlPin?: (groupId: string, pinned: boolean) => void;
 }
 
@@ -37,15 +36,31 @@ export function MiniMapOverlay({
   gridCols = 3,
   gridRows = 3,
   slidePosition = { x: 0, y: 0 },
+  viewportRect,
   onItemClick,
   selectedItemIds = [],
   maxItems = 20,
-  blurFallback = true,
-  boldTitle = false,
   onToggleControlPin,
 }: MiniMapOverlayProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [mapWidth, setMapWidth] = useState(240); // Responsive mini map width
+  const { windowWidth, isXXL, isWide, isTablet, isMobile } = useResponsiveLayout();
+  
+  // Viewport-responsive minimap sizing
+  const getMinimapBaseWidth = useCallback(() => {
+    if (isXXL) return 400; // XXL: Large minimap for ultra-wide displays
+    if (isWide) return 300; // Wide: Medium-large minimap
+    if (isTablet) return 200; // Tablet: Smaller minimap
+    if (isMobile) return 160; // Mobile: Compact minimap
+    return 240; // Desktop: Default size
+  }, [isXXL, isWide, isTablet, isMobile]);
+  
+  const [mapWidth, setMapWidth] = useState(getMinimapBaseWidth());
+  
+  // Update minimap width when viewport changes
+  useEffect(() => {
+    setMapWidth(getMinimapBaseWidth());
+  }, [getMinimapBaseWidth]);
+  
   const containerRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<HTMLDivElement>(null);
   
@@ -77,12 +92,6 @@ export function MiniMapOverlay({
     document.addEventListener('mouseup', handleMouseUp);
   }, [mapWidth]);
 
-  const handleItemClick = useCallback((item: ContentItem, event: React.MouseEvent | React.TouchEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onItemClick?.(item);
-  }, [onItemClick]);
-
   if (!isOpen) return null;
 
   const itemsToShow = items.slice(0, maxItems);
@@ -92,35 +101,58 @@ export function MiniMapOverlay({
   return (
     <motion.div
       ref={containerRef}
-      className="fixed bottom-24 right-4 z-[100] touch-none select-none"
+      className="fixed bottom-24 right-4 z-[200] touch-none select-none"
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: isHovered ? 1 : 0.25, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       <div className={cn(
-        "relative rounded-lg border bg-card/98 backdrop-blur-xl shadow-2xl ring-1 ring-border/50 overflow-hidden",
-        isHovered && "ring-primary/50"
+        "relative rounded-lg border transition-all duration-300 overflow-hidden",
+        isHovered 
+          ? "bg-card/95 backdrop-blur-md shadow-2xl ring-1 ring-primary/50" 
+          : "bg-card/25 backdrop-blur-[1.5px] shadow-sm ring-1 ring-border/20"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40 rounded-t-lg">
-          <div className="flex items-center gap-2 text-xs font-semibold">
+        <div className={cn(
+          "flex items-center justify-between px-3 py-2 border-b transition-all duration-300",
+          isHovered
+            ? "bg-muted/40 rounded-t-lg"
+            : "bg-transparent border-transparent"
+        )}>
+          <div className={cn(
+            "flex items-center gap-2 text-xs font-semibold transition-opacity duration-300",
+            isHovered ? "opacity-100" : "opacity-0"
+          )}>
             <Map className="h-4 w-4" /> Mini Map
           </div>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onToggle(false)}>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className={cn(
+              "h-6 w-6 transition-opacity duration-300",
+              isHovered ? "opacity-100" : "opacity-50 hover:opacity-100"
+            )}
+            onClick={() => onToggle(false)}
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Canvas Preview */}
         <div 
-          className="relative bg-muted/20"
+          className={cn(
+            "relative transition-all duration-300 cursor-pointer",
+            isHovered 
+              ? "bg-muted/15" 
+              : "bg-muted/5"
+          )}
           style={{ 
             width: mapWidth, 
             height: mapHeight,
-            aspectRatio: canvasAspect,
+            aspectRatio: canvasAspect
           }}
         >
           {/* Grid Layout Overlay */}
@@ -156,21 +188,25 @@ export function MiniMapOverlay({
             ))}
           </svg>
 
-          {/* Slide Position Indicator */}
-          {slidePosition && (
+          {/* Viewport Position Indicator */}
+          {(viewportRect || slidePosition) && (
             <motion.div
-              className="absolute border-2 border-primary/60 bg-primary/5 rounded pointer-events-none"
+              className="absolute border-2 border-primary bg-primary/10 rounded pointer-events-none shadow-lg"
               style={{
-                left: `${(slidePosition.x * canvasScale)}px`,
-                top: `${(slidePosition.y * canvasScale)}px`,
-                width: `${Math.min(mapWidth / 2, 60)}px`,
-                height: `${Math.min(mapHeight / 2, 60)}px`,
-                boxShadow: '0 0 8px rgba(var(--primary), 0.3)',
+                left: `${viewportRect ? 0 : (slidePosition.x * canvasScale)}px`,
+                top: `${viewportRect ? (viewportRect.top * canvasHeight * canvasScale) : (slidePosition.y * canvasScale)}px`,
+                width: `${viewportRect ? mapWidth : Math.min(mapWidth / 2, 60)}px`,
+                height: `${viewportRect ? (viewportRect.height * canvasHeight * canvasScale) : Math.min(mapHeight / 2, 60)}px`,
               }}
               animate={{ 
-                boxShadow: ['0 0 8px rgba(var(--primary), 0.3)', '0 0 12px rgba(var(--primary), 0.5)', '0 0 8px rgba(var(--primary), 0.3)'],
+                borderColor: ['hsl(var(--primary))', 'hsl(var(--primary) / 0.6)', 'hsl(var(--primary))'],
+                boxShadow: [
+                  '0 0 8px hsl(var(--primary) / 0.3)',
+                  '0 0 16px hsl(var(--primary) / 0.5)',
+                  '0 0 8px hsl(var(--primary) / 0.3)'
+                ],
               }}
-              transition={{ duration: 2, repeat: Infinity }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
             />
           )}
 
@@ -178,29 +214,34 @@ export function MiniMapOverlay({
           {itemsToShow.map((item) => {
             const itemX = (item.x || 0) * canvasScale;
             const itemY = (item.y || 0) * canvasScale;
-            const itemW = Math.max(4, (item.width || 100) * canvasScale);
-            const itemH = Math.max(4, (item.height || 100) * canvasScale);
+            const itemW = Math.max(6, (item.width || 100) * canvasScale);
+            const itemH = Math.max(6, (item.height || 100) * canvasScale);
+            const isSelected = selectedItemIds.includes(item.id);
 
             return (
               <motion.div
                 key={item.id}
                 className={cn(
-                  "absolute rounded border cursor-pointer transition-colors",
-                  selectedItemIds.includes(item.id) ? 'bg-primary/40 border-primary' : 'bg-accent/20 border-accent/40 hover:bg-accent/30'
+                  "absolute rounded-sm cursor-pointer transition-all duration-200 shadow-sm",
+                  isSelected 
+                    ? 'bg-primary/60 border-2 border-primary ring-2 ring-primary/30 shadow-primary/50' 
+                    : 'bg-accent/30 border border-accent/60 hover:bg-accent/50 hover:border-accent hover:shadow-md'
                 )}
                 style={{
                   left: `${itemX}px`,
                   top: `${itemY}px`,
                   width: `${itemW}px`,
                   height: `${itemH}px`,
-                  minWidth: '4px',
-                  minHeight: '4px',
+                  minWidth: '6px',
+                  minHeight: '6px',
                 }}
                 onClick={(e) => {
+                                    e.stopPropagation();
                   e.preventDefault();
                   onItemClick?.(item);
                 }}
-                whileHover={{ scale: 1.2 }}
+                whileHover={{ scale: 1.15, zIndex: 10 }}
+                whileTap={{ scale: 0.95 }}
                 title={item.title}
               />
             );
@@ -245,25 +286,6 @@ export function MiniMapOverlay({
             })}
         </div>
 
-        {/* Items List (scrollable) */}
-        <div 
-          className="border-t border-muted/40 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-border/50 scrollbar-track-transparent"
-          style={{ width: mapWidth }}
-        >
-          <div className="p-1 grid gap-0.5" style={{ gridTemplateColumns: `repeat(${Math.min(gridCols, 3)}, 1fr)` }}>
-            {itemsToShow.map((item) => (
-              <MiniMapCell
-                key={item.id}
-                item={item}
-                isSelected={selectedItemIds.includes(item.id)}
-                onClick={handleItemClick}
-                blurFallback={blurFallback}
-                boldTitle={boldTitle}
-              />
-            ))}
-          </div>
-        </div>
-
         {/* Resize Handle */}
         <div
           ref={resizeRef}
@@ -277,75 +299,6 @@ export function MiniMapOverlay({
           <GripVertical className="h-2.5 w-2.5 text-muted-foreground/50 group-hover:text-primary/50" />
         </div>
       </div>
-    </motion.div>
-  );
-}
-
-interface MiniMapCellProps {
-  item: ContentItem;
-  isSelected: boolean;
-  onClick: (item: ContentItem, event: React.MouseEvent | React.TouchEvent) => void;
-  blurFallback?: boolean;
-  boldTitle?: boolean;
-}
-
-function MiniMapCell({ item, isSelected, onClick, blurFallback, boldTitle }: MiniMapCellProps) {
-  const [isHovered, setIsHovered] = useState(false);
-  const Icon = item.icon ? getIconByName(item.icon) : null;
-  const cellSize = 50; // Consistent responsive cell size
-
-  const hasThumbnail = !!(item.thumbnail_url || item.coverImage || item.logo);
-
-  return (
-    <motion.div
-      className={cn(
-        'relative rounded border cursor-pointer overflow-hidden group transition-all h-full aspect-square',
-        isSelected && 'ring-2 ring-primary ring-offset-0',
-        isHovered && 'border-primary shadow-lg z-10 ring-2 ring-primary/60'
-      )}
-      onClick={(e) => onClick(item, e)}
-      onTouchEnd={(e) => onClick(item, e)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      whileHover={{ scale: 1.05, zIndex: 20 }}
-      whileTap={{ scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-    >
-      {/* Background */}
-      {hasThumbnail ? (
-        <Image
-          src={item.thumbnail_url || item.coverImage || item.logo || ''}
-          alt={item.title || ''}
-          fill
-          className="object-cover"
-          unoptimized
-        />
-      ) : blurFallback ? (
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/10 to-secondary/30 blur-sm opacity-70" />
-      ) : (
-        <div className="absolute inset-0 bg-muted/30" />
-      )}
-
-      {/* Icon overlay */}
-      {Icon && !hasThumbnail && (
-        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/40">
-          <Icon className="h-5 w-5" />
-        </div>
-      )}
-
-      {/* Title overlay on hover */}
-      <div className={cn(
-        'absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-1 py-0.5 text-[7px] text-white truncate transition-opacity line-clamp-1',
-        isHovered ? 'opacity-100' : 'opacity-0',
-        boldTitle && 'font-bold'
-      )}>
-        {item.title}
-      </div>
-
-      {/* Selection indicator */}
-      {isSelected && (
-        <div className="absolute top-0.5 right-0.5 w-2 h-2 bg-primary rounded-full border border-white shadow-sm" />
-      )}
     </motion.div>
   );
 }

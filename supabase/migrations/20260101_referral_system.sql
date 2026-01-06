@@ -21,9 +21,9 @@ CREATE TABLE IF NOT EXISTS public.referral_codes (
   CONSTRAINT valid_usage CHECK (usage_count >= 0)
 );
 
-CREATE INDEX idx_referral_codes_user ON public.referral_codes(user_id);
-CREATE INDEX idx_referral_codes_code ON public.referral_codes(code);
-CREATE INDEX idx_referral_codes_active ON public.referral_codes(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_referral_codes_user ON public.referral_codes(user_id);
+CREATE INDEX IF NOT EXISTS idx_referral_codes_code ON public.referral_codes(code);
+CREATE INDEX IF NOT EXISTS idx_referral_codes_active ON public.referral_codes(is_active) WHERE is_active = true;
 
 -- 2. USER REFERRALS TABLE
 -- Tracks who referred whom and relationship status
@@ -55,10 +55,10 @@ CREATE TABLE IF NOT EXISTS public.user_referrals (
   CONSTRAINT no_self_referral CHECK (referrer_id != referee_id)
 );
 
-CREATE INDEX idx_user_referrals_referrer ON public.user_referrals(referrer_id);
-CREATE INDEX idx_user_referrals_referee ON public.user_referrals(referee_id);
-CREATE INDEX idx_user_referrals_code ON public.user_referrals(referral_code_id);
-CREATE INDEX idx_user_referrals_verified ON public.user_referrals(referee_verified) WHERE referee_verified = true;
+CREATE INDEX IF NOT EXISTS idx_user_referrals_referrer ON public.user_referrals(referrer_id);
+CREATE INDEX IF NOT EXISTS idx_user_referrals_referee ON public.user_referrals(referee_id);
+CREATE INDEX IF NOT EXISTS idx_user_referrals_code ON public.user_referrals(referral_code_id);
+CREATE INDEX IF NOT EXISTS idx_user_referrals_verified ON public.user_referrals(referee_verified) WHERE referee_verified = true;
 
 -- 3. REFERRAL REWARDS TABLE
 -- Track rewards given for referrals
@@ -77,9 +77,9 @@ CREATE TABLE IF NOT EXISTS public.referral_rewards (
   metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_referral_rewards_user ON public.referral_rewards(user_id);
-CREATE INDEX idx_referral_rewards_referral ON public.referral_rewards(referral_id);
-CREATE INDEX idx_referral_rewards_unclaimed ON public.referral_rewards(is_claimed) WHERE is_claimed = false;
+CREATE INDEX IF NOT EXISTS idx_referral_rewards_user ON public.referral_rewards(user_id);
+CREATE INDEX IF NOT EXISTS idx_referral_rewards_referral ON public.referral_rewards(referral_id);
+CREATE INDEX IF NOT EXISTS idx_referral_rewards_unclaimed ON public.referral_rewards(is_claimed) WHERE is_claimed = false;
 
 -- 4. REFERRAL SETTINGS TABLE
 -- User preferences for referral sharing
@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS public.referral_settings (
   metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_referral_settings_user ON public.referral_settings(user_id);
+CREATE INDEX IF NOT EXISTS idx_referral_settings_user ON public.referral_settings(user_id);
 
 -- 5. DEVICE SESSIONS TABLE
 -- Multi-device and real-time sync support
@@ -132,9 +132,9 @@ CREATE TABLE IF NOT EXISTS public.device_sessions (
   CONSTRAINT unique_device_session UNIQUE(user_id, device_id)
 );
 
-CREATE INDEX idx_device_sessions_user ON public.device_sessions(user_id);
-CREATE INDEX idx_device_sessions_active ON public.device_sessions(is_active) WHERE is_active = true;
-CREATE INDEX idx_device_sessions_last_active ON public.device_sessions(last_active_at DESC);
+CREATE INDEX IF NOT EXISTS idx_device_sessions_user ON public.device_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_device_sessions_active ON public.device_sessions(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_device_sessions_last_active ON public.device_sessions(last_active_at DESC);
 
 -- 6. SYNC EVENTS TABLE
 -- Track cross-device synchronization events
@@ -150,9 +150,9 @@ CREATE TABLE IF NOT EXISTS public.sync_events (
   metadata JSONB DEFAULT '{}'::jsonb
 );
 
-CREATE INDEX idx_sync_events_user ON public.sync_events(user_id);
-CREATE INDEX idx_sync_events_device ON public.sync_events(device_session_id);
-CREATE INDEX idx_sync_events_created ON public.sync_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sync_events_user ON public.sync_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_sync_events_device ON public.sync_events(device_session_id);
+CREATE INDEX IF NOT EXISTS idx_sync_events_created ON public.sync_events(created_at DESC);
 
 -- ===================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
@@ -165,71 +165,146 @@ ALTER TABLE public.referral_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.device_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sync_events ENABLE ROW LEVEL SECURITY;
 
--- Referral Codes Policies
-CREATE POLICY "Users can view their own referral codes"
-  ON public.referral_codes FOR SELECT
-  USING (auth.uid() = user_id);
+-- Referral Codes Policies (wrapped in DO blocks for idempotency)
+DO $$
+BEGIN
+  CREATE POLICY "Users can view their own referral codes"
+    ON public.referral_codes FOR SELECT
+    USING (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
-CREATE POLICY "Users can create their own referral codes"
-  ON public.referral_codes FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can create their own referral codes"
+    ON public.referral_codes FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
-CREATE POLICY "Users can update their own referral codes"
-  ON public.referral_codes FOR UPDATE
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can update their own referral codes"
+    ON public.referral_codes FOR UPDATE
+    USING (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
 -- User Referrals Policies
-CREATE POLICY "Users can view referrals they're involved in"
-  ON public.user_referrals FOR SELECT
-  USING (auth.uid() = referrer_id OR auth.uid() = referee_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can view referrals they're involved in"
+    ON public.user_referrals FOR SELECT
+    USING (auth.uid() = referrer_id OR auth.uid() = referee_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
-CREATE POLICY "System can create referrals"
-  ON public.user_referrals FOR INSERT
-  WITH CHECK (true);
+DO $$
+BEGIN
+  CREATE POLICY "System can create referrals"
+    ON public.user_referrals FOR INSERT
+    WITH CHECK (true);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
-CREATE POLICY "Users can update their own referral status"
-  ON public.user_referrals FOR UPDATE
-  USING (auth.uid() = referrer_id OR auth.uid() = referee_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can update their own referral status"
+    ON public.user_referrals FOR UPDATE
+    USING (auth.uid() = referrer_id OR auth.uid() = referee_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
 -- Referral Rewards Policies
-CREATE POLICY "Users can view their own rewards"
-  ON public.referral_rewards FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can view their own rewards"
+    ON public.referral_rewards FOR SELECT
+    USING (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
-CREATE POLICY "System can create rewards"
-  ON public.referral_rewards FOR INSERT
-  WITH CHECK (true);
+DO $$
+BEGIN
+  CREATE POLICY "System can create rewards"
+    ON public.referral_rewards FOR INSERT
+    WITH CHECK (true);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
-CREATE POLICY "Users can claim their own rewards"
-  ON public.referral_rewards FOR UPDATE
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can claim their own rewards"
+    ON public.referral_rewards FOR UPDATE
+    USING (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
 -- Referral Settings Policies
-CREATE POLICY "Users can view their own settings"
-  ON public.referral_settings FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can view their own settings"
+    ON public.referral_settings FOR SELECT
+    USING (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
-CREATE POLICY "Users can manage their own settings"
-  ON public.referral_settings FOR ALL
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can manage their own settings"
+    ON public.referral_settings FOR ALL
+    USING (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
 -- Device Sessions Policies
-CREATE POLICY "Users can view their own devices"
-  ON public.device_sessions FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can view their own devices"
+    ON public.device_sessions FOR SELECT
+    USING (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
-CREATE POLICY "Users can manage their own devices"
-  ON public.device_sessions FOR ALL
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can manage their own devices"
+    ON public.device_sessions FOR ALL
+    USING (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
 -- Sync Events Policies
-CREATE POLICY "Users can view their own sync events"
-  ON public.sync_events FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can view their own sync events"
+    ON public.sync_events FOR SELECT
+    USING (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
-CREATE POLICY "Users can create sync events"
-  ON public.sync_events FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can create sync events"
+    ON public.sync_events FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END
+$$;
 
 -- ===================================================================
 -- FUNCTIONS & TRIGGERS
@@ -245,6 +320,13 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DO $$
+BEGIN
+  DROP TRIGGER IF EXISTS on_user_created_referral_settings ON auth.users;
+EXCEPTION WHEN UNDEFINED_OBJECT THEN NULL;
+END;
+$$;
 
 CREATE TRIGGER on_user_created_referral_settings
   AFTER INSERT ON auth.users
@@ -270,6 +352,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DO $$
+BEGIN
+  DROP TRIGGER IF EXISTS on_user_created_referral_code ON auth.users;
+EXCEPTION WHEN UNDEFINED_OBJECT THEN NULL;
+END;
+$$;
+
 CREATE TRIGGER on_user_created_referral_code
   AFTER INSERT ON auth.users
   FOR EACH ROW
@@ -289,6 +378,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DO $$
+BEGIN
+  DROP TRIGGER IF EXISTS on_sync_event_update_device ON public.sync_events;
+EXCEPTION WHEN UNDEFINED_OBJECT THEN NULL;
+END;
+$$;
+
 CREATE TRIGGER on_sync_event_update_device
   AFTER INSERT ON public.sync_events
   FOR EACH ROW
@@ -299,10 +395,33 @@ CREATE TRIGGER on_sync_event_update_device
 -- ===================================================================
 
 -- Enable real-time for referral updates
-ALTER PUBLICATION supabase_realtime ADD TABLE public.user_referrals;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.referral_rewards;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.device_sessions;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.sync_events;
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.user_referrals;
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END;
+$$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.referral_rewards;
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END;
+$$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.device_sessions;
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END;
+$$;
+
+DO $$
+BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.sync_events;
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END;
+$$;
 
 -- ===================================================================
 -- COMMENTS

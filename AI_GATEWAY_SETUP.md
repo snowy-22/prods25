@@ -1,4 +1,4 @@
-# Vercel AI Gateway Setup - Complete ✅
+# Vercel AI Gateway Setup - Complete & Database Integrated ✅
 
 ## 🎯 Overview
 Vercel AI Gateway provides a **unified API** to multiple AI providers with:
@@ -7,6 +7,42 @@ Vercel AI Gateway provides a **unified API** to multiple AI providers with:
 - ⚖️ Load balancing across providers
 - 🔄 Automatic fallbacks on errors
 - 🚀 Performance optimization
+- 💾 **NEW: Integrated with Supabase `ai_conversations` & `ai_messages` tables**
+
+---
+
+## ✅ Latest Updates (January 7, 2026)
+
+### Database Integration
+- ✅ Integrated with Supabase `ai_conversations` table
+- ✅ Integrated with Supabase `ai_messages` table
+- ✅ Auto-save all conversations with tool calls and results
+- ✅ Cross-device conversation sync via Realtime
+- ✅ Conversation persistence and history
+- ✅ RLS (Row Level Security) enabled for privacy
+
+### New Unified AI Service
+**File**: `src/lib/unified-ai-service.ts` (500+ lines)
+
+**Features**:
+- Auto-conversation creation and management
+- Message persistence to Supabase
+- Streaming and non-streaming support
+- Tool calling with result tracking
+- Context items support
+- Auto-model selection (speed/quality/cost priority)
+- Vision-capable chat (auto-selects GPT-4/Gemini)
+
+**Store Integration**:
+All actions added to Zustand store:
+- `sendAIMessage()` - Quick chat with auto-save
+- `sendVisionMessage()` - Vision chat
+- `getAIConversations()` - Load user conversations
+- `deleteAIConversation()` - Delete with cascade
+- `archiveAIConversation()` - Archive/unarchive
+- `pinAIConversation()` - Pin/unpin
+- `getAIConversationWithMessages()` - Full conversation
+- `updateAIConversationTitle()` - Update title
 
 ---
 
@@ -35,7 +71,157 @@ AI_GATEWAY_API_KEY=vck_[YOUR_VERCEL_AI_GATEWAY_API_KEY]
 
 ---
 
-## 🚀 Usage
+## 🚀 Usage Examples
+
+### Example 1: Quick Chat (Auto-Save to DB)
+```typescript
+import { useAppStore } from '@/lib/store';
+
+const { sendAIMessage } = useAppStore();
+
+// Send message - auto-saves to Supabase
+const result = await sendAIMessage(
+  'Explain React hooks in simple terms',
+  {
+    streaming: false,
+    priority: 'speed', // or 'quality' or 'cost'
+  }
+);
+
+console.log(result.text); // AI response
+console.log(result.conversationId); // Conversation ID for follow-up
+console.log(result.selectedModel); // Auto-selected model
+```
+
+### Example 2: Streaming Chat
+```typescript
+const result = await sendAIMessage(
+  'Write a poem about TypeScript',
+  {
+    streaming: true,
+    priority: 'quality', // Uses Claude or GPT-4
+  }
+);
+
+// Stream response
+for await (const chunk of result.textStream) {
+  console.log(chunk); // Print each chunk
+}
+```
+
+### Example 3: Continue Conversation
+```typescript
+// First message
+const firstResult = await sendAIMessage('Hello AI!');
+const conversationId = firstResult.conversationId;
+
+// Follow-up message (maintains context)
+const secondResult = await sendAIMessage(
+  'What did I just say?',
+  { conversationId }
+);
+```
+
+### Example 4: Vision Chat (Image Analysis)
+```typescript
+import { useAppStore } from '@/lib/store';
+
+const { sendVisionMessage } = useAppStore();
+
+const result = await sendVisionMessage(
+  'What is in this image?',
+  'https://example.com/image.jpg',
+  { streaming: false }
+);
+
+console.log(result.text); // AI description of image
+```
+
+### Example 5: Load Conversation History
+```typescript
+const { getAIConversations, getAIConversationWithMessages } = useAppStore();
+
+// Get all conversations
+const conversations = await getAIConversations({
+  includeArchived: false,
+  limit: 20,
+});
+
+// Get specific conversation with messages
+const conversation = await getAIConversationWithMessages(conversationId);
+console.log(conversation.title);
+console.log(conversation.messages); // Array of messages
+```
+
+### Example 6: Manage Conversations
+```typescript
+const { 
+  deleteAIConversation, 
+  archiveAIConversation, 
+  pinAIConversation,
+  updateAIConversationTitle 
+} = useAppStore();
+
+// Archive conversation
+await archiveAIConversation(conversationId, true);
+
+// Pin to top
+await pinAIConversation(conversationId, true);
+
+// Update title
+await updateAIConversationTitle(conversationId, 'React Hooks Discussion');
+
+// Delete (cascades to messages)
+await deleteAIConversation(conversationId);
+```
+
+### Example 7: Component Integration
+```typescript
+'use client';
+
+import { useAppStore } from '@/lib/store';
+import { useState } from 'react';
+
+export function ChatComponent() {
+  const { sendAIMessage } = useAppStore();
+  const [input, setInput] = useState('');
+  const [response, setResponse] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSend = async () => {
+    setLoading(true);
+    try {
+      const result = await sendAIMessage(input, {
+        streaming: true,
+        priority: 'speed',
+      });
+
+      // Stream response
+      for await (const chunk of result.textStream) {
+        setResponse(prev => prev + chunk);
+      }
+    } catch (error) {
+      console.error('AI error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <textarea value={input} onChange={e => setInput(e.target.value)} />
+      <button onClick={handleSend} disabled={loading}>
+        {loading ? 'Thinking...' : 'Send'}
+      </button>
+      <div>{response}</div>
+    </div>
+  );
+}
+```
+
+---
+
+## 🚀 Usage (Legacy - Direct Gateway Access)
 
 ### Basic Text Generation
 ```typescript

@@ -4,7 +4,7 @@
 -- Create table if missing
 CREATE TABLE IF NOT EXISTS public.encryption_keys (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   key_id TEXT NOT NULL,
   encrypted_key TEXT NOT NULL,
   algorithm TEXT NOT NULL DEFAULT 'aes-256-gcm',
@@ -14,6 +14,20 @@ CREATE TABLE IF NOT EXISTS public.encryption_keys (
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   UNIQUE(user_id, key_id)
 );
+
+-- Add user_id column if it doesn't exist (for existing tables)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' 
+    AND table_name = 'encryption_keys' 
+    AND column_name = 'user_id'
+  ) THEN
+    ALTER TABLE public.encryption_keys ADD COLUMN user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+  END IF;
+END
+$$;
 
 CREATE INDEX IF NOT EXISTS idx_encryption_keys_user_id ON public.encryption_keys(user_id);
 CREATE INDEX IF NOT EXISTS idx_encryption_keys_key_id ON public.encryption_keys(key_id);
@@ -35,8 +49,10 @@ BEGIN
       USING (
         auth.uid() = user_id
         OR EXISTS (
-          SELECT 1 FROM public.users u 
-          WHERE u.id = auth.uid() AND u.role IN ('admin', 'super_admin')
+          SELECT 1 FROM public.user_roles ur 
+          WHERE ur.user_id = auth.uid() 
+          AND ur.role IN ('admin', 'super_admin')
+          AND ur.is_active = TRUE
         )
       );
   END IF;
@@ -51,8 +67,10 @@ BEGIN
       WITH CHECK (
         auth.uid() = user_id
         OR EXISTS (
-          SELECT 1 FROM public.users u 
-          WHERE u.id = auth.uid() AND u.role IN ('admin', 'super_admin')
+          SELECT 1 FROM public.user_roles ur 
+          WHERE ur.user_id = auth.uid() 
+          AND ur.role IN ('admin', 'super_admin')
+          AND ur.is_active = TRUE
         )
       );
   END IF;
@@ -67,15 +85,19 @@ BEGIN
       USING (
         auth.uid() = user_id
         OR EXISTS (
-          SELECT 1 FROM public.users u 
-          WHERE u.id = auth.uid() AND u.role IN ('admin', 'super_admin')
+          SELECT 1 FROM public.user_roles ur 
+          WHERE ur.user_id = auth.uid() 
+          AND ur.role IN ('admin', 'super_admin')
+          AND ur.is_active = TRUE
         )
       )
       WITH CHECK (
         auth.uid() = user_id
         OR EXISTS (
-          SELECT 1 FROM public.users u 
-          WHERE u.id = auth.uid() AND u.role IN ('admin', 'super_admin')
+          SELECT 1 FROM public.user_roles ur 
+          WHERE ur.user_id = auth.uid() 
+          AND ur.role IN ('admin', 'super_admin')
+          AND ur.is_active = TRUE
         )
       );
   END IF;
@@ -90,8 +112,10 @@ BEGIN
       USING (
         auth.uid() = user_id
         OR EXISTS (
-          SELECT 1 FROM public.users u 
-          WHERE u.id = auth.uid() AND u.role IN ('admin', 'super_admin')
+          SELECT 1 FROM public.user_roles ur 
+          WHERE ur.user_id = auth.uid() 
+          AND ur.role IN ('admin', 'super_admin')
+          AND ur.is_active = TRUE
         )
       );
   END IF;

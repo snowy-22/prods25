@@ -40,6 +40,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DO $$
+BEGIN
+  DROP TRIGGER IF EXISTS ai_usage_logs_updated_at ON ai_usage_logs;
+EXCEPTION WHEN UNDEFINED_OBJECT THEN NULL;
+END;
+$$;
+
 CREATE TRIGGER ai_usage_logs_updated_at
   BEFORE UPDATE ON ai_usage_logs
   FOR EACH ROW
@@ -49,9 +56,14 @@ CREATE TRIGGER ai_usage_logs_updated_at
 ALTER TABLE ai_usage_logs ENABLE ROW LEVEL SECURITY;
 
 -- Kullanıcılar sadece kendi loglarını görebilir
-CREATE POLICY ai_usage_logs_select_policy ON ai_usage_logs
-  FOR SELECT
-  USING (auth.uid()::text = user_id);
+DO $$
+BEGIN
+  CREATE POLICY ai_usage_logs_select_policy ON ai_usage_logs
+    FOR SELECT
+    USING (auth.uid()::text = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END;
+$$;
 
 -- Kullanıcılar kendi loglarını ekleyebilir (server-side insert için)
 CREATE POLICY ai_usage_logs_insert_policy ON ai_usage_logs

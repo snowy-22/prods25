@@ -5,17 +5,24 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Copy, ThumbsDown, ThumbsUp, MoreVertical, Code } from 'lucide-react';
+import { 
+  Copy, ThumbsDown, ThumbsUp, MoreVertical, Code, 
+  Heart, Star, Eye, ExternalLink, Save 
+} from 'lucide-react';
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ContentItem } from '@/lib/initial-content';
+
+const PlayerFrame = dynamic(() => import('@/components/player-frame'), { ssr: false });
 
 export type MessageRole = 'user' | 'assistant' | 'system' | 'error';
-export type MessageContentType = 'text' | 'code' | 'image' | 'file' | 'thinking';
+export type MessageContentType = 'text' | 'code' | 'image' | 'file' | 'thinking' | 'shared_item';
 
 export interface ChatMessage {
   id: string;
@@ -28,6 +35,7 @@ export interface ChatMessage {
   imageUrl?: string;
   fileName?: string;
   fileSize?: number;
+  sharedItem?: ContentItem;
   metadata?: {
     model?: string;
     tokensUsed?: number;
@@ -179,6 +187,38 @@ export function ChatMessageComponent({
                 )}
               </div>
               <Badge variant="outline" className="text-xs">İndir</Badge>
+            </div>
+          )}
+
+          {/* Shared Item */}
+          {message.contentType === 'shared_item' && message.sharedItem && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 bg-primary/20 rounded-lg border border-primary/30">
+                <div className="w-12 h-12 rounded bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  {message.sharedItem.type === 'video' || message.sharedItem.type === 'youtube' ? (
+                    <Play className="h-6 w-6 text-primary" />
+                  ) : message.sharedItem.type === '3d' ? (
+                    <Box className="h-6 w-6 text-primary" />
+                  ) : message.sharedItem.type === 'widget' ? (
+                    <Puzzle className="h-6 w-6 text-primary" />
+                  ) : (
+                    <Grid className="h-6 w-6 text-primary" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm truncate">{message.sharedItem.title}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase opacity-70">Paylaşılan {message.sharedItem.type}</p>
+                  <div className="flex gap-2 mt-1">
+                    <Button size="xs" variant="secondary" className="h-5 text-[9px] px-2 py-0">
+                      Kitaplığa Ekle
+                    </Button>
+                    <Button size="xs" variant="secondary" className="h-5 text-[9px] px-2 py-0">
+                      Önizle
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              {message.content && <p className="text-sm italic opacity-80 leading-relaxed">"{message.content}"</p>}
             </div>
           )}
 

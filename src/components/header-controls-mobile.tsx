@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import { 
   Tooltip, 
@@ -19,7 +19,9 @@ import {
   Undo2, 
   Redo2, 
   BarChart, 
-  LogOut 
+  LogOut,
+  Settings,
+  Wand2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -27,6 +29,7 @@ import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { useToast } from '@/hooks/use-toast';
+import { ControlCenter } from './control-center';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +48,8 @@ type HeaderControlsProps = {
   setIsUiHidden: (hidden: boolean) => void;
   isStyleSettingsOpen: boolean;
   toggleStyleSettingsPanel: () => void;
+  isViewportEditorOpen?: boolean;
+  toggleViewportEditor?: () => void;
   gridSize: number;
   setGridSize: (size: number) => void;
   layoutMode?: LayoutMode;
@@ -63,6 +68,8 @@ export default function HeaderControlsMobile({
   setIsUiHidden,
   isStyleSettingsOpen,
   toggleStyleSettingsPanel,
+  isViewportEditorOpen = false,
+  toggleViewportEditor,
   gridSize,
   setGridSize,
   layoutMode = 'grid',
@@ -77,6 +84,7 @@ export default function HeaderControlsMobile({
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -233,9 +241,29 @@ export default function HeaderControlsMobile({
             <span>Görünüm Ayarları</span>
           </DropdownMenuItem>
 
+          {/* Viewport Editor */}
+          {toggleViewportEditor && (
+            <DropdownMenuItem 
+              onClick={toggleViewportEditor}
+              className="cursor-pointer flex items-center gap-2"
+            >
+              <Wand2 className="h-4 w-4" />
+              <span>Viewport Editörü</span>
+            </DropdownMenuItem>
+          )}
+
           <DropdownMenuSeparator />
 
-          {/* Analytics */}
+          {/* Control Center */}
+          <DropdownMenuItem 
+            onClick={() => setIsControlCenterOpen(true)}
+            className="cursor-pointer flex items-center gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            <span>Kontrol Merkezi</span>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />          {/* Analytics */}
           <DropdownMenuItem 
             onClick={() => router.push('/analytics')}
             className="cursor-pointer flex items-center gap-2"
@@ -259,6 +287,12 @@ export default function HeaderControlsMobile({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Control Center Modal */}
+      <ControlCenter 
+        isOpen={isControlCenterOpen} 
+        onClose={() => setIsControlCenterOpen(false)} 
+      />
     </div>
   );
 }

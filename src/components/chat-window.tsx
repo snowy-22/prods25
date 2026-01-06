@@ -16,6 +16,7 @@ export interface ChatWindowProps {
   onAttachment?: () => void;
   onEmoji?: () => void;
   onVoice?: () => void;
+  isListening?: boolean;
   isLoading?: boolean;
   placeholder?: string;
   emptyStateTitle?: string;
@@ -34,6 +35,7 @@ export function ChatWindow({
   onAttachment,
   onEmoji,
   onVoice,
+  isListening,
   isLoading = false,
   placeholder,
   emptyStateTitle = 'Sohbete başlayın',
@@ -85,6 +87,7 @@ export function ChatWindow({
         onAttachment={onAttachment}
         onEmoji={onEmoji}
         onVoice={onVoice}
+        isListening={isListening}
         isLoading={isLoading}
         placeholder={placeholder}
         showCamera={showCamera}

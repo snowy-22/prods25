@@ -5,6 +5,7 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Skeleton } from './ui/skeleton';
 import { ContentItem } from '@/lib/initial-content';
+import { toWidgetSize, WidgetSize } from '@/lib/widget-sizes';
 
 const DigitalClockWidget = dynamic(() => import('./widgets/clock-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const NotesWidget = dynamic(() => import('./widgets/notes-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
@@ -220,9 +221,10 @@ const WidgetRendererBase = ({ item, allItems, activeViewId, ...props }: { item: 
     const Component = WIDGET_COMPONENTS[item.type];
     
     // Determine size based on item styles or container size
-    // If width is not set (like in sidebar preview), default to small
-    const width = item.styles?.width ? parseInt(item.styles.width as string) : 0;
-    const size = width > 800 ? 'large' : width > 400 ? 'medium' : 'small';
+    // Maps pixel widths to WidgetSize keys: XL (>800), L (>600), M (>400), S (>300), XS (default)
+    const width = item.styles?.width ? parseInt(item.styles.width as string) : item.width || 0;
+    const rawSize = width >= 800 ? 'XL' : width >= 600 ? 'L' : width >= 400 ? 'M' : width >= 300 ? 'S' : 'XS';
+    const size = toWidgetSize(rawSize) as WidgetSize;
 
     // For container types (folders), pass cover settings from activeView
     const isContainer = ['folder', 'list', 'inventory', 'space', 'devices', 'saved-items', 'awards-folder', 'spaces-folder', 'devices-folder', 'trash-folder', 'item', 'player'].includes(item.type);

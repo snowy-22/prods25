@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { DeviceType, OsType, BrowserType } from '@/hooks/use-device';
 
-export type ItemType = 'website' | 'image' | 'video' | 'audio' | 'pdf' | 'map' | 'folder' | 'list' | 'clock' | 'notes' | 'player' | 'calendar' | '3dplayer' | 'award' | 'todolist' | 'weather' | 'calculator' | 'currencyConverter' | 'unitConverter' | 'currencyRates' | 'playerControls' | 'navigation' | 'mediaHub' | 'aiImage' | 'inventory' | 'space' | 'file' | 'pharmacy' | 'trash-folder' | 'flowchart' | 'kanban' | 'swot' | 'fishbone' | '5s' | 'six-s' | 'kaizen-platform' | 'agile-calendar' | 'qfd' | 'processchart' | 'pmp' | 'rss' | 'devices' | 'profile-card' | 'profile-share' | 'mindmap' | 'financial-engineering' | 'financial-calculator' | 'book' | 'item' | 'saved-items' | 'alarm' | 'stopwatch' | 'timer' | 'world-clock' | 'pomodoro' | 'user-profile' | 'awards-folder' | 'spaces-folder' | 'devices-folder' | 'root' | 'match' | 'league-table' | 'fixture' | 'scan' | 'search' | 'todo' | 'social-feed' | 'user-list' | 'screenshot' | 'screen-recorder' | 'qrcode' | 'color-picker' | 'clipboard-manager' | 'gradient-generator' | 'lorem-ipsum' | 'business-model-canvas' | 'hue' | 'reservation' | 'purchase' | 'achievements' | 'training-module' | 'award-card' | 'new-tab' | 'device' | 'hue-light' | 'organization-chart' | 'business-analysis' | 'product-catalog' | 'stock-management' | 'sales-card' | 'advanced-table' | 'speed-test' | 'performance-monitor' | 'macro-pad' | 'player-controls-widget';
+export type ItemType = 'website' | 'image' | 'video' | 'audio' | 'pdf' | 'map' | 'folder' | 'list' | 'clock' | 'notes' | 'player' | 'calendar' | '3dplayer' | 'award' | 'todolist' | 'weather' | 'calculator' | 'currencyConverter' | 'unitConverter' | 'currencyRates' | 'playerControls' | 'navigation' | 'mediaHub' | 'aiImage' | 'inventory' | 'space' | 'file' | 'pharmacy' | 'trash-folder' | 'flowchart' | 'kanban' | 'swot' | 'fishbone' | '5s' | 'six-s' | 'kaizen-platform' | 'agile-calendar' | 'qfd' | 'processchart' | 'pmp' | 'rss' | 'devices' | 'profile-card' | 'profile-share' | 'mindmap' | 'gantt' | 'financial-engineering' | 'financial-calculator' | 'book' | 'item' | 'saved-items' | 'alarm' | 'stopwatch' | 'timer' | 'world-clock' | 'pomodoro' | 'user-profile' | 'awards-folder' | 'spaces-folder' | 'devices-folder' | 'root' | 'match' | 'league-table' | 'fixture' | 'scan' | 'search' | 'todo' | 'social-feed' | 'social-post' | 'user-list' | 'screenshot' | 'screen-recorder' | 'qrcode' | 'color-picker' | 'clipboard-manager' | 'gradient-generator' | 'lorem-ipsum' | 'business-model-canvas' | 'hue' | 'reservation' | 'purchase' | 'achievements' | 'training-module' | 'award-card' | 'new-tab' | 'device' | 'hue-light' | 'organization-chart' | 'business-analysis' | 'product-catalog' | 'stock-management' | 'sales-card' | 'advanced-table' | 'speed-test' | 'performance-monitor' | 'macro-pad' | 'player-controls-widget' | 'product-grid' | 'product-list' | 'shopping-cart' | 'marketplace-grid' | 'ecommerce-landing' | 'order-history' | 'profile-canvas';
 
 export type SortOption = 'manual' | 'name' | 'createdAt' | 'updatedAt' | 'itemCount' | 'averageRating' | 'platformViews' | 'platformLikes' | 'sourceViews' | 'sourceLikes' | 'sourceCreatedAt';
 export type SortDirection = 'asc' | 'desc';
@@ -210,7 +210,8 @@ export type ContentItem = {
   ratings?: RatingEvent[];
   priority?: Priority; // '+', '++', '+++'
   letterGrade?: LetterGrade; // 'A+', 'B-', etc.
-  fiveStarRating?: number; // 1-5 stars
+  fiveStarRating?: number; // Deprecated: Use tenPointRating instead
+  tenPointRating?: number; // 0-10 puan sistemi // 1-5 stars
   hundredPointScale?: number; // 0-100 score
   energyScore?: EnergyScore; // 'A+++' to 'G'
   metrics?: Record<string, string | number>; // For custom user-defined metrics e.g. { "Ekran Boyutu": "27 inç", "Ağırlık": "1.2 kg" }
@@ -292,6 +293,7 @@ export type ContentItem = {
   isMaxMode?: boolean;
   isPlayerHeaderVisible?: boolean;
   isPlayerSettingsVisible?: boolean;
+  hideBlackBars?: boolean; // Video oynatıcılarda siyah barları gizle (16:9 optimizasyonu)
   isScreensaverEnabled?: boolean;
   screensaverTimeout?: number; // in seconds
   screensaverShortcut?: string;
@@ -462,7 +464,6 @@ export const widgetTemplates: Record<string, Omit<ContentItem, 'id' | 'createdAt
         { type: 'todolist', title: 'Yapılacaklar Listesi', icon: 'todolist' },
         { type: 'calendar', title: 'Takvim', icon: 'calendar' },
         { type: 'rss', title: 'RSS Akışı', icon: 'rss' },
-        { type: 'mindmap', title: 'Zihin Haritası', icon: 'mindmap' },
     ],
     "Saatler": [
         { type: 'clock', title: 'Dijital Saat', icon: 'clock', clockMode: 'digital' },
@@ -510,6 +511,8 @@ export const widgetTemplates: Record<string, Omit<ContentItem, 'id' | 'createdAt
     "İş ve Verimlilik": [
         { type: 'flowchart', title: 'Akış Şeması', icon: 'flowchart' },
         { type: 'kanban', title: 'Kanban Tahtası', icon: 'kanban' },
+        { type: 'gantt', title: 'Gantt Şeması', icon: 'gantt' },
+        { type: 'mindmap', title: 'Zihin Haritası', icon: 'mindmap' },
         { type: 'swot', title: 'SWOT Analizi', icon: 'swot' },
         { type: 'fishbone', title: 'Balık Kılçığı Diyagramı', icon: 'fishbone' },
         { type: '5s', title: '5S Panosu', icon: '5s' },
@@ -520,6 +523,8 @@ export const widgetTemplates: Record<string, Omit<ContentItem, 'id' | 'createdAt
         { type: 'processchart', title: 'Süreç Şeması', icon: 'processchart' },
         { type: 'pmp', title: 'Proje Yönetimi Panosu', icon: 'pmp' },
         { type: 'business-model-canvas', title: 'İşletme Modeli Canvas', icon: 'layout' },
+        { type: 'business-analysis', title: 'İş Analizi Formu', icon: 'bar-chart' },
+        { type: 'organization-chart', title: 'Organizasyon Şeması', icon: 'share-2' },
     ],
      "Akıllı Ev": [
         { type: 'playerControls', title: 'Hue Ampul', icon: 'lightbulb' },
@@ -1027,4 +1032,64 @@ export type PlayerControlType =
   | 'quality'
   | 'loop'
   | 'shuffle';
+
+// ===== MULTI-ACCOUNT & CORPORATE ACCOUNT TYPES =====
+
+export type AccountType = 'personal' | 'corporate';
+
+export interface Account {
+  id: string;
+  name: string;
+  type: AccountType;
+  ownerId?: string; // For corporate accounts
+  avatar?: string;
+  email?: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CorporateRole = 'admin' | 'manager' | 'member' | 'viewer';
+
+export interface CorporateMember {
+  id: string;
+  userId: string;
+  accountId: string;
+  email: string;
+  role: CorporateRole;
+  joinedAt: string;
+  invitedBy?: string;
+  status: 'active' | 'invited' | 'pending';
+}
+
+export interface CorporateAccount extends Account {
+  type: 'corporate';
+  members: CorporateMember[];
+  roles: CorporateRoleDefinition[];
+  settings: CorporateSettings;
+  stripeCustomerId?: string;
+  billingEmail?: string;
+}
+
+export interface CorporateRoleDefinition {
+  id: string;
+  accountId: string;
+  role: CorporateRole;
+  permissions: string[];
+  description?: string;
+}
+
+export interface CorporateSettings {
+  maxMembers?: number;
+  allowInvites: boolean;
+  requireApproval: boolean;
+  defaultRole: CorporateRole;
+  features: {
+    advancedAnalytics: boolean;
+    apiAccess: boolean;
+    customBranding: boolean;
+    sso: boolean; // Single Sign-On
+    audit: boolean;
+  };
+}
 

@@ -8,17 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Code, FileJson, Link as LinkIcon, Twitter, Linkedin, Facebook, MessageSquare, Send, Globe, Users, Lock, KeyRound, Settings } from 'lucide-react';
+import { Copy, Code, FileJson, Link as LinkIcon, Twitter, Linkedin, Facebook, MessageSquare, Send, Globe, Users, Lock, KeyRound, Settings, Share2, ExternalLink, Loader2 } from 'lucide-react';
 import { ContentItem, SharingSettings } from '@/lib/initial-content';
 import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { FaInstagram, FaWhatsapp, FaSnapchat } from 'react-icons/fa6';
+import { FaInstagram, FaWhatsapp, FaSnapchat, FaTelegram, FaReddit } from 'react-icons/fa6';
 import { Separator } from './ui/separator';
 import { Textarea } from './ui/textarea';
 import { Card } from './ui/card';
+import { createSharedFolder, getShareUrl, getSocialShareLinks, getUserSharedFolders, SharedFolder } from '@/lib/slug-utils';
+import { trackSocialShare } from '@/lib/analytics';
 
 
 interface ShareDialogProps {
@@ -66,15 +68,30 @@ export default function ShareDialog({ isOpen, onOpenChange, item, onUpdateItem }
     canBeSaved: false,
   });
 
+  // Slug-based sharing state
+  const [sharedFolder, setSharedFolder] = useState<SharedFolder | null>(null);
+  const [isCreatingSlug, setIsCreatingSlug] = useState(false);
+  const [socialLinks, setSocialLinks] = useState<ReturnType<typeof getSocialShareLinks> | null>(null);
+
+  const isFolder = item?.type === 'folder' || item?.type === 'list' || item?.type === 'inventory';
+
   useEffect(() => {
     if (item && typeof window !== 'undefined') {
       setJsonString(JSON.stringify(item, null, 2));
-      const url = new URL(window.location.href);
-      url.pathname = `/shared/${item.id}`;
-      const itemUrl = url.toString();
-      setShareUrl(itemUrl);
-      setEmbedCode(`<iframe src="${itemUrl}" width="800" height="600" frameborder="0" allowfullscreen></iframe>`);
-      setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(itemUrl)}&size=150x150`);
+      
+      // Check if folder already has a shared slug
+      if (isFolder) {
+        loadExistingSharedFolder();
+      } else {
+        // Non-folder items use old method
+        const url = new URL(window.location.href);
+        url.pathname = `/shared/${item.id}`;
+        const itemUrl = url.toString();
+        setShareUrl(itemUrl);
+        setEmbedCode(`<iframe src="${itemUrl}" width="800" height="600" frameborder="0" allowfullscreen></iframe>`);
+        setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(itemUrl)}&size=150x150`);
+      }
+      
       setSharingSettings(item.sharing || { isPublic: false, privacy: 'private', canShare: false, canCopy: false });
       setEditableDescription(item.content || item.title || '');
     } else {
@@ -83,8 +100,66 @@ export default function ShareDialog({ isOpen, onOpenChange, item, onUpdateItem }
       setEmbedCode('');
       setQrCodeUrl('');
       setEditableDescription('');
+      setSharedFolder(null);
+      setSocialLinks(null);
     }
-  }, [item]);
+  }, [item, isFolder]);
+
+  const loadExistingSharedFolder = async () => {
+    if (!item) return;
+    
+    try {
+      const folders = await getUserSharedFolders();
+      const existing = folders.find(f => f.folder_id === item.id && f.is_active);
+      
+      if (existing) {
+        setSharedFolder(existing);
+        const url = getShareUrl(existing.slug);
+        setShareUrl(url);
+        setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(url)}&size=150x150`);
+        setSocialLinks(getSocialShareLinks(existing.slug, item.title || 'Klasör', editableDescription));
+      }
+    } catch (error) {
+      console.error('Error loading existing shared folder:', error);
+    }
+  };
+
+  const handleCreateSlugShare = async () => {
+    if (!item || !isFolder) return;
+    
+    setIsCreatingSlug(true);
+    
+    try {
+      const newSharedFolder = await createSharedFolder(
+        item.id,
+        item.title || 'Klasör',
+        editableDescription || undefined,
+        undefined // No expiration
+      );
+      
+      if (newSharedFolder) {
+        setSharedFolder(newSharedFolder);
+        const url = getShareUrl(newSharedFolder.slug);
+        setShareUrl(url);
+        setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(url)}&size=150x150`);
+        setSocialLinks(getSocialShareLinks(newSharedFolder.slug, item.title || 'Klasör', editableDescription));
+        
+        toast({
+          title: 'Paylaşım Oluşturuldu!',
+          description: 'Klasör artık herkese açık URL ile paylaşılabilir.',
+        });
+      }
+    } catch (error) {
+      console.error('Error creating shared folder:', error);
+      toast({
+        title: 'Hata',
+        description: 'Paylaşım oluşturulamadı.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreatingSlug(false);
+    }
+  };
 
   const handleUpdateSettings = (updates: Partial<SharingSettings>) => {
     if(!item) return;
@@ -101,32 +176,53 @@ export default function ShareDialog({ isOpen, onOpenChange, item, onUpdateItem }
     });
   }
   
-  const handleSocialShare = (platform: 'twitter' | 'facebook' | 'linkedin' | 'whatsapp' | 'instagram' | 'snapchat') => {
-      const text = encodeURIComponent(editableDescription);
-      const url = encodeURIComponent(shareUrl);
+  const handleSocialShare = (platform: 'twitter' | 'facebook' | 'linkedin' | 'whatsapp' | 'telegram' | 'reddit' | 'instagram' | 'snapchat') => {
+      if (!item) return;
+      
       let shareLink = '';
+      
+      if (socialLinks) {
+        // Use slug-based social links
+        shareLink = socialLinks[platform as keyof typeof socialLinks] || '';
+      } else {
+        // Fallback to old method
+        const text = encodeURIComponent(editableDescription);
+        const url = encodeURIComponent(shareUrl);
 
-      switch(platform) {
-          case 'twitter':
-              shareLink = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
-              break;
-          case 'facebook':
-              shareLink = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
-              break;
-          case 'linkedin':
-              shareLink = `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=${text}`;
-              break;
-          case 'whatsapp':
-              shareLink = `https://api.whatsapp.com/send?text=${text}%20${url}`;
-              break;
-          case 'instagram':
-              toast({ title: 'Instagram\'da Paylaş', description: 'Bu özelliği mobil cihazınızda kullanın.' });
-              return;
-           case 'snapchat':
-              shareLink = `https://www.snapchat.com/scan?attachmentUrl=${url}&scanFrom=BUTTON`;
-              break;
+        switch(platform) {
+            case 'twitter':
+                shareLink = `https://twitter.com/intent/tweet?url=${url}&text=${text}`;
+                break;
+            case 'facebook':
+                shareLink = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+                break;
+            case 'linkedin':
+                shareLink = `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=${text}`;
+                break;
+            case 'whatsapp':
+                shareLink = `https://api.whatsapp.com/send?text=${text}%20${url}`;
+                break;
+            case 'telegram':
+                shareLink = `https://t.me/share/url?url=${url}&text=${text}`;
+                break;
+            case 'reddit':
+                shareLink = `https://reddit.com/submit?url=${url}&title=${text}`;
+                break;
+            case 'instagram':
+                toast({ title: 'Instagram\'da Paylaş', description: 'Bu özelliği mobil cihazınızda kullanın.' });
+                return;
+            case 'snapchat':
+                shareLink = `https://www.snapchat.com/scan?attachmentUrl=${url}&scanFrom=BUTTON`;
+                break;
+        }
       }
-      window.open(shareLink, '_blank', 'noopener,noreferrer');
+      
+      if (shareLink) {
+        window.open(shareLink, '_blank', 'noopener,noreferrer');
+        
+        // Track social share
+        trackSocialShare(platform, item.id, item.type);
+      }
   }
 
   const handlePublish = () => {
@@ -161,6 +257,7 @@ export default function ShareDialog({ isOpen, onOpenChange, item, onUpdateItem }
             <TabsContent value="share" className="mt-6">
                  <div className="space-y-6">
                     {item && <SocialPreviewCard item={item} description={editableDescription} />}
+                    
                      <div className="space-y-2">
                         <Label htmlFor="share-description">Paylaşım Metni</Label>
                         <Textarea 
@@ -171,93 +268,163 @@ export default function ShareDialog({ isOpen, onOpenChange, item, onUpdateItem }
                             rows={3}
                         />
                     </div>
-                    <div className='flex gap-4'>
-                        <div className='w-40 h-40 flex-shrink-0'>
-                            {qrCodeUrl && <Image src={qrCodeUrl} alt="QR Code" width={160} height={160} className='rounded-lg' />}
+
+                    {/* Slug-based sharing for folders */}
+                    {isFolder && !sharedFolder && (
+                      <Card className="p-4 bg-accent/5 border-accent/20">
+                        <div className="flex items-start gap-3">
+                          <Share2 className="h-5 w-5 text-primary mt-0.5" />
+                          <div className="flex-1 space-y-2">
+                            <p className="text-sm font-medium">Sosyal Ağda Paylaş</p>
+                            <p className="text-xs text-muted-foreground">
+                              Bu klasör için benzersiz bir paylaşım linki oluşturun. Link ile herkes içeriği görebilir.
+                            </p>
+                            <Button 
+                              onClick={handleCreateSlugShare} 
+                              disabled={isCreatingSlug}
+                              className="w-full mt-2"
+                            >
+                              {isCreatingSlug ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Oluşturuluyor...
+                                </>
+                              ) : (
+                                <>
+                                  <ExternalLink className="mr-2 h-4 w-4" />
+                                  Paylaşım Linki Oluştur
+                                </>
+                              )}
+                            </Button>
+                          </div>
                         </div>
-                        <div className='flex flex-col gap-4 flex-grow'>
-                            {!isUserFolder && (
-                            <div className="flex items-center gap-2">
-                                <Button variant="outline" onClick={handlePublish} className="w-full">
-                                    <Globe className="mr-2 h-4 w-4" />
-                                    {item?.isPublic ? 'Yayından Kaldır' : 'Ağda Yayınla'}
-                                </Button>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" size="icon"><Settings className="h-4 w-4" /></Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-80">
-                                        <div className="grid gap-4">
-                                            <div className="space-y-2">
-                                                <h4 className="font-medium leading-none">Gizlilik Ayarları</h4>
-                                                <p className="text-sm text-muted-foreground">Bu içeriği kimlerin görebileceğini seçin.</p>
-                                            </div>
-                                            <RadioGroup value={sharingSettings.privacy} onValueChange={(value) => handleUpdateSettings({ privacy: value as SharingSettings['privacy'] })}>
-                                                <div className="flex items-center space-x-2">
-                                                    <RadioGroupItem value="public" id="public" />
-                                                    <Label htmlFor="public" className='flex items-center gap-2'><Globe className='h-4 w-4'/> Herkese Açık</Label>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <RadioGroupItem value="invited" id="invited" />
-                                                    <Label htmlFor="invited" className='flex items-center gap-2'><Users className='h-4 w-4'/> Sadece Davetliler</Label>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <RadioGroupItem value="password" id="password" />
-                                                    <Label htmlFor="password" className='flex items-center gap-2'><KeyRound className='h-4 w-4'/> Şifre Korumalı</Label>
-                                                </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <RadioGroupItem value="private" id="private" />
-                                                    <Label htmlFor="private" className='flex items-center gap-2'><Lock className='h-4 w-4'/> Kapalı (Sadece Ben)</Label>
-                                                </div>
-                                            </RadioGroup>
-                                            <Separator />
-                                            <div className="space-y-2">
-                                                <h4 className="font-medium leading-none">İzinler</h4>
-                                                <p className="text-sm text-muted-foreground">Görüntüleyenlerin neler yapabileceğini seçin.</p>
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <Label htmlFor="can-edit" className="flex flex-col gap-1 pr-4">
-                                                    <span>Düzenlenebilir</span>
-                                                    <span className="text-xs font-normal text-muted-foreground">Başkaları bu listeyi düzenleyebilir.</span>
-                                                </Label>
-                                                <Switch id="can-edit" checked={sharingSettings.canEdit} onCheckedChange={(checked) => handleUpdateSettings({ canEdit: checked })} />
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <Label htmlFor="can-copy" className="flex flex-col gap-1 pr-4">
-                                                    <span>Kopyalanabilir</span>
-                                                    <span className="text-xs font-normal text-muted-foreground">Başkaları bu listeyi kendi kitaplığına kopyalayabilir.</span>
-                                                </Label>
-                                                <Switch id="can-copy" checked={sharingSettings.canCopy} onCheckedChange={(checked) => handleUpdateSettings({ canCopy: checked })} />
-                                            </div>
-                                            <div className="flex items-center justify-between">
-                                                <Label htmlFor="can-be-saved" className="flex flex-col gap-1 pr-4">
-                                                    <span>Kaydedilebilir</span>
-                                                    <span className="text-xs font-normal text-muted-foreground">Başkaları bu listeyi kendi koleksiyonlarına kaydedebilir.</span>
-                                                </Label>
-                                                <Switch id="can-be-saved" checked={sharingSettings.canBeSaved} onCheckedChange={(checked) => handleUpdateSettings({ canBeSaved: checked })} />
-                                            </div>
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            )}
-                            <div className='flex items-center gap-2'>
-                            <Input value={shareUrl} readOnly />
-                            <Button size="icon" onClick={() => copyToClipboard(shareUrl, 'URL')}><Copy className="h-4 w-4" /></Button>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold mb-2">Sosyal Medyada Paylaş</h4>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="icon" onClick={() => handleSocialShare('twitter')}><Twitter className="h-5 w-5 text-[#1DA1F2]"/></Button>
-                            <Button variant="outline" size="icon" onClick={() => handleSocialShare('facebook')}><Facebook className="h-5 w-5 text-[#1877F2]"/></Button>
-                            <Button variant="outline" size="icon" onClick={() => handleSocialShare('linkedin')}><Linkedin className="h-5 w-5 text-[#0A66C2]"/></Button>
-                            <Button variant="outline" size="icon" onClick={() => handleSocialShare('whatsapp')}><FaWhatsapp className="h-5 w-5 text-[#25D366]"/></Button>
-                            <Button variant="outline" size="icon" onClick={() => handleSocialShare('instagram')}><FaInstagram className="h-5 w-5" style={{ color: '#E4405F' }}/></Button>
-                            <Button variant="outline" size="icon" onClick={() => handleSocialShare('snapchat')}><FaSnapchat className="h-5 w-5 text-[#FFFC00]"/></Button>
-                        </div>
-                    </div>
+                      </Card>
+                    )}
+
+                    {/* Show share URL and QR code */}
+                    {(shareUrl && (!isFolder || sharedFolder)) && (
+                      <div className='flex gap-4'>
+                          <div className='w-40 h-40 flex-shrink-0'>
+                              {qrCodeUrl && <Image src={qrCodeUrl} alt="QR Code" width={160} height={160} className='rounded-lg' />}
+                          </div>
+                          <div className='flex flex-col gap-4 flex-grow'>
+                              {!isUserFolder && !isFolder && (
+                              <div className="flex items-center gap-2">
+                                  <Button variant="outline" onClick={handlePublish} className="w-full">
+                                      <Globe className="mr-2 h-4 w-4" />
+                                      {item?.isPublic ? 'Yayından Kaldır' : 'Ağda Yayınla'}
+                                  </Button>
+                                  <Popover>
+                                      <PopoverTrigger asChild>
+                                          <Button variant="outline" size="icon"><Settings className="h-4 w-4" /></Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-80">
+                                          <div className="grid gap-4">
+                                              <div className="space-y-2">
+                                                  <h4 className="font-medium leading-none">Gizlilik Ayarları</h4>
+                                                  <p className="text-sm text-muted-foreground">Bu içeriği kimlerin görebileceğini seçin.</p>
+                                              </div>
+                                              <RadioGroup value={sharingSettings.privacy} onValueChange={(value) => handleUpdateSettings({ privacy: value as SharingSettings['privacy'] })}>
+                                                  <div className="flex items-center space-x-2">
+                                                      <RadioGroupItem value="public" id="public" />
+                                                      <Label htmlFor="public" className='flex items-center gap-2'><Globe className='h-4 w-4'/> Herkese Açık</Label>
+                                                  </div>
+                                                  <div className="flex items-center space-x-2">
+                                                      <RadioGroupItem value="invited" id="invited" />
+                                                      <Label htmlFor="invited" className='flex items-center gap-2'><Users className='h-4 w-4'/> Sadece Davetliler</Label>
+                                                  </div>
+                                                  <div className="flex items-center space-x-2">
+                                                      <RadioGroupItem value="password" id="password" />
+                                                      <Label htmlFor="password" className='flex items-center gap-2'><KeyRound className='h-4 w-4'/> Şifre Korumalı</Label>
+                                                  </div>
+                                                  <div className="flex items-center space-x-2">
+                                                      <RadioGroupItem value="private" id="private" />
+                                                      <Label htmlFor="private" className='flex items-center gap-2'><Lock className='h-4 w-4'/> Kapalı (Sadece Ben)</Label>
+                                                  </div>
+                                              </RadioGroup>
+                                              <Separator />
+                                              <div className="space-y-2">
+                                                  <h4 className="font-medium leading-none">İzinler</h4>
+                                                  <p className="text-sm text-muted-foreground">Görüntüleyenlerin neler yapabileceğini seçin.</p>
+                                              </div>
+                                              <div className="flex items-center justify-between">
+                                                  <Label htmlFor="can-edit" className="flex flex-col gap-1 pr-4">
+                                                      <span>Düzenlenebilir</span>
+                                                      <span className="text-xs font-normal text-muted-foreground">Başkaları bu listeyi düzenleyebilir.</span>
+                                                  </Label>
+                                                  <Switch id="can-edit" checked={sharingSettings.canEdit} onCheckedChange={(checked) => handleUpdateSettings({ canEdit: checked })} />
+                                              </div>
+                                              <div className="flex items-center justify-between">
+                                                  <Label htmlFor="can-copy" className="flex flex-col gap-1 pr-4">
+                                                      <span>Kopyalanabilir</span>
+                                                      <span className="text-xs font-normal text-muted-foreground">Başkaları bu listeyi kendi kitaplığına kopyalayabilir.</span>
+                                                  </Label>
+                                                  <Switch id="can-copy" checked={sharingSettings.canCopy} onCheckedChange={(checked) => handleUpdateSettings({ canCopy: checked })} />
+                                              </div>
+                                              <div className="flex items-center justify-between">
+                                                  <Label htmlFor="can-be-saved" className="flex flex-col gap-1 pr-4">
+                                                      <span>Kaydedilebilir</span>
+                                                      <span className="text-xs font-normal text-muted-foreground">Başkaları bu listeyi kendi koleksiyonlarına kaydedebilir.</span>
+                                                  </Label>
+                                                  <Switch id="can-be-saved" checked={sharingSettings.canBeSaved} onCheckedChange={(checked) => handleUpdateSettings({ canBeSaved: checked })} />
+                                              </div>
+                                          </div>
+                                      </PopoverContent>
+                                  </Popover>
+                              </div>
+                              )}
+                              
+                              {/* Share URL with copy button */}
+                              <div className='flex items-center gap-2'>
+                                <Input value={shareUrl} readOnly className="font-mono text-xs" />
+                                <Button size="icon" onClick={() => copyToClipboard(shareUrl, 'URL')}><Copy className="h-4 w-4" /></Button>
+                              </div>
+
+                              {/* Shared folder stats */}
+                              {sharedFolder && (
+                                <div className="text-xs text-muted-foreground flex items-center gap-3">
+                                  <span className="flex items-center gap-1">
+                                    <Eye className="h-3 w-3" />
+                                    {sharedFolder.access_count} görüntülenme
+                                  </span>
+                                  <span>
+                                    Oluşturuldu: {new Date(sharedFolder.created_at).toLocaleDateString('tr-TR')}
+                                  </span>
+                                </div>
+                              )}
+                          </div>
+                      </div>
+                    )}
+
+                    {/* Social share buttons */}
+                    {(shareUrl && (!isFolder || sharedFolder)) && (
+                      <div>
+                          <h4 className="font-semibold mb-3">Sosyal Ağda Paylaş</h4>
+                          <div className="grid grid-cols-7 gap-2">
+                              <Button variant="outline" size="icon" onClick={() => handleSocialShare('twitter')} title="Twitter">
+                                <Twitter className="h-5 w-5 text-[#1DA1F2]"/>
+                              </Button>
+                              <Button variant="outline" size="icon" onClick={() => handleSocialShare('facebook')} title="Facebook">
+                                <Facebook className="h-5 w-5 text-[#1877F2]"/>
+                              </Button>
+                              <Button variant="outline" size="icon" onClick={() => handleSocialShare('linkedin')} title="LinkedIn">
+                                <Linkedin className="h-5 w-5 text-[#0A66C2]"/>
+                              </Button>
+                              <Button variant="outline" size="icon" onClick={() => handleSocialShare('whatsapp')} title="WhatsApp">
+                                <FaWhatsapp className="h-5 w-5 text-[#25D366]"/>
+                              </Button>
+                              <Button variant="outline" size="icon" onClick={() => handleSocialShare('telegram')} title="Telegram">
+                                <FaTelegram className="h-5 w-5 text-[#0088CC]"/>
+                              </Button>
+                              <Button variant="outline" size="icon" onClick={() => handleSocialShare('reddit')} title="Reddit">
+                                <FaReddit className="h-5 w-5 text-[#FF4500]"/>
+                              </Button>
+                              <Button variant="outline" size="icon" onClick={() => handleSocialShare('snapchat')} title="Snapchat">
+                                <FaSnapchat className="h-5 w-5 text-[#FFFC00]"/>
+                              </Button>
+                          </div>
+                      </div>
+                    )}
                 </div>
             </TabsContent>
             <TabsContent value="embed" className="mt-6 space-y-4">

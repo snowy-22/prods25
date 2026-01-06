@@ -7,7 +7,7 @@ import { Input } from './ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ScrollArea } from './ui/scroll-area';
-import { Users, UserPlus, Search, ExternalLink, CheckCircle2, Heart, MessageCircle, Eye, Award, Trophy, TrendingUp } from 'lucide-react';
+import { Compass, Users, UserPlus, Search, ExternalLink, CheckCircle2, Heart, MessageCircle, Eye, Award, Trophy, TrendingUp, Play, Grid, Box, Puzzle, Star, Save } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from './ui/badge';
@@ -15,6 +15,7 @@ import { SAMPLE_PROFILES, SAMPLE_ITEMS, getSampleItemsForUser, SAMPLE_COMMENTS }
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { ContentItem } from '@/lib/initial-content';
+import { CreatePostCard } from './social/create-post-card';
 
 interface Profile {
   id: string;
@@ -33,29 +34,34 @@ interface SocialPanelProps {
 }
 
 export function SocialPanel({ onOpenContent }: SocialPanelProps = {}) {
-  const { user } = useAppStore();
+  const { user, socialPosts, addSocialPost, updateSocialPost } = useAppStore();
   const { toast } = useToast();
   
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('content');
 
-  
-  // Sample profiles - 12 adet
-  const displayProfiles = useMemo(() => SAMPLE_PROFILES, []);
-  
-  // Filtered profiles based on search
-  const filteredProfiles = useMemo(() => {
-    if (!searchQuery.trim()) return displayProfiles;
-    
-    const query = searchQuery.toLowerCase();
-    return displayProfiles.filter(
-      (p) =>
-        p.username.toLowerCase().includes(query) ||
-        p.displayName.toLowerCase().includes(query) ||
-        p.bio?.toLowerCase().includes(query)
+  // Combined feed: store posts + sample items
+  const combinedFeed = useMemo(() => {
+    const formattedStorePosts = socialPosts.map(post => ({
+      id: post.id,
+      title: post.title,
+      type: 'social-post',
+      authorName: post.author_name || 'Anonim',
+      authorId: post.author_id,
+      views: post.viewCount || 0,
+      likes: post.likeCount || 0,
+      comments: post.commentCount || 0,
+      createdAt: post.createdAt,
+      content: post.content,
+      attachments: post.attachments,
+      isStorePost: true
+    }));
+
+    return [...formattedStorePosts, ...SAMPLE_ITEMS].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-  }, [searchQuery, displayProfiles]);
+  }, [socialPosts]);
 
   const handleFollowUser = (profileId: string) => {
     toast({
@@ -98,8 +104,8 @@ export function SocialPanel({ onOpenContent }: SocialPanelProps = {}) {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="content" className="gap-2">
-            <TrendingUp className="w-4 h-4" />
-            <span className="hidden sm:inline">İçerikler</span>
+            <Compass className="w-4 h-4" />
+            <span className="hidden sm:inline">Keşfet</span>
           </TabsTrigger>
           <TabsTrigger value="channels" className="gap-2">
             <Trophy className="w-4 h-4" />
@@ -115,37 +121,85 @@ export function SocialPanel({ onOpenContent }: SocialPanelProps = {}) {
         <TabsContent value="content" className="flex-1 flex flex-col min-h-0">
           <ScrollArea className="flex-1">
             <div className="p-3 space-y-3">
-              {SAMPLE_ITEMS.slice(0, 12).map((item) => (
+              <CreatePostCard />
+              {combinedFeed.slice(0, 20).map((item) => (
                 <Card
                   key={item.id}
-                  className="hover:bg-accent/50 transition-colors cursor-pointer"
+                  className="hover:bg-accent/20 transition-colors cursor-pointer border-primary/10"
                   onClick={() => handleContentClick(item)}
                 >
                   <CardContent className="p-3">
                     <div className="flex gap-3">
-                      {item.thumbnail && (
-                        <div className="w-24 h-16 rounded overflow-hidden flex-shrink-0 bg-muted">
-                          <img
-                            src={item.thumbnail}
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                          />
+                      {(item as any).isStorePost ? (
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                             <Avatar className="h-6 w-6">
+                              <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${item.authorName}`} />
+                              <AvatarFallback>{item.authorName[0]}</AvatarFallback>
+                            </Avatar>
+                            <span className="font-bold text-xs">@{item.authorName}</span>
+                            <span className="text-[10px] text-muted-foreground">
+                              {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: tr })}
+                            </span>
+                          </div>
+                          
+                          <p className="text-sm mb-3 line-clamp-3">{(item as any).content}</p>
+                          
+                          {(item as any).attachments?.length > 0 && (
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                              {(item as any).attachments.map((at: any) => (
+                                <div key={at.id} className="aspect-video bg-muted rounded overflow-hidden flex items-center justify-center relative">
+                                  {at.type === 'video' && <Play className="w-6 h-6 text-primary" />}
+                                  {at.type === 'folder' && <Grid className="w-6 h-6 text-primary" />}
+                                  {at.type === '3d' && <Box className="w-6 h-6 text-primary" />}
+                                  {at.type === 'widget' && <Puzzle className="w-6 h-6 text-primary" />}
+                                  <div className="absolute bottom-1 left-1 bg-black/50 px-1 rounded text-[10px] text-white">
+                                    {at.title}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <div className="flex gap-4 items-center pt-2 border-t border-primary/5">
+                            <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs">
+                              <Heart className="w-3" /> {item.likes}
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs">
+                              <Star className="w-3" /> Puanla
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs ml-auto">
+                              <Save className="w-3" /> Kaydet
+                            </Button>
+                          </div>
                         </div>
+                      ) : (
+                        <>
+                          {(item as any).thumbnail && (
+                            <div className="w-24 h-16 rounded overflow-hidden flex-shrink-0 bg-muted">
+                              <img
+                                src={(item as any).thumbnail}
+                                alt={item.title}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm line-clamp-2 mb-1">{item.title}</h4>
+                            <p className="text-xs text-muted-foreground mb-2">{item.authorName}</p>
+                            <div className="flex gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Eye className="w-3 h-3" />
+                                {item.views.toLocaleString('tr-TR')}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Heart className="w-3 h-3" />
+                                {item.likes.toLocaleString('tr-TR')}
+                              </span>
+                            </div>
+                          </div>
+                        </>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-sm line-clamp-2 mb-1">{item.title}</h4>
-                        <p className="text-xs text-muted-foreground mb-2">{item.authorName}</p>
-                        <div className="flex gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Eye className="w-3 h-3" />
-                            {item.views.toLocaleString('tr-TR')}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Heart className="w-3 h-3" />
-                            {item.likes.toLocaleString('tr-TR')}
-                          </span>
-                        </div>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>

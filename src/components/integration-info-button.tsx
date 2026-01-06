@@ -48,7 +48,7 @@ export function IntegrationInfoButton({
         )}
       </DialogTrigger>
       
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-700">
+      <DialogContent className="sm:max-w-2xl bg-slate-900 border-slate-700">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
             <Info className="w-5 h-5 text-blue-400" />

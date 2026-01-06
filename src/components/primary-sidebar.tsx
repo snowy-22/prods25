@@ -3,7 +3,7 @@
 'use client';
 
 import { memo, useRef, useState, useEffect, useMemo, ReactNode } from 'react';
-import { Bot, Library, Plus, Trash2, Folder as FolderIcon, FileText as FileIcon, Frame, Copy, List, Eye, Clock, StickyNote, Calendar, Play, Upload, LayoutGrid, AlertCircle, Film, Save, Pencil, MousePointer, Settings, Monitor, Moon, Sun, GripHorizontal, Image as ImageIcon, Expand, RotateCw, ArrowUpNarrowWide, Info, GanttChart, Wand2, User, LogOut, LogIn, ChevronDown, ListIcon, Undo, Redo, Share, Users, MessageSquare, Pin, PinOff, Palette, ArrowDownAZ, ArrowUpAZ, UserPlus, MessageSquarePlus, Minus, EyeOff, ChevronRight, PanelLeft, Link as LinkIcon, ChevronsRight, FolderSync, Award, Mic, History, Sparkles, Bell, Search, Puzzle, Globe, Camera, Tv, UserCog, Home, MonitorSmartphone, Airplay, Projector, QrCode, KeyRound } from 'lucide-react';
+import { Bot, Library, Plus, Trash2, Folder as FolderIcon, FileText as FileIcon, Frame, Copy, List, Eye, Clock, StickyNote, Calendar, Play, Upload, LayoutGrid, AlertCircle, Film, Save, Pencil, MousePointer, Settings, Monitor, Moon, Sun, GripHorizontal, Image as ImageIcon, Expand, RotateCw, ArrowUpNarrowWide, Info, GanttChart, Wand2, User, LogOut, LogIn, ChevronDown, ListIcon, Undo, Redo, Share, Users, MessageSquare, Pin, PinOff, Palette, ArrowDownAZ, ArrowUpAZ, UserPlus, MessageSquarePlus, Minus, EyeOff, ChevronRight, PanelLeft, Link as LinkIcon, ChevronsRight, FolderSync, Award, Mic, History, Sparkles, Bell, Search, Puzzle, Globe, Camera, Tv, UserCog, Home, MonitorSmartphone, Airplay, Projector, QrCode, KeyRound, Maximize, Minimize, ExternalLink, BarChart, ShoppingCart, Columns3, SquareStack } from 'lucide-react';
 import { AppLogo } from '@/components/icons/app-logo';
 import type { ContentItem, ItemType, SortOption } from '@/lib/initial-content';
 import { Button } from '@/components/ui/button';
@@ -33,8 +33,8 @@ interface PrimarySidebarProps {
   onSetView: (item: ContentItem | null, event?: React.MouseEvent) => void;
   username: string;
   setUsername: (username: string) => void;
-  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | null;
-  setActiveSecondaryPanel: (panel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | null) => void;
+  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | null;
+  setActiveSecondaryPanel: (panel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | null) => void;
   isSecondLeftSidebarOpen: boolean;
   toggleSecondLeftSidebar: (open?: boolean) => void;
   toggleSearchDialog: () => void;
@@ -45,6 +45,8 @@ interface PrimarySidebarProps {
   toggleDevicesPanel: () => void;
   isSpacesPanelOpen: boolean;
   isDevicesPanelOpen: boolean;
+  isViewportEditorOpen?: boolean;
+  toggleViewportEditor?: () => void;
   unreadMessagesCount: number;
   unreadNotificationsCount: number;
   onShare: (item: ContentItem) => void;
@@ -52,6 +54,20 @@ interface PrimarySidebarProps {
   devices: ContentItem[];
   activeBroadcastTargetId: string | null;
   onSetBroadcastTarget: (id: string | null) => void;
+  isFullscreen?: boolean;
+  toggleFullscreen?: () => void;
+  isUiHidden?: boolean;
+  setIsUiHidden?: (hidden: boolean) => void;
+  isStyleSettingsOpen?: boolean;
+  toggleStyleSettingsPanel?: () => void;
+  activeViewId?: string;
+  // Grid Mode Props
+  normalizedLayoutMode?: 'grid' | 'canvas' | 'free';
+  gridModeState?: { enabled: boolean; type: 'vertical' | 'square'; columns: number; currentPage: number };
+  setGridModeEnabled?: (enabled: boolean) => void;
+  setGridModeType?: (type: 'vertical' | 'square') => void;
+  setGridColumns?: (columns: number) => void;
+  setGridCurrentPage?: (page: number) => void;
 }
 
 
@@ -78,7 +94,19 @@ export default function PrimarySidebar({
     sessionId,
     devices,
     activeBroadcastTargetId,
-    onSetBroadcastTarget,
+    onSetBroadcastTarget,    isFullscreen = false,
+    toggleFullscreen,
+    isUiHidden = false,
+    setIsUiHidden,
+    isStyleSettingsOpen = false,
+    toggleStyleSettingsPanel,
+    activeViewId,
+    normalizedLayoutMode = 'grid',
+    gridModeState = { enabled: false, type: 'vertical', columns: 3, currentPage: 1 },
+    setGridModeEnabled,
+    setGridModeType,
+    setGridColumns,
+    setGridCurrentPage,
 }: PrimarySidebarProps) {
 
     const router = useRouter();
@@ -144,42 +172,66 @@ export default function PrimarySidebar({
                         {/* Main Tools */}
                         <Tooltip>
                             <TooltipTrigger asChild>
-                            <Button 
-                                variant={activeSecondaryPanel === 'library' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
-                                size="icon" 
-                                className='h-10 w-10' 
-                                onClick={() => {
-                                    if (activeSecondaryPanel === 'library' && isSecondLeftSidebarOpen) {
-                                        toggleSecondLeftSidebar(false);
-                                    } else {
-                                        setActiveSecondaryPanel('library');
-                                    }
-                                }} 
-                                data-testid="library-button"
-                            >
-                                <Library className="h-5 w-5"/>
-                            </Button>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'library' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-10 w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'library' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('library');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="library-button"
+                                >
+                                    <Library className="h-5 w-5"/>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Kitaplık</p></TooltipContent>
                         </Tooltip>
 
                         <Tooltip>
                             <TooltipTrigger asChild>
-                            <Button 
-                                variant={activeSecondaryPanel === 'ai-chat' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
-                                size="icon" 
-                                className='h-10 w-10' 
-                                onClick={() => {
-                                    if (activeSecondaryPanel === 'ai-chat' && isSecondLeftSidebarOpen) {
-                                        toggleSecondLeftSidebar(false);
-                                    } else {
-                                        setActiveSecondaryPanel('ai-chat');
-                                    }
-                                }} 
-                                data-testid="ai-chat-button"
-                            >
-                                <Bot className="h-5 w-5"/>
-                            </Button>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'profile' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-10 w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'profile' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('profile');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="profile-sidebar-button"
+                                >
+                                    <UserCog className="h-5 w-5"/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right"><p>Profilim</p></TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'ai-chat' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-10 w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'ai-chat' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('ai-chat');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="ai-chat-button"
+                                >
+                                    <Bot className="h-5 w-5"/>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>AI Asistan</p></TooltipContent>
                         </Tooltip>
@@ -189,15 +241,7 @@ export default function PrimarySidebar({
                         {/* Interaction & Discovery Tools */}
                          <Tooltip>
                             <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" className='h-10 w-10' onClick={toggleSearchDialog} data-testid="search-button">
-                                <Search className="h-5 w-5"/>
-                            </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="right"><p>Arama ve Komut</p></TooltipContent>
-                        </Tooltip>
-                         <Tooltip>
-                            <TooltipTrigger asChild>
-                               <Button 
+                                <Button 
                                     variant={activeSecondaryPanel === 'widgets' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
                                     className='h-10 w-10' 
@@ -206,6 +250,7 @@ export default function PrimarySidebar({
                                             toggleSecondLeftSidebar(false);
                                         } else {
                                             setActiveSecondaryPanel('widgets');
+                                            toggleSecondLeftSidebar(true);
                                         }
                                     }} 
                                     data-testid="widgets-button"
@@ -217,71 +262,117 @@ export default function PrimarySidebar({
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                            <Button 
-                                variant={activeSecondaryPanel === 'social' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
-                                size="icon" 
-                                className='h-10 w-10' 
-                                onClick={() => {
-                                    if (activeSecondaryPanel === 'social' && isSecondLeftSidebarOpen) {
-                                        toggleSecondLeftSidebar(false);
-                                    } else {
-                                        setActiveSecondaryPanel('social');
-                                        toggleSecondLeftSidebar(true);
-                                    }
-                                }} 
-                                data-testid="social-button"
-                            >
-                                <Users className="h-5 w-5"/>
-                            </Button>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'social' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-10 w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'social' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('social');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="social-button"
+                                >
+                                    <Users className="h-5 w-5"/>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Sosyal Merkez</p></TooltipContent>
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                            <Button 
-                                variant={activeSecondaryPanel === 'notifications' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
-                                size="icon" 
-                                className='h-10 w-10 relative' 
-                                onClick={() => {
-                                    if (activeSecondaryPanel === 'notifications' && isSecondLeftSidebarOpen) {
-                                        toggleSecondLeftSidebar(false);
-                                    } else {
-                                        setActiveSecondaryPanel('notifications');
-                                        toggleSecondLeftSidebar(true);
-                                    }
-                                }} 
-                                data-testid="notifications-button"
-                            >
-                                <Bell className="h-5 w-5"/>
-                                <NotificationBadge count={unreadNotificationsCount} />
-                            </Button>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'notifications' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-10 w-10 relative' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'notifications' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('notifications');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="notifications-button"
+                                >
+                                    <Bell className="h-5 w-5"/>
+                                    <NotificationBadge count={unreadNotificationsCount} />
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Bildirimler</p></TooltipContent>
                         </Tooltip>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                            <Button 
-                                variant={activeSecondaryPanel === 'messages' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
-                                size="icon" 
-                                className='h-10 w-10 relative' 
-                                onClick={() => {
-                                    if (activeSecondaryPanel === 'messages' && isSecondLeftSidebarOpen) {
-                                        toggleSecondLeftSidebar(false);
-                                    } else {
-                                        setActiveSecondaryPanel('messages');
-                                        toggleSecondLeftSidebar(true);
-                                    }
-                                }} 
-                                data-testid="messages-button"
-                            >
+                                <Button 
+                                    variant={activeSecondaryPanel === 'messages' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-10 w-10 relative' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'messages' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('messages');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="messages-button"
+                                >
                                     <MessageSquare className="h-5 w-5"/>
                                     <NotificationBadge count={unreadMessagesCount} />
-                            </Button>
+                                </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Sohbetler</p></TooltipContent>
                         </Tooltip>
 
-                        <Separator className='my-2 w-8' />"""1"
+                        <Separator className='my-2 w-8' />
+                        
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'shopping' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-10 w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'shopping' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('shopping');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="shopping-button"
+                                >
+                                    <ShoppingCart className="h-5 w-5"/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right"><p>E-Ticaret</p></TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'profile' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-10 w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'profile' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('profile');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="profile-button"
+                                >
+                                    <User className="h-5 w-5"/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right"><p>Profilim</p></TooltipContent>
+                        </Tooltip>
+
+                        <Separator className='my-2 w-8' />
                  </div>
             </ScrollArea>
 
@@ -348,22 +439,6 @@ export default function PrimarySidebar({
                             variant="ghost" 
                             size="icon" 
                             className='h-10 w-10' 
-                            onClick={() => toggleApiKeysDialog?.()}
-                        >
-                            <KeyRound className="h-5 w-5" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">
-                        <p>API Anahtarları</p>
-                    </TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className='h-10 w-10' 
                             onClick={() => toggleSettingsDialog('integrations')}
                         >
                             <Settings className="h-5 w-5" />
@@ -394,6 +469,118 @@ export default function PrimarySidebar({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-64 mb-2 p-2" side="right" align="end">
                         <DropdownMenuLabel>{username}</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        
+                        {/* Tarayıcı Kontrolleri */}
+                        <DropdownMenuItem onClick={() => setIsUiHidden?.(!isUiHidden)}>
+                            {isUiHidden ? <Eye className="mr-2 h-4 w-4" /> : <EyeOff className="mr-2 h-4 w-4" />}
+                            <span>{isUiHidden ? 'Arayüzü Göster' : 'Arayüzü Gizle'}</span>
+                        </DropdownMenuItem>
+                        
+                        <DropdownMenuItem onClick={() => toggleFullscreen?.()}>
+                            {isFullscreen ? <Minimize className="mr-2 h-4 w-4" /> : <Maximize className="mr-2 h-4 w-4" />}
+                            <span>{isFullscreen ? 'Tam Ekrandan Çık' : 'Tam Ekran'}</span>
+                        </DropdownMenuItem>
+                        
+                        {activeViewId && (
+                            <DropdownMenuItem onClick={() => {
+                                window.open(
+                                    `/popout?itemId=${activeViewId}`,
+                                    'popout-view',
+                                    'width=1000,height=800,menubar=no,toolbar=no,location=no,status=no'
+                                );
+                            }}>
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                <span>Pencereyi Ayır</span>
+                            </DropdownMenuItem>
+                        )}
+                        
+                        <DropdownMenuItem onClick={() => toggleStyleSettingsPanel?.()}>
+                            <Palette className="mr-2 h-4 w-4" />
+                            <span>Görünüm Ayarları</span>
+                        </DropdownMenuItem>
+                        
+                        {/* Grid Mode Controls - Only in grid mode */}
+                        {normalizedLayoutMode === 'grid' && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel className="text-xs text-muted-foreground">İzgara Modu</DropdownMenuLabel>
+                            
+                            {/* Mode Switcher */}
+                            <div className="px-2 py-2 flex items-center gap-1 mb-2">
+                              <Button
+                                variant={gridModeState?.enabled && gridModeState?.type === 'vertical' ? 'default' : 'outline'}
+                                size="sm"
+                                className="h-8 text-xs flex-1"
+                                onClick={() => {
+                                  setGridModeEnabled?.(true);
+                                  setGridModeType?.('vertical');
+                                }}
+                              >
+                                <Columns3 className="h-3.5 w-3.5 mr-1" />
+                                Sonsuz
+                              </Button>
+                              <Button
+                                variant={gridModeState?.enabled && gridModeState?.type === 'square' ? 'default' : 'outline'}
+                                size="sm"
+                                className="h-8 text-xs flex-1"
+                                onClick={() => {
+                                  setGridModeEnabled?.(true);
+                                  setGridModeType?.('square');
+                                }}
+                              >
+                                <SquareStack className="h-3.5 w-3.5 mr-1" />
+                                Sayfa
+                              </Button>
+                            </div>
+                            
+                            {/* Column Selector */}
+                            {gridModeState?.enabled && (
+                              <div className="px-2 py-2 grid grid-cols-5 gap-1 mb-2">
+                                {[2, 3, 4, 5, 6].map((col) => (
+                                  <Button
+                                    key={col}
+                                    variant={gridModeState?.columns === col ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="h-8 text-xs p-0"
+                                    onClick={() => setGridColumns?.(col)}
+                                  >
+                                    {col}
+                                  </Button>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {/* Page Navigation - Only in square mode */}
+                            {gridModeState?.enabled && gridModeState?.type === 'square' && (
+                              <div className="px-2 py-2">
+                                <div className="flex items-center gap-1 justify-center">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-xs"
+                                    onClick={() => setGridCurrentPage?.(Math.max(1, (gridModeState?.currentPage || 1) - 1))}
+                                    disabled={(gridModeState?.currentPage || 1) <= 1}
+                                  >
+                                    ←
+                                  </Button>
+                                  <span className="text-xs font-medium whitespace-nowrap px-2">
+                                    Sayfa {gridModeState?.currentPage || 1}
+                                  </span>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-xs"
+                                    onClick={() => setGridCurrentPage?.((gridModeState?.currentPage || 1) + 1)}
+                                  >
+                                    →
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        
                         <DropdownMenuSeparator />
                         {isUserLoggedIn ? (
                             <>
@@ -433,6 +620,13 @@ export default function PrimarySidebar({
                                         </DropdownMenuCheckboxItem>
                                     </DropdownMenuSubContent>
                                 </DropdownMenuSub>
+                                
+                                <DropdownMenuSeparator />
+                                
+                                <DropdownMenuItem onClick={() => router.push('/analytics')}>
+                                    <BarChart className="mr-2 h-4 w-4" />
+                                    <span>Analiz</span>
+                                </DropdownMenuItem>
 
                                 <DropdownMenuItem onClick={handleLogout}>
                                     <LogOut className="mr-2 h-4 w-4" />

@@ -71,23 +71,23 @@ export function BottomControlBar({
   };
 
   return (
-    <div className="flex items-center justify-between gap-2 px-2 md:px-3 py-2 border-t bg-muted/50 backdrop-blur-sm min-h-12">
+    <div className="flex items-center justify-between gap-2 px-2 md:px-3 py-1 border-t bg-muted/50 backdrop-blur-sm h-9">
       {/* Left Section: Zoom Out + Slider Section */}
       <div className="flex items-center gap-3 flex-1 max-w-none">
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 flex-shrink-0"
+          className="h-6 w-6 flex-shrink-0"
           onClick={handleZoomOut}
           disabled={currentPreset === 'S'}
           title="Küçült"
         >
-          <ZoomOut className="h-3.5 w-3.5" />
+          <ZoomOut className="h-3 w-3" />
         </Button>
 
         <div className="flex items-center gap-2 flex-1">
-          <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-          <div className="relative flex-1 min-w-[280px] h-12">
+          <LayoutGrid className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          <div className="relative flex-1 min-w-[280px] h-8">
             {/* Map scale ruler appearance */}
             <div className="absolute inset-0 flex items-center">
               {/* Scale bar track */}
@@ -105,8 +105,8 @@ export function BottomControlBar({
                     className={cn(
                       "w-0.5 rounded-full transition-all",
                       currentPreset === marker.preset 
-                        ? "h-8 bg-primary shadow-lg" 
-                        : "h-4 bg-muted-foreground/40"
+                        ? "h-6 bg-primary shadow-lg" 
+                        : "h-3 bg-muted-foreground/40"
                     )}
                   />
                   
@@ -147,12 +147,12 @@ export function BottomControlBar({
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 flex-shrink-0"
+          className="h-6 w-6 flex-shrink-0"
           onClick={handleZoomIn}
           disabled={currentPreset === 'XXL'}
           title="Büyüt"
         >
-          <ZoomIn className="h-3.5 w-3.5" />
+          <ZoomIn className="h-3 w-3" />
         </Button>
       </div>
 
@@ -162,23 +162,23 @@ export function BottomControlBar({
           <Button
             variant={isMiniMapOpen ? 'secondary' : 'ghost'}
             size="icon"
-            className="h-7 w-7"
+            className="h-6 w-6"
             onClick={() => onToggleMiniMap?.(!isMiniMapOpen)}
             title="Mini Map"
           >
-            <Map className="h-3.5 w-3.5" />
+            <Map className="h-3 w-3" />
           </Button>
         )}
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-7 w-7" 
+          className="h-6 w-6" 
           onClick={() => onToggleCollapse(!isCollapsed)}
         >
           {isCollapsed ? (
-            <ChevronUp className="h-3.5 w-3.5" />
+            <ChevronUp className="h-3 w-3" />
           ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
+            <ChevronDown className="h-3 w-3" />
           )}
         </Button>
       </div>

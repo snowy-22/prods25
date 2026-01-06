@@ -205,7 +205,7 @@ export default function CalendarView({ item: calendarItem, allItems, onUpdateIte
                         </DialogHeader>
                         <div className="flex-1 min-h-0">
                              <PlayerFrame 
-                                item={selectedEvent} isEditMode={false} layoutMode='free' isPlayerHeaderVisible={false}
+                                item={selectedEvent} isEditMode={false} layoutMode='grid' isPlayerHeaderVisible={false}
                                 isPlayerSettingsVisible={false} onLoad={() => {}} onMouseDown={() => {}}
                                 isSelected={false} onUpdateItem={() => {}}
                                 onDeleteItem={() => {}} onCopyItem={() => {}} onShare={() => {}}

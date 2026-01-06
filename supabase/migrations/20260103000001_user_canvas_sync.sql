@@ -40,6 +40,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to auto-update timestamps
+DO $$
+BEGIN
+  DROP TRIGGER IF EXISTS update_user_canvas_data_updated_at ON user_canvas_data;
+EXCEPTION WHEN UNDEFINED_OBJECT THEN NULL;
+END;
+$$;
+
 CREATE TRIGGER update_user_canvas_data_updated_at
   BEFORE UPDATE ON user_canvas_data
   FOR EACH ROW
@@ -69,13 +76,25 @@ CREATE INDEX idx_user_preferences_user_id ON user_preferences(user_id);
 ALTER TABLE user_preferences ENABLE ROW LEVEL SECURITY;
 
 -- Policy for preferences
-CREATE POLICY "Users can manage their own preferences"
-  ON user_preferences
-  FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+DO $$
+BEGIN
+  CREATE POLICY "Users can manage their own preferences"
+    ON user_preferences
+    FOR ALL
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+EXCEPTION WHEN DUPLICATE_OBJECT THEN NULL;
+END;
+$$;
 
 -- Trigger for preferences
+DO $$
+BEGIN
+  DROP TRIGGER IF EXISTS update_user_preferences_updated_at ON user_preferences;
+EXCEPTION WHEN UNDEFINED_OBJECT THEN NULL;
+END;
+$$;
+
 CREATE TRIGGER update_user_preferences_updated_at
   BEFORE UPDATE ON user_preferences
   FOR EACH ROW

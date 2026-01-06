@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { ContentItem } from '@/lib/initial-content';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Settings, Wand2, Share2, Eye, Trash2, FolderOpen, ThumbsUp, MessageCircle, Save, Star, TrendingUp, BookOpen, GanttChart, BrainCircuit, Waves, Thermometer, BatteryCharging, Ruler, Scale, Lock, Unlock, ExternalLink, Bookmark, Palette, Type, Maximize2, Minimize2, Square, Circle, Layers, MoreHorizontal, Play, Puzzle, List, Folder, Upload, Camera } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Settings, Wand2, Share2, Eye, Trash2, FolderOpen, ThumbsUp, MessageCircle, Save, Star, TrendingUp, BookOpen, GanttChart, BrainCircuit, Waves, Thermometer, BatteryCharging, Ruler, Scale, Lock, Unlock, ExternalLink, Bookmark, Palette, Type, Maximize2, Minimize2, Square, Circle, Layers, MoreHorizontal, Play, Puzzle, List, Folder, Upload, Camera, Globe } from 'lucide-react';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuShortcut, ContextMenuTrigger, ContextMenuSeparator } from './ui/context-menu';
 import { getIconByName, IconName, metricIcons } from '@/lib/icons';
 import { useToast } from '@/hooks/use-toast';
@@ -34,19 +34,20 @@ const MetricDisplay = ({ metricKey, value }: { metricKey: string, value: any }) 
     if (metricKey === 'letterGrade') {
         const Icon = (metricIcons.letterGrade as any)[value as keyof typeof metricIcons.letterGrade] || metricIcons.default;
         return (
-            <div className="flex items-center gap-1 font-bold text-sm text-amber-500" title={`Harf Notu: ${value}`}>
-                 <Icon className="h-4 w-4 text-purple-400" />
+            <div className="flex items-center gap-0.5 font-bold text-[10px] text-amber-500 transition-all hover:scale-105" title={`Harf Notu: ${value}`}>
+                 <Icon className="h-3 w-3 text-purple-400" />
             </div>
         )
     }
 
     const Icon = (metricIcons as any)[metricKey as keyof typeof metricIcons] || metricIcons.default;
 
-    if (metricKey === 'averageRating' || metricKey === 'myRating' || metricKey === 'fiveStarRating') {
+    if (metricKey === 'averageRating' || metricKey === 'myRating' || metricKey === 'fiveStarRating' || metricKey === 'tenPointRating') {
+        const maxValue = metricKey === 'tenPointRating' ? 10 : 5;
         return (
-            <div className="flex items-center gap-1 font-bold text-sm text-amber-500" title={`Puan: ${value}`}>
-                <Icon className="h-4 w-4 text-amber-400 fill-amber-400" />
-                <span>{Number(value).toFixed(1)}</span>
+            <div className="flex items-center gap-0.5 font-bold text-[10px] text-amber-500 transition-all hover:scale-105" title={`Puan: ${value}/${maxValue}`}>
+                <Icon className="h-3 w-3 text-amber-400 fill-amber-400" />
+                <span className="font-mono">{Number(value).toFixed(1)}</span>
             </div>
         );
     }
@@ -56,9 +57,9 @@ const MetricDisplay = ({ metricKey, value }: { metricKey: string, value: any }) 
     }
 
     return (
-        <div className="flex items-center gap-1 text-sm text-muted-foreground" title={`${metricKey}: ${value}`}>
-            <Icon className="h-4 w-4" />
-            <span className="font-mono text-xs">{value}</span>
+        <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground transition-all hover:text-foreground hover:scale-105" title={`${metricKey}: ${value}`}>
+            <Icon className="h-3 w-3" />
+            <span className="font-mono text-[9px]">{value}</span>
         </div>
     );
 };
@@ -67,23 +68,23 @@ const ItemStyleSettings = ({ item, onUpdateItem }: { item: ContentItem, onUpdate
     const styles = item.styles || {};
     
     return (
-        <div className="p-0 w-72 bg-card/80 backdrop-blur-xl border rounded-xl shadow-2xl overflow-hidden">
+        <div className="p-0 w-64 bg-card/90 backdrop-blur-2xl border border-border/60 rounded-xl shadow-2xl overflow-hidden hover:shadow-3xl transition-all">
             <Tabs defaultValue="general" className="w-full">
-                <TabsList className="w-full grid grid-cols-2 rounded-none border-b bg-transparent h-10">
-                    <TabsTrigger value="general" className="text-[10px] uppercase font-bold">Genel</TabsTrigger>
-                    <TabsTrigger value="frame" className="text-[10px] uppercase font-bold">Çerçeve</TabsTrigger>
+                <TabsList className="w-full grid grid-cols-2 rounded-none border-b border-border/40 bg-transparent h-8">
+                    <TabsTrigger value="general" className="text-[9px] uppercase font-bold tracking-wide">Genel</TabsTrigger>
+                    <TabsTrigger value="frame" className="text-[9px] uppercase font-bold tracking-wide">Çerçeve</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="general" className="p-4 space-y-4 mt-0">
-                    <div className="space-y-2">
-                        <Label className="text-xs font-bold flex items-center gap-2">
+                <TabsContent value="general" className="p-3 space-y-3 mt-0">
+                    <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold flex items-center gap-1.5">
                             <Palette className="h-3 w-3" /> Görünüm
                         </Label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-1.5">
                             <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className={cn("h-8 text-[10px]", styles.borderRadius === '0px' && "bg-primary text-primary-foreground")}
+                                className={cn("h-7 text-[9px] hover:scale-105 transition-all", styles.borderRadius === '0px' && "bg-primary text-primary-foreground")}
                                 onClick={() => onUpdateItem(item.id, { styles: { ...styles, borderRadius: '0px' } })}
                             >
                                 <Square className="h-3 w-3 mr-1" /> Keskin
@@ -91,7 +92,7 @@ const ItemStyleSettings = ({ item, onUpdateItem }: { item: ContentItem, onUpdate
                             <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className={cn("h-8 text-[10px]", styles.borderRadius === '12px' && "bg-primary text-primary-foreground")}
+                                className={cn("h-7 text-[9px] hover:scale-105 transition-all", styles.borderRadius === '12px' && "bg-primary text-primary-foreground")}
                                 onClick={() => onUpdateItem(item.id, { styles: { ...styles, borderRadius: '12px' } })}
                             >
                                 <Circle className="h-3 w-3 mr-1" /> Oval
@@ -240,7 +241,7 @@ type PlayerFrameProps = {
   onUpdateItem: (itemId: string, updates: Partial<ContentItem>) => void;
   onDeleteItem: (itemId: string) => void;
   onCopyItem: (itemId: string) => void;
-  layoutMode: 'grid' | 'free' | 'sectional' | 'studio';
+  layoutMode: 'grid' | 'canvas';
   isSelected: boolean;
   isFocused?: boolean;
   onFocusCleared?: () => void;
@@ -327,6 +328,9 @@ const PlayerFrameComponent = ({
         const shouldShowVisualizer = visualizerMode && visualizerMode !== 'off';
   const { toast } = useToast();
   const openInNewTab = useAppStore(s => s.openInNewTab);
+  const setActiveSecondaryPanel = useAppStore(s => s.setActiveSecondaryPanel);
+  const setItemToShare = useAppStore(s => s.setItemToShare);
+  const setItemToMessage = useAppStore(s => s.setItemToMessage);
 
   // Determine if save button should be shown
   // Hide save button for personal library and own lists
@@ -410,10 +414,13 @@ const PlayerFrameComponent = ({
       '--frame-style': item.frameStyle || (globalStyles as any)?.frameStyle || 'solid',
   } as React.CSSProperties;
 
-  // Resize handlers - grid-aligned with flow layout and wrapping
+  // Resize handlers - supports both grid and canvas modes
   const GRID_SIZE = 160; // Base grid unit (pixels)
   const MIN_SPAN = 1; // Minimum grid span
   const MAX_SPAN = 4; // Maximum grid span (prevents nonsensical sizes)
+  const MIN_SIZE = 80; // Minimum pixel size for canvas mode (reduced for responsive)
+  const MAX_SIZE = 1200; // Maximum pixel size for canvas mode
+  const isCanvasMode = layoutMode === 'canvas';
   
   const handleResizeStart = (position: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -426,50 +433,91 @@ const PlayerFrameComponent = ({
     const cardRect = ref.current?.getBoundingClientRect();
     if (!cardRect) return;
 
-    // Current grid spans
+    // Get parent container width for responsive sizing
+    const parentWidth = ref.current?.parentElement?.clientWidth || 1200;
+
+    // Store initial values
+    const initialWidth = cardRect.width;
+    const initialHeight = cardRect.height;
     const currentSpanCol = item.gridSpanCol || 1;
     const currentSpanRow = item.gridSpanRow || 1;
+    const currentWidth = item.styles?.width ? parseFloat(item.styles.width as string) : initialWidth;
+    const currentHeight = item.styles?.height ? parseFloat(item.styles.height as string) : initialHeight;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
       const deltaX = moveEvent.clientX - startX;
       const deltaY = moveEvent.clientY - startY;
       
-      let newSpanCol = currentSpanCol;
-      let newSpanRow = currentSpanRow;
+      if (isCanvasMode) {
+        // Canvas mode: Update absolute pixel dimensions in real-time with responsive constraints
+        let newWidth = currentWidth;
+        let newHeight = currentHeight;
+        
+        // Responsive max width - adapt to parent container
+        const responsiveMaxWidth = Math.min(MAX_SIZE, parentWidth * 0.95);
 
-      // Handle horizontal resize (snap to grid)
-      if (['e', 'ne', 'se'].includes(position)) {
-        newSpanCol = Math.max(MIN_SPAN, Math.round((cardRect.width + deltaX) / GRID_SIZE));
-      } else if (['w', 'nw', 'sw'].includes(position)) {
-        newSpanCol = Math.max(MIN_SPAN, Math.round((cardRect.width - deltaX) / GRID_SIZE));
-      }
-
-      // Handle vertical resize (snap to grid)
-      if (['s', 'se', 'sw'].includes(position)) {
-        newSpanRow = Math.max(MIN_SPAN, Math.round((cardRect.height + deltaY) / GRID_SIZE));
-      } else if (['n', 'ne', 'nw'].includes(position)) {
-        newSpanRow = Math.max(MIN_SPAN, Math.round((cardRect.height - deltaY) / GRID_SIZE));
-      }
-
-      // Clamp to max
-      newSpanCol = Math.min(newSpanCol, MAX_SPAN);
-      newSpanRow = Math.min(newSpanRow, MAX_SPAN);
-
-      // Update item with grid spans (enables flow layout and wrapping)
-      onUpdateItem(item.id, {
-        gridSpanCol: newSpanCol,
-        gridSpanRow: newSpanRow,
-        // Keep CSS Grid positioning for auto flow/wrap
-        styles: {
-          ...item.styles,
-          // Remove absolute positioning - use grid layout
-          position: undefined,
-          left: undefined,
-          top: undefined,
-          width: undefined,
-          height: undefined,
+        // Handle horizontal resize
+        if (['e', 'ne', 'se'].includes(position)) {
+          newWidth = Math.max(MIN_SIZE, Math.min(responsiveMaxWidth, currentWidth + deltaX));
+        } else if (['w', 'nw', 'sw'].includes(position)) {
+          newWidth = Math.max(MIN_SIZE, Math.min(responsiveMaxWidth, currentWidth - deltaX));
         }
-      });
+
+        // Handle vertical resize
+        if (['s', 'se', 'sw'].includes(position)) {
+          newHeight = Math.max(MIN_SIZE, currentHeight + deltaY);
+        } else if (['n', 'ne', 'nw'].includes(position)) {
+          newHeight = Math.max(MIN_SIZE, currentHeight - deltaY);
+        }
+
+        // Update with pixel dimensions for canvas mode - live preview
+        onUpdateItem(item.id, {
+          styles: {
+            ...item.styles,
+            width: `${Math.round(newWidth)}px`,
+            height: `${Math.round(newHeight)}px`,
+            position: 'absolute',
+          }
+        });
+      } else {
+        // Grid mode: Update grid spans
+        let newSpanCol = currentSpanCol;
+        let newSpanRow = currentSpanRow;
+
+        // Handle horizontal resize (snap to grid)
+        if (['e', 'ne', 'se'].includes(position)) {
+          newSpanCol = Math.max(MIN_SPAN, Math.round((initialWidth + deltaX) / GRID_SIZE));
+        } else if (['w', 'nw', 'sw'].includes(position)) {
+          newSpanCol = Math.max(MIN_SPAN, Math.round((initialWidth - deltaX) / GRID_SIZE));
+        }
+
+        // Handle vertical resize (snap to grid)
+        if (['s', 'se', 'sw'].includes(position)) {
+          newSpanRow = Math.max(MIN_SPAN, Math.round((initialHeight + deltaY) / GRID_SIZE));
+        } else if (['n', 'ne', 'nw'].includes(position)) {
+          newSpanRow = Math.max(MIN_SPAN, Math.round((initialHeight - deltaY) / GRID_SIZE));
+        }
+
+        // Clamp to max
+        newSpanCol = Math.min(newSpanCol, MAX_SPAN);
+        newSpanRow = Math.min(newSpanRow, MAX_SPAN);
+
+        // Update item with grid spans (enables flow layout and wrapping)
+        onUpdateItem(item.id, {
+          gridSpanCol: newSpanCol,
+          gridSpanRow: newSpanRow,
+          // Keep CSS Grid positioning for auto flow/wrap
+          styles: {
+            ...item.styles,
+            // Remove absolute positioning - use grid layout
+            position: undefined,
+            left: undefined,
+            top: undefined,
+            width: undefined,
+            height: undefined,
+          }
+        });
+      }
     };
 
     const handleMouseUp = () => {
@@ -486,12 +534,12 @@ const PlayerFrameComponent = ({
     <div
       ref={ref}
       className={cn(
-        "relative w-full h-full transition-all duration-300 group/player min-h-[160px] max-h-[600px]", 
+        "relative w-full h-full transition-all duration-300 group/player sm:min-h-[140px] md:min-h-[160px] max-h-[800px] sm:max-h-[700px] md:max-h-[600px]", 
         isSelected && "selection-frame",
         frameEffectClass
         )}
       onClick={(e) => onItemClick(item, e)}
-            onMouseMove={pointerFrameEnabled ? handlePointerMove : undefined}
+      onMouseMove={pointerFrameEnabled ? handlePointerMove : undefined}
       style={frameStyles}
       data-anim={item.animation || (activeAnimation !== 'wave' ? activeAnimation : null)}
     >
@@ -514,7 +562,7 @@ const PlayerFrameComponent = ({
                                         {isPlayerHeaderVisible && (
                                             <div 
                                                 className={cn(
-                                                        "flex items-center justify-between px-2 h-8 text-xs font-semibold text-foreground flex-shrink-0 relative gap-2",
+                                                        "flex items-center justify-between px-1.5 h-5 text-xs font-medium text-foreground flex-shrink-0 relative gap-1 transition-all duration-200 hover:shadow-sm backdrop-blur-sm border-b border-border/30",
                                                         item.cellAnimation === 'fade-in' && 'animate-in fade-in duration-500',
                                                         item.cellAnimation === 'slide-up' && 'animate-in slide-in-from-bottom duration-500',
                                                         item.cellAnimation === 'zoom-in' && 'animate-in zoom-in duration-500',
@@ -522,16 +570,19 @@ const PlayerFrameComponent = ({
                                                         item.cellAnimation === 'rotate' && 'animate-spin',
                                                 )}
                                                 style={{
-                                                    backgroundColor: item.cellBackgroundColor || 'hsl(var(--card-foreground) / 0.05)',
+                                                    backgroundColor: item.cellBackgroundColor || 'hsl(var(--card-foreground) / 0.03)',
+                                                    background: item.cellBackgroundColor 
+                                                      ? item.cellBackgroundColor 
+                                                      : 'linear-gradient(to bottom, hsl(var(--card-foreground) / 0.04), hsl(var(--card-foreground) / 0.02))',
                                                 }}
                                                 onClick={handleHeaderClick}
                                                 onDoubleClick={handleHeaderDoubleClick}
                                             >
-                          <div className='flex items-center gap-2 truncate min-w-0'>
-                            <div className='flex items-center justify-center h-5 w-5 text-muted-foreground font-mono text-xs flex-shrink-0'>{item.hierarchyId}</div>
-                            <div className={cn('flex items-center justify-center h-5 w-5 text-muted-foreground flex-shrink-0', item.isInvalid && 'text-destructive' )}>
+                          <div className='flex items-center gap-0.5 truncate min-w-0'>
+                            <div className='flex items-center justify-center h-3 w-3 text-muted-foreground/70 font-mono text-[8px] flex-shrink-0 hover:text-muted-foreground transition-colors'>{item.hierarchyId}</div>
+                            <div className={cn('flex items-center justify-center h-3 w-3 text-muted-foreground/80 flex-shrink-0 transition-colors hover:scale-110', item.isInvalid && 'text-destructive' )}>
                               {item.thumbnail_url ? (
-                                <div className="relative h-4 w-4 rounded-sm overflow-hidden">
+                                <div className="relative h-3 w-3 rounded-sm overflow-hidden">
                                   <Image 
                                     src={item.thumbnail_url} 
                                     alt={item.title} 
@@ -540,12 +591,12 @@ const PlayerFrameComponent = ({
                                   />
                                 </div>
                               ) : (
-                                Icon && <Icon className="h-4 w-4" />
+                                Icon && <Icon className="h-3 w-3" />
                               )}
                             </div>
-                            <div className="relative flex items-center gap-1.5 min-w-0">
+                            <div className="relative flex items-center gap-1 min-w-0">
                                 <div 
-                                    className={cn('flex flex-col truncate transition-opacity', showHoverItems && 'group-hover/player:opacity-0')}
+                                    className={cn('flex flex-col truncate transition-all duration-200', showHoverItems && 'group-hover/player:opacity-0')}
                                     style={{
                                         fontFamily: item.cellTitleFont === 'mono' ? 'monospace' : 
                                                    item.cellTitleFont === 'serif' ? 'serif' : 
@@ -560,35 +611,35 @@ const PlayerFrameComponent = ({
                                     <span className="truncate">{item.title}</span>
                                     {item.author_name && <span className="text-[9px] text-muted-foreground truncate leading-none">{item.author_name}</span>}
                                 </div>
-                                 <div className={cn("absolute inset-0 flex items-center justify-start gap-1.5 transition-opacity overflow-visible", showHoverItems ? "opacity-0 group-hover/player:opacity-100" : "opacity-0")}>
+                                 <div className={cn("absolute inset-0 flex items-center justify-start gap-1 transition-all duration-200 overflow-visible", showHoverItems ? "opacity-0 group-hover/player:opacity-100" : "opacity-0")}>
                                       <Popover>
                                         <PopoverTrigger asChild>
-                                            <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => e.stopPropagation()}>
-                                                <Star className="h-4 w-4 text-amber-400" />
+                                            <Button variant="ghost" size="icon" className='h-5 w-5 hover:scale-110 transition-transform' onClick={(e) => e.stopPropagation()}>
+                                                <Star className="h-3.5 w-3.5 text-amber-400" />
                                             </Button>
                                         </PopoverTrigger>
                                         <RatingPopoverContent item={item} onUpdateItem={onUpdateItem} />
                                       </Popover>
                                       <div className="flex items-center gap-0.5 text-sm">
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleLike}>
-                                            <ThumbsUp className={cn("h-4 w-4", item.isLiked && "fill-primary text-primary")} />
+                                        <Button variant="ghost" size="icon" className="h-5 w-5 hover:scale-110 transition-transform" onClick={handleLike}>
+                                            <ThumbsUp className={cn("h-3.5 w-3.5 transition-colors", item.isLiked && "fill-primary text-primary")} />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleComment}>
-                                            <MessageCircle className="h-4 w-4"/>
+                                        <Button variant="ghost" size="icon" className="h-5 w-5 hover:scale-110 transition-transform" onClick={handleComment}>
+                                            <MessageCircle className="h-3.5 w-3.5"/>
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onShare(item) }}><Share2 className="h-4 w-4" /></Button>
-                                        {shouldShowSaveButton && <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onSaveItem(item) }}><Save className="h-4 w-4" /></Button>}
+                                        <Button variant="ghost" size="icon" className="h-5 w-5 hover:scale-110 transition-transform" onClick={(e) => { e.stopPropagation(); onShare(item) }}><Share2 className="h-3.5 w-3.5" /></Button>
+                                        {shouldShowSaveButton && <Button variant="ghost" size="icon" className="h-5 w-5 hover:scale-110 transition-transform" onClick={(e) => { e.stopPropagation(); onSaveItem(item) }}><Save className="h-3.5 w-3.5" /></Button>}
                                       </div>
                                   </div>
                             </div>
                           </div>
 
-                          <div className='flex items-center gap-1.5 ml-auto'>
+                          <div className='flex items-center gap-1 ml-auto'>
                               {layoutMode === 'canvas' && isInteractive && (
                                   <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-6 w-6 handle-drag cursor-move"
+                                      className="h-5 w-5 handle-drag cursor-move hover:bg-accent/80 transition-colors"
                                       title="Taşı (Sol Üst Köşeden Sürükle)"
                                       onClick={(e) => e.stopPropagation()}
                                       onMouseDown={(e) => {
@@ -596,20 +647,20 @@ const PlayerFrameComponent = ({
                                         // Canvas modunda drag başlatılır
                                       }}
                                   >
-                                      <MoreHorizontal className="h-4 w-4" />
+                                      <MoreHorizontal className="h-3.5 w-3.5" />
                                   </Button>
                               )}
                               {(item.url?.includes('youtube.com') || item.url?.includes('youtu.be')) && item.viewCount && (
-                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground mr-2">
+                                  <div className="flex items-center gap-0.5 text-[9px] text-muted-foreground mr-1 hover:text-foreground transition-colors">
                                       <Eye className="h-3 w-3" />
-                                      <span>{item.viewCount > 1000000 ? `${(item.viewCount / 1000000).toFixed(1)}M` : item.viewCount > 1000 ? `${(item.viewCount / 1000).toFixed(1)}K` : item.viewCount}</span>
+                                      <span className="font-mono">{item.viewCount > 1000000 ? `${(item.viewCount / 1000000).toFixed(1)}M` : item.viewCount > 1000 ? `${(item.viewCount / 1000).toFixed(1)}K` : item.viewCount}</span>
                                   </div>
                               )}
                               {item.type === 'player' && item.children && item.children.length > 1 && (
-                                  <div className="flex items-center gap-1">
-                                      <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => { e.stopPropagation(); handlePlayerNav('prev');}}><ChevronLeft className="h-4 w-4" /></Button>
-                                      <span className="text-xs font-mono text-muted-foreground">{ (item.playerIndex || 0) + 1 } / { item.children.length }</span>
-                                      <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => { e.stopPropagation(); handlePlayerNav('next');}}><ChevronRight className="h-4 w-4" /></Button>
+                                  <div className="flex items-center gap-0.5 bg-accent/40 rounded-md px-1 py-0.5 hover:bg-accent/60 transition-colors">
+                                      <Button variant="ghost" size="icon" className='h-4 w-4 hover:scale-110 transition-transform' onClick={(e) => { e.stopPropagation(); handlePlayerNav('prev');}}><ChevronLeft className="h-3 w-3" /></Button>
+                                      <span className="text-[10px] font-mono text-muted-foreground min-w-[32px] text-center">{ (item.playerIndex || 0) + 1 } / { item.children.length }</span>
+                                      <Button variant="ghost" size="icon" className='h-4 w-4 hover:scale-110 transition-transform' onClick={(e) => { e.stopPropagation(); handlePlayerNav('next');}}><ChevronRight className="h-3 w-3" /></Button>
                                   </div>
                               )}
                              
@@ -624,25 +675,25 @@ const PlayerFrameComponent = ({
                                 </div>
                               
                               {isPlayerSettingsVisible && (
-                                <div className='flex items-center'>
-                                     <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => { e.stopPropagation(); onPreviewItem(item); }}><Eye className="h-4 w-4" /></Button>
+                                <div className='flex items-center gap-0.5'>
+                                     <Button variant="ghost" size="icon" className='h-5 w-5 hover:scale-110 hover:bg-accent/80 transition-all' onClick={(e) => { e.stopPropagation(); onPreviewItem(item); }}><Eye className="h-3.5 w-3.5" /></Button>
                                      {onOpenInNewTab && (
-                                        <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => { e.stopPropagation(); onOpenInNewTab(item); }}>
-                                            <ExternalLink className="h-4 w-4" />
+                                        <Button variant="ghost" size="icon" className='h-5 w-5 hover:scale-110 hover:bg-accent/80 transition-all' onClick={(e) => { e.stopPropagation(); onOpenInNewTab(item); }}>
+                                            <ExternalLink className="h-3.5 w-3.5" />
                                         </Button>
                                      )}
-                                     <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => { 
+                                     <Button variant="ghost" size="icon" className='h-5 w-5 hover:scale-110 hover:bg-accent/80 transition-all' onClick={(e) => { 
                                          e.stopPropagation(); 
                                          window.open(`/popout?itemId=${item.id}&layoutMode=presentation`, 'popout-' + item.id, 'width=800,height=600,menubar=no,toolbar=no,location=no,status=no');
-                                     }}><Maximize2 className="h-4 w-4" /></Button>
-                                     <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => { e.stopPropagation(); if (isContainer && onSetView) onSetView(item); }}><FolderOpen className="h-4 w-4" /></Button>
+                                     }}><Maximize2 className="h-3.5 w-3.5" /></Button>
+                                     <Button variant="ghost" size="icon" className='h-5 w-5 hover:scale-110 hover:bg-accent/80 transition-all' onClick={(e) => { e.stopPropagation(); if (isContainer && onSetView) onSetView(item); }}><FolderOpen className="h-3.5 w-3.5" /></Button>
                                      
-                                     <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => { e.stopPropagation(); onShowInfo(item); }}><Settings className="h-4 w-4" /></Button>
+                                     <Button variant="ghost" size="icon" className='h-5 w-5 hover:scale-110 hover:bg-accent/80 transition-all' onClick={(e) => { e.stopPropagation(); onShowInfo(item); }}><Settings className="h-3.5 w-3.5" /></Button>
                                      
                                      <Popover>
                                         <PopoverTrigger asChild>
-                                            <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => e.stopPropagation()}>
-                                                <Palette className="h-4 w-4" />
+                                            <Button variant="ghost" size="icon" className='h-5 w-5 hover:scale-110 hover:bg-accent/80 transition-all' onClick={(e) => e.stopPropagation()}>
+                                                <Palette className="h-3.5 w-3.5" />
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="p-0 border-none bg-transparent shadow-none" side="bottom" align="end">
@@ -651,8 +702,8 @@ const PlayerFrameComponent = ({
                                      </Popover>
 
                                      {shouldShowSaveButton && (
-                                       <Button variant="ghost" size="icon" className='h-6 w-6' onClick={(e) => { e.stopPropagation(); onSaveItem(item); }}>
-                                          <Bookmark className={cn("h-4 w-4", item.parentId === 'saved-items' && "fill-primary text-primary")} />
+                                       <Button variant="ghost" size="icon" className='h-5 w-5 hover:scale-110 hover:bg-accent/80 transition-all' onClick={(e) => { e.stopPropagation(); onSaveItem(item); }}>
+                                          <Bookmark className={cn("h-3.5 w-3.5 transition-colors", item.parentId === 'saved-items' && "fill-primary text-primary")} />
                                        </Button>
                                      )}
                                 </div>
@@ -661,9 +712,17 @@ const PlayerFrameComponent = ({
                       </div>
                     )}
                     <div className={cn(
-                        "flex-1 w-full relative aspect-video",
+                        "flex-1 w-full relative",
+                        !item.hideBlackBars ? "aspect-video" : "flex items-center justify-center",
                         isMaxMode && "flex items-center justify-center bg-black"
                     )}>
+                        {/* Vertical black bars when hideBlackBars is enabled */}
+                        {item.hideBlackBars && (
+                            <>
+                                <div className="absolute left-0 top-0 bottom-0 w-[12.5%] bg-black z-10"></div>
+                                <div className="absolute right-0 top-0 bottom-0 w-[12.5%] bg-black z-10"></div>
+                            </>
+                        )}
                                                 {isInteractive && (
                                                         <div
                                                             className={cn(
@@ -703,12 +762,12 @@ const PlayerFrameComponent = ({
                             {children}
                         </div>
                         {item.type === 'player' && isInteractive && onNewItemInPlayer && (
-                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2">
-                                <div className="flex items-center gap-2 bg-background/80 backdrop-blur-md border px-3 py-1.5 rounded-full shadow-lg">
+                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1.5">
+                                <div className="flex items-center gap-1.5 bg-background/70 backdrop-blur-xl border border-border/60 px-2.5 py-1 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-primary/30">
                                     <input
                                         type="text"
                                         placeholder="URL ekle"
-                                        className="h-8 w-44 rounded-md bg-transparent px-2 text-xs border border-border/60 focus:outline-none"
+                                        className="h-7 w-40 rounded-md bg-transparent px-2 text-xs border border-border/40 focus:outline-none focus:border-primary/50 transition-colors"
                                         ref={quickAddInputRef}
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
@@ -723,7 +782,7 @@ const PlayerFrameComponent = ({
                                     <Button
                                         variant="secondary"
                                         size="sm"
-                                        className="h-8 px-3 text-[11px]"
+                                        className="h-7 px-2.5 text-[10px] font-medium hover:scale-105 transition-transform"
                                         onClick={() => {
                                             const input = quickAddInputRef.current;
                                             if (input && input.value.trim()) {
@@ -735,14 +794,14 @@ const PlayerFrameComponent = ({
                                         Ekle
                                     </Button>
                                 </div>
-                                <div className="flex flex-wrap items-center justify-center gap-1 bg-background/80 backdrop-blur-md border px-3 py-2 rounded-xl text-[11px] shadow-lg max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
-                                    <span className="w-full text-center text-xs font-semibold text-muted-foreground mb-1 sm:mb-0 sm:w-auto">Oynatıcı Ekle:</span>
+                                <div className="flex flex-wrap items-center justify-center gap-0.5 bg-background/70 backdrop-blur-xl border border-border/60 px-2 py-1.5 rounded-xl text-[10px] shadow-xl max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg hover:shadow-2xl transition-all duration-300 hover:border-primary/30">
+                                    <span className="w-full text-center text-[10px] font-semibold text-muted-foreground mb-0.5 sm:mb-0 sm:w-auto">Oynatıcı Ekle:</span>
                                     {[{ icon: Play, label: 'Oynatıcı' }, { icon: Puzzle, label: 'Araç' }, { icon: List, label: 'Liste' }, { icon: Folder, label: 'Klasör' }, { icon: Upload, label: 'Yükle' }, { icon: Camera, label: 'Tarama' }].map(({ icon: IconComp, label }) => (
                                         <Button
                                             key={label}
                                             variant="ghost"
                                             size="sm"
-                                            className="h-7 px-2 gap-1 text-[11px] hover:bg-primary/20 transition-colors"
+                                            className="h-6 px-1.5 gap-0.5 text-[10px] hover:bg-primary/20 hover:scale-105 transition-all rounded-lg"
                                             onClick={() => {
                                                 const url = window.prompt(`${label} için URL ekleyin`);
                                                 if (url) {
@@ -750,7 +809,7 @@ const PlayerFrameComponent = ({
                                                 }
                                             }}
                                         >
-                                            <IconComp className="h-4 w-4 flex-shrink-0" />
+                                            <IconComp className="h-3.5 w-3.5 flex-shrink-0" />
                                             <span className="hidden sm:inline">{label}</span>
                                         </Button>
                                     ))}
@@ -759,7 +818,7 @@ const PlayerFrameComponent = ({
                         )}
                         {/* Overlay only appears during actual resizing - doesn't interfere with iframes */}
                         {isLocallyResizing && <div ref={resizeOverlayRef} className="absolute inset-0 z-40 bg-transparent cursor-default pointer-events-auto" />}
-                        {isSelected && isInteractive && (
+                        {(isSelected && isInteractive) && (
                             <div className="absolute inset-0 z-30 pointer-events-none">
                                 {/* Corner handles */}
                                 <div className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 w-3 h-3 rounded-full border border-white/80 bg-primary/90 shadow-lg cursor-nwse-resize pointer-events-auto ring-2 ring-primary/50" onMouseDown={handleResizeStart('nw')} title="NW" />
@@ -790,6 +849,28 @@ const PlayerFrameComponent = ({
              <ContextMenuItem onClick={() => onShare(item)}>
                 <Share2 className="mr-2 h-4 w-4" />
                 <span>Paylaş</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => {
+                setItemToShare(item);
+                setActiveSecondaryPanel('social');
+                toast({
+                    title: "Sosyal Paylaşım",
+                    description: `${item.title} sosyal panelde paylaşıma hazır.`
+                });
+            }}>
+                <Globe className="mr-2 h-4 w-4" />
+                <span>Sosyalde Paylaş</span>
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => {
+                setItemToMessage(item);
+                setActiveSecondaryPanel('messages');
+                toast({
+                    title: "Mesajla Gönder",
+                    description: `${item.title} mesajlaşma paneline eklendi.`
+                });
+            }}>
+                <MessageCircle className="mr-2 h-4 w-4" />
+                <span>Mesajla Gönder</span>
             </ContextMenuItem>
             {isEditMode && (
                 <>

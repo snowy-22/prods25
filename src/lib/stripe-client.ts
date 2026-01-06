@@ -1,204 +1,58 @@
-import Stripe from 'stripe';
+// Stripe removed: export stubs to avoid build-time dependency
+export const isStripeAvailable = false;
 
-/**
- * Initialize Stripe API client
- */
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+type LineItem = { name: string; price: number; quantity: number };
 
-// Stripe is optional - allow missing key for development
-export const isStripeAvailable = !!stripeSecretKey;
-
-export const stripe = stripeSecretKey 
-  ? new Stripe(stripeSecretKey, {
-      apiVersion: '2025-02-24.acacia',
-      typescript: true,
-    })
-  : null;
-
-/**
- * Create checkout session for purchases
- */
 export async function createCheckoutSession(
-  customerId: string,
-  items: Array<{
-    name: string;
-    price: number; // in cents
-    quantity: number;
-  }>,
-  metadata: Record<string, string> = {}
-) {
-  if (!stripe) throw new Error('Stripe not initialized');
-
-  try {
-    // Convert items to Stripe line items
-    const lineItems = items.map((item) => ({
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: item.name,
-        },
-        unit_amount: Math.round(item.price),
-      },
-      quantity: item.quantity,
-    }));
-
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/purchases/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/purchases/cancel`,
-      metadata,
-    });
-
-    console.log('✅ Checkout session created:', session.id);
-    return session;
-  } catch (error) {
-    console.error('❌ Error creating checkout session:', error);
-    throw error;
-  }
+  _customerId: string,
+  _items: Array<LineItem>,
+  _metadata: Record<string, string> = {}
+): Promise<{ id: string; url: string | null }> {
+  throw new Error('payments-disabled');
 }
 
-/**
- * Retrieve checkout session details
- */
-export async function getCheckoutSession(sessionId: string) {
-  if (!stripe) throw new Error('Stripe not initialized');
-
-  try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    return session;
-  } catch (error) {
-    console.error('❌ Error retrieving checkout session:', error);
-    throw error;
-  }
+export async function getCheckoutSession(
+  _sessionId: string
+): Promise<unknown> {
+  throw new Error('payments-disabled');
 }
 
-/**
- * Create payment intent (for more control)
- */
 export async function createPaymentIntent(
-  amount: number, // in cents
-  customerId: string,
-  metadata: Record<string, string> = {}
-) {
-  if (!stripe) throw new Error('Stripe not initialized');
-
-  try {
-    const intent = await stripe.paymentIntents.create({
-      amount,
-      currency: 'usd',
-      customer: customerId,
-      payment_method_types: ['card'],
-      metadata,
-    });
-
-    console.log('✅ Payment intent created:', intent.id);
-    return intent;
-  } catch (error) {
-    console.error('❌ Error creating payment intent:', error);
-    throw error;
-  }
+  _amount: number,
+  _customerId: string,
+  _metadata: Record<string, string> = {}
+): Promise<{ id: string; client_secret?: string }> {
+  throw new Error('payments-disabled');
 }
 
-/**
- * Confirm payment intent
- */
 export async function confirmPaymentIntent(
-  intentId: string,
-  paymentMethodId: string
-) {
-  if (!stripe) throw new Error('Stripe not initialized');
-
-  try {
-    const intent = await stripe.paymentIntents.confirm(intentId, {
-      payment_method: paymentMethodId,
-    });
-
-    return intent;
-  } catch (error) {
-    console.error('❌ Error confirming payment intent:', error);
-    throw error;
-  }
+  _intentId: string,
+  _paymentMethodId: string
+): Promise<unknown> {
+  throw new Error('payments-disabled');
 }
 
-/**
- * Get or create Stripe customer
- */
 export async function getOrCreateCustomer(
-  userId: string,
-  email: string,
-  name: string
-) {
-  if (!stripe) throw new Error('Stripe not initialized');
-
-  try {
-    // Search for existing customer with this email
-    const customers = await stripe.customers.list({ email, limit: 1 });
-
-    if (customers.data.length > 0) {
-      return customers.data[0];
-    }
-
-    // Create new customer
-    const customer = await stripe.customers.create({
-      email,
-      name,
-      metadata: {
-        userId,
-      },
-    });
-
-    console.log('✅ Stripe customer created:', customer.id);
-    return customer;
-  } catch (error) {
-    console.error('❌ Error managing customer:', error);
-    throw error;
-  }
+  _userId: string,
+  _email: string,
+  _name: string
+): Promise<{ id: string }> {
+  throw new Error('payments-disabled');
 }
 
-/**
- * Create invoice from line items
- */
 export async function createInvoice(
-  customerId: string,
-  lineItems: Array<{
-    description: string;
-    amount: number; // in cents
-    quantity?: number;
-  }>,
-  metadata: Record<string, string> = {}
-) {
-  if (!stripe) throw new Error('Stripe not initialized');
-  
-  try {
-    // Create invoice
-    const invoice = await stripe.invoices.create({
-      customer: customerId,
-      metadata,
-    });
+  _customerId: string,
+  _lineItems: Array<{ description: string; amount: number; quantity?: number }>,
+  _metadata: Record<string, string> = {}
+): Promise<{ id: string }> {
+  throw new Error('payments-disabled');
+}
 
-    // Add line items
-    for (const item of lineItems) {
-      await stripe.invoiceItems.create({
-        customer: customerId,
-        invoice: invoice.id,
-        amount: item.amount,
-        description: item.description,
-        quantity: item.quantity || 1,
-      });
-    }
-
-    // Finalize and send
-    await stripe.invoices.finalizeInvoice(invoice.id);
-
-    console.log('✅ Invoice created:', invoice.id);
-    return invoice;
-  } catch (error) {
-    console.error('❌ Error creating invoice:', error);
-    throw error;
-  }
+export async function refundPayment(
+  _chargeId: string,
+  _amount?: number
+): Promise<{ id: string; amount: number }> {
+  throw new Error('payments-disabled');
 }
 
 /**

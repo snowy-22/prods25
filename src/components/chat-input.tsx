@@ -13,6 +13,7 @@ export interface ChatInputProps {
   onAttachment?: () => void;
   onEmoji?: () => void;
   onVoice?: () => void;
+  isListening?: boolean;
   placeholder?: string;
   disabled?: boolean;
   isLoading?: boolean;
@@ -26,6 +27,7 @@ export function ChatInput({
   onAttachment,
   onEmoji,
   onVoice,
+  isListening = false,
   placeholder = 'Bir mesaj yazın...',
   disabled = false,
   isLoading = false,
@@ -51,7 +53,7 @@ export function ChatInput({
       <div className="flex items-center gap-1 px-2 pt-2">
         {onVoice && (
           <Button
-            variant="ghost"
+            variant={isListening ? 'secondary' : 'ghost'}
             size="icon"
             onClick={onVoice}
             disabled={disabled}

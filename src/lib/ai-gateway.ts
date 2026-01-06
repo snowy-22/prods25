@@ -1,6 +1,9 @@
 /**
  * Vercel AI Gateway Configuration
  * Unified API to multiple AI providers with monitoring, load-balancing, and fallbacks
+ * 
+ * UPDATED: Integrated with Supabase ai_conversations & ai_messages tables
+ * Database Schema: 20260107_live_data_sync_comprehensive.sql
  */
 
 'use server';
@@ -10,7 +13,8 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 // Vercel AI Gateway base URL
-const AI_GATEWAY_URL = 'https://gateway.ai.cloudflare.com/v1';
+// Note: Set AI_GATEWAY_API_KEY in .env.local
+const AI_GATEWAY_URL = process.env.AI_GATEWAY_URL || 'https://gateway.ai.cloudflare.com/v1';
 
 // Initialize providers through AI Gateway
 export const openaiGateway = createOpenAI({

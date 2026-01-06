@@ -3,5 +3,6 @@
     "supabase": {
       "url": "https://mcp.supabase.com/mcp?project_ref=onghxklbhevladpdtshs"
     }
-  }
+  },
+  "chat.agent.maxRequests": 500
 }
