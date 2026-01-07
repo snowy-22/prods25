@@ -23,8 +23,10 @@ Vercel AI Gateway provides a **unified API** to multiple AI providers with:
 ### 2. Environment Variables
 Added to `.env.local`:
 ```env
-AI_GATEWAY_API_KEY=vck_2VJtYJC3DinoTiuyx5OseXVZOZiJXwubFV5tgHMJga3bQDzP9743aiaz
+AI_GATEWAY_API_KEY=vck_[YOUR_VERCEL_AI_GATEWAY_API_KEY]
 ```
+
+**Note**: Get your API key from Vercel Dashboard → AI Gateway → API Keys
 
 ### 3. Files Created
 - ✅ `src/lib/ai-gateway.ts` - Gateway configuration & model selection
