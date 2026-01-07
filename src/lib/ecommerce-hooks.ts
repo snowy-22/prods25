@@ -5,29 +5,26 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useAppStore } from './store';
-import { Product } from './ecommerce-types';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Lazy load e-commerce products
  * Loads DEFAULT_PRODUCTS only when component mounts
  */
-export function useEcommerceProducts(): Product[] {
-  const products = useAppStore(state => state.products);
-  const addProduct = useAppStore(state => state.addProduct);
+export function useEcommerceProducts(): any[] {
+  const [products, setProducts] = useState<any[]>([]);
   const hasLoaded = useRef(false);
 
   useEffect(() => {
-    if (!hasLoaded.current && products.length === 0) {
+    if (!hasLoaded.current) {
       hasLoaded.current = true;
       
       // Dynamic import to reduce initial bundle
       import('./default-products').then(({ DEFAULT_PRODUCTS }) => {
-        DEFAULT_PRODUCTS.forEach(product => addProduct(product));
+        setProducts(DEFAULT_PRODUCTS);
       });
     }
-  }, [products.length, addProduct]);
+  }, []);
 
   return products;
 }
