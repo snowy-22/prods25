@@ -12,6 +12,7 @@ export type AIProviderType =
   | 'azure-openai'     // Azure OpenAI Service
   | 'cohere'           // Cohere
   | 'huggingface'      // HuggingFace Inference API
+  | 'ai-gateway'       // Vercel AI Gateway (unified)
   | 'custom';          // Custom endpoint
 
 export type AIAgentMode = 'auto' | 'manual';
@@ -47,6 +48,22 @@ export interface AIAgentConfig {
 // Default providers with public information
 export const DEFAULT_PROVIDERS: Omit<AIProviderConfig, 'id' | 'apiKey'>[] = [
   {
+    type: 'ai-gateway',
+    name: 'Vercel AI Gateway (Unified)',
+    endpoint: 'https://gateway.ai.cloudflare.com/v1',
+    model: 'auto', // Auto-selects based on task
+    maxTokens: 8192,
+    temperature: 0.7,
+    enabled: true,
+    isDefault: true,
+    metadata: {
+      description: 'Unified API to multiple AI providers with load balancing and fallbacks',
+      pricing: 'Gateway free, provider costs apply',
+      rateLimit: 'Based on underlying provider',
+      features: ['Multi-Provider', 'Load Balancing', 'Fallbacks', 'Monitoring', 'Cost Tracking']
+    }
+  },
+  {
     type: 'gemini',
     name: 'Google Gemini 1.5 Flash',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta',
@@ -54,7 +71,6 @@ export const DEFAULT_PROVIDERS: Omit<AIProviderConfig, 'id' | 'apiKey'>[] = [
     maxTokens: 8192,
     temperature: 0.7,
     enabled: true,
-    isDefault: true,
     metadata: {
       description: 'Fast, efficient multimodal AI from Google',
       pricing: '$0.15 per 1M tokens (Free tier: 1500 req/day)',
