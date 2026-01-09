@@ -826,22 +826,19 @@ export const useAppStore = create<AppStore>()(
       // YouTube & Google API defaults
       youtubeMetadataEnabled: true,
 
-      // AI Provider defaults - Gemini 3.5 Flash ekonomik setup
+      // AI Provider defaults - Dummy setup
       aiProviders: DEFAULT_PROVIDERS.map((p, idx) => ({
         ...p,
         id: `provider-${idx}`,
-        // Gemini API key from environment or window object (user can set it in settings)
-        apiKey: p.type === 'gemini' 
-          ? (process.env.NEXT_PUBLIC_GEMINI_API_KEY || (typeof window !== 'undefined' ? (window as any).__GEMINI_API_KEY : undefined))
-          : undefined
+        apiKey: undefined // API keys will be set by user if needed
       })),
       aiAgentConfig: {
-        mode: 'auto',
-        defaultProvider: 'provider-0', // Gemini by default (ekonomik)
-        fallbackProviders: ['provider-1', 'provider-3'], // OpenAI, Groq
-        autoSelectByCost: true, // Ekonomik seçim
+        mode: 'manual',
+        defaultProvider: 'provider-0',
+        fallbackProviders: [],
+        autoSelectByCost: false,
         autoSelectBySpeed: false,
-        autoSelectByCapability: true
+        autoSelectByCapability: false
       },
 
       // Additional API Keys defaults
@@ -2294,16 +2291,16 @@ export const useAppStore = create<AppStore>()(
       })),
 
       applyDiscountCode: async (code) => {
-        // TODO: Validate discount code with backend
-        // For now, simple validation
+        // DUMMY: Mock discount codes for testing
         const validCodes: Record<string, number> = {
-          'WELCOME10': 0.10,
-          'SAVE20': 0.20,
-          'VIP30': 0.30,
+          'DEMO10': 0.10,
+          'TEST20': 0.20,
+          'MOCK30': 0.30,
         };
 
         const discountPercent = validCodes[code.toUpperCase()];
         if (!discountPercent) {
+          console.log('✓ [MOCK] Discount code not found:', code);
           return false;
         }
 
@@ -2313,6 +2310,7 @@ export const useAppStore = create<AppStore>()(
           const discountAmount = Math.round(cart.subtotal * discountPercent);
           const total = cart.subtotal + cart.tax + cart.shipping - discountAmount;
 
+          console.log('✓ [MOCK] Discount applied:', code, `${(discountPercent * 100).toFixed(0)}% off`);
           return {
             shoppingCart: {
               ...cart,
@@ -2393,69 +2391,36 @@ export const useAppStore = create<AppStore>()(
       },
 
       createOrder: async (orderData) => {
+        // DUMMY: Mock order creation
         const user = get().user;
         if (!user) throw new Error('User not authenticated');
         
-        const supabase = createClient();
         const now = new Date().toISOString();
         const orderId = `order-${Date.now()}`;
         
-        // Transform store Order type to Supabase schema
-        const supabaseOrder = {
+        // Create mock order in local state
+        const newOrder: Order = {
           id: orderId,
-          user_id: user.id,
-          status: orderData.status || 'pending',
-          payment_status: orderData.paymentStatus || 'pending',
+          userId: user.id,
           items: orderData.items || [],
           subtotal: orderData.subtotal || 0,
           tax: orderData.tax || 0,
           shipping: orderData.shipping || 0,
           discount: orderData.discount || 0,
           total: orderData.total || 0,
-          shipping_address: orderData.shippingAddress || null,
-          billing_address: orderData.shippingAddress || null, // Use shipping as billing if not provided
-          payment_method: orderData.paymentMethod || null,
-          payment_id: orderData.transactionId || null,
-          tracking_number: orderData.trackingNumber || null,
-          estimated_delivery: orderData.estimatedDelivery || null,
-          notes: orderData.notes || null,
-          created_at: now,
-          updated_at: now,
+          shippingAddress: orderData.shippingAddress,
+          paymentStatus: 'pending',
+          paymentMethod: 'mock',
+          transactionId: `mock-${Date.now()}`,
+          status: 'pending',
+          trackingNumber: `MOCK-${Math.random().toString(36).substring(7).toUpperCase()}`,
+          estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          notes: '[MOCK] Demo order',
+          createdAt: now,
+          updatedAt: now,
         };
         
-        const { data, error } = await supabase
-          .from('orders')
-          .insert([supabaseOrder])
-          .select()
-          .single();
-        
-        if (error) {
-          console.error('Failed to create order in Supabase:', error);
-          throw error;
-        }
-        
-        // Transform back to store Order type
-        const newOrder: Order = {
-          id: data.id,
-          userId: data.user_id,
-          items: data.items || [],
-          subtotal: data.subtotal || 0,
-          tax: data.tax || 0,
-          shipping: data.shipping || 0,
-          discount: data.discount || 0,
-          total: data.total || 0,
-          shippingAddress: data.shipping_address,
-          paymentStatus: data.payment_status || 'pending',
-          paymentMethod: data.payment_method || '',
-          transactionId: data.payment_id,
-          status: data.status || 'pending',
-          trackingNumber: data.tracking_number,
-          estimatedDelivery: data.estimated_delivery,
-          notes: data.notes,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
-          completedAt: data.completed_at,
-        };
+        console.log('✓ [MOCK] Order created:', orderId, `Total: $${(newOrder.total / 100).toFixed(2)}`);
         
         set((state) => ({
           orders: [...state.orders, newOrder]
@@ -2475,9 +2440,16 @@ export const useAppStore = create<AppStore>()(
         };
       }),
 
-      setUserSubscriptionTier: (tier) => set({ userSubscriptionTier: tier }),
+      setUserSubscriptionTier: (tier) => {
+        console.log('✓ [MOCK] Subscription tier set:', tier);
+        set({ userSubscriptionTier: tier });
+      },
 
-      setStripeCustomerId: (customerId) => set({ stripeCustomerId: customerId }),
+      setStripeCustomerId: (customerId) => {
+        console.log('✓ [MOCK] Stripe customer ID set (dummy):', customerId);
+        // Dummy implementation - no actual Stripe integration
+        set({ stripeCustomerId: `mock-${Date.now()}` });
+      },
 
       // Comprehensive Live Data Sync Actions
       syncCanvasItem: async (item) => {
