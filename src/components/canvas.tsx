@@ -735,7 +735,7 @@ const Canvas = memo(function Canvas({
             <span>Seçili Öğeleri Sil</span>
           </ContextMenuItem>
           <ContextMenuSeparator />
-            <ContextMenuItem onClick={() => onAddItem({ type: 'player', title: 'Yeni Oynatıcı', content: '' }, activeViewId)}>
+            <ContextMenuItem onClick={() => onAddItem({ type: 'player', title: 'URL Ekle', content: '', url: 'ADD_SOURCE_PLACEHOLDER' }, activeViewId)}>
                 <Plus className="mr-2 h-4 w-4" />
                 <span>Yeni Oynatıcı</span>
             </ContextMenuItem>

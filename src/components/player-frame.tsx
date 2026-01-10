@@ -128,6 +128,30 @@ const ItemStyleSettings = ({ item, onUpdateItem }: { item: ContentItem, onUpdate
 
                 <TabsContent value="frame" className="p-4 space-y-4 mt-0">
                     <div className="space-y-2">
+                        <Label className="text-xs font-bold flex items-center gap-2">
+                            <Square className="h-3 w-3" /> En-Boy Oranı
+                        </Label>
+                        <div className="grid grid-cols-3 gap-1">
+                            {[
+                                { label: '16:9', value: '16:9' },
+                                { label: '1:1', value: '1:1' },
+                                { label: 'Otomatik', value: 'auto' }
+                            ].map((option) => (
+                                <Button 
+                                    key={option.value}
+                                    variant="outline" 
+                                    size="sm" 
+                                    className={cn("h-7 text-[9px] px-1", item.playerAspectRatio === option.value && "bg-primary text-primary-foreground")}
+                                    onClick={() => onUpdateItem(item.id, { playerAspectRatio: option.value as any })}
+                                    title={`En-boy oranı: ${option.label}`}
+                                >
+                                    {option.label}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
                         <Label className="text-xs font-bold">Çerçeve Efekti</Label>
                         <div className="grid grid-cols-2 gap-1">
                             {['none', 'glowing', 'neon', 'pulsing', 'patterned', 'braided'].map((effect) => (
@@ -345,6 +369,16 @@ const PlayerFrameComponent = ({
 
   const shouldShowSaveButton = !isPersonalLibraryItem();
 
+  // Auto-open source adder for placeholder URL
+  useEffect(() => {
+    if (item.type === 'player' && item.url === 'ADD_SOURCE_PLACEHOLDER' && onNewItemInPlayer) {
+      // Focus the input field
+      if (quickAddInputRef.current) {
+        quickAddInputRef.current.focus();
+      }
+    }
+  }, [item.id, item.type, item.url, onNewItemInPlayer]);
+
   useEffect(() => {
     const currentRef = ref.current;
     if (!currentRef) return;
@@ -422,7 +456,21 @@ const PlayerFrameComponent = ({
   const MAX_SIZE = 1200; // Maximum pixel size for canvas mode
   const isCanvasMode = layoutMode === 'canvas';
   
-  const handleResizeStart = (position: string) => (e: React.MouseEvent) => {
+    // Deep equality check utility
+    function deepEqual(a: any, b: any): boolean {
+        if (a === b) return true;
+        if (typeof a !== typeof b) return false;
+        if (typeof a !== 'object' || a === null || b === null) return false;
+        const aKeys = Object.keys(a);
+        const bKeys = Object.keys(b);
+        if (aKeys.length !== bKeys.length) return false;
+        for (const key of aKeys) {
+            if (!bKeys.includes(key) || !deepEqual(a[key], b[key])) return false;
+        }
+        return true;
+    }
+
+    const handleResizeStart = (position: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -444,81 +492,69 @@ const PlayerFrameComponent = ({
     const currentWidth = item.styles?.width ? parseFloat(item.styles.width as string) : initialWidth;
     const currentHeight = item.styles?.height ? parseFloat(item.styles.height as string) : initialHeight;
 
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaY = moveEvent.clientY - startY;
-      
-      if (isCanvasMode) {
-        // Canvas mode: Update absolute pixel dimensions in real-time with responsive constraints
-        let newWidth = currentWidth;
-        let newHeight = currentHeight;
-        
-        // Responsive max width - adapt to parent container
-        const responsiveMaxWidth = Math.min(MAX_SIZE, parentWidth * 0.95);
-
-        // Handle horizontal resize
-        if (['e', 'ne', 'se'].includes(position)) {
-          newWidth = Math.max(MIN_SIZE, Math.min(responsiveMaxWidth, currentWidth + deltaX));
-        } else if (['w', 'nw', 'sw'].includes(position)) {
-          newWidth = Math.max(MIN_SIZE, Math.min(responsiveMaxWidth, currentWidth - deltaX));
-        }
-
-        // Handle vertical resize
-        if (['s', 'se', 'sw'].includes(position)) {
-          newHeight = Math.max(MIN_SIZE, currentHeight + deltaY);
-        } else if (['n', 'ne', 'nw'].includes(position)) {
-          newHeight = Math.max(MIN_SIZE, currentHeight - deltaY);
-        }
-
-        // Update with pixel dimensions for canvas mode - live preview
-        onUpdateItem(item.id, {
-          styles: {
-            ...item.styles,
-            width: `${Math.round(newWidth)}px`,
-            height: `${Math.round(newHeight)}px`,
-            position: 'absolute',
-          }
-        });
-      } else {
-        // Grid mode: Update grid spans
-        let newSpanCol = currentSpanCol;
-        let newSpanRow = currentSpanRow;
-
-        // Handle horizontal resize (snap to grid)
-        if (['e', 'ne', 'se'].includes(position)) {
-          newSpanCol = Math.max(MIN_SPAN, Math.round((initialWidth + deltaX) / GRID_SIZE));
-        } else if (['w', 'nw', 'sw'].includes(position)) {
-          newSpanCol = Math.max(MIN_SPAN, Math.round((initialWidth - deltaX) / GRID_SIZE));
-        }
-
-        // Handle vertical resize (snap to grid)
-        if (['s', 'se', 'sw'].includes(position)) {
-          newSpanRow = Math.max(MIN_SPAN, Math.round((initialHeight + deltaY) / GRID_SIZE));
-        } else if (['n', 'ne', 'nw'].includes(position)) {
-          newSpanRow = Math.max(MIN_SPAN, Math.round((initialHeight - deltaY) / GRID_SIZE));
-        }
-
-        // Clamp to max
-        newSpanCol = Math.min(newSpanCol, MAX_SPAN);
-        newSpanRow = Math.min(newSpanRow, MAX_SPAN);
-
-        // Update item with grid spans (enables flow layout and wrapping)
-        onUpdateItem(item.id, {
-          gridSpanCol: newSpanCol,
-          gridSpanRow: newSpanRow,
-          // Keep CSS Grid positioning for auto flow/wrap
-          styles: {
-            ...item.styles,
-            // Remove absolute positioning - use grid layout
-            position: undefined,
-            left: undefined,
-            top: undefined,
-            width: undefined,
-            height: undefined,
-          }
-        });
-      }
-    };
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            const deltaX = moveEvent.clientX - startX;
+            const deltaY = moveEvent.clientY - startY;
+            if (isCanvasMode) {
+                // Canvas mode: Update absolute pixel dimensions in real-time with responsive constraints
+                let newWidth = currentWidth;
+                let newHeight = currentHeight;
+                const responsiveMaxWidth = Math.min(MAX_SIZE, parentWidth * 0.95);
+                if (["e", "ne", "se"].includes(position)) {
+                    newWidth = currentWidth + deltaX;
+                } else if (["w", "nw", "sw"].includes(position)) {
+                    newWidth = currentWidth - deltaX;
+                }
+                if (["s", "se", "sw"].includes(position)) {
+                    newHeight = currentHeight + deltaY;
+                } else if (["n", "ne", "nw"].includes(position)) {
+                    newHeight = currentHeight - deltaY;
+                }
+                // Clamp width/height to min/max
+                newWidth = Math.max(MIN_SIZE, Math.min(responsiveMaxWidth, newWidth));
+                newHeight = Math.max(MIN_SIZE, Math.min(MAX_SIZE, newHeight));
+                const newStyles = {
+                    ...item.styles,
+                    width: `${Math.round(newWidth)}px`,
+                    height: `${Math.round(newHeight)}px`,
+                    position: "absolute",
+                };
+                if (!deepEqual(item.styles, newStyles)) {
+                    onUpdateItem(item.id, { styles: newStyles });
+                }
+            } else {
+                // Grid mode: Update grid spans
+                let newSpanCol = currentSpanCol;
+                let newSpanRow = currentSpanRow;
+                if (['e', 'ne', 'se'].includes(position)) {
+                    newSpanCol = Math.max(MIN_SPAN, Math.round((initialWidth + deltaX) / GRID_SIZE));
+                } else if (['w', 'nw', 'sw'].includes(position)) {
+                    newSpanCol = Math.max(MIN_SPAN, Math.round((initialWidth - deltaX) / GRID_SIZE));
+                }
+                if (['s', 'se', 'sw'].includes(position)) {
+                    newSpanRow = Math.max(MIN_SPAN, Math.round((initialHeight + deltaY) / GRID_SIZE));
+                } else if (['n', 'ne', 'nw'].includes(position)) {
+                    newSpanRow = Math.max(MIN_SPAN, Math.round((initialHeight - deltaY) / GRID_SIZE));
+                }
+                newSpanCol = Math.min(newSpanCol, MAX_SPAN);
+                newSpanRow = Math.min(newSpanRow, MAX_SPAN);
+                const newGrid = { gridSpanCol: newSpanCol, gridSpanRow: newSpanRow };
+                const newStyles = {
+                    ...item.styles,
+                    position: undefined,
+                    left: undefined,
+                    top: undefined,
+                    width: undefined,
+                    height: undefined,
+                };
+                if (item.gridSpanCol !== newSpanCol || item.gridSpanRow !== newSpanRow || !deepEqual(item.styles, newStyles)) {
+                    onUpdateItem(item.id, {
+                        ...newGrid,
+                        styles: newStyles,
+                    });
+                }
+            }
+        };
 
     const handleMouseUp = () => {
       setIsLocallyResizing(false);
@@ -556,7 +592,8 @@ const PlayerFrameComponent = ({
                         borderStyle: item.frameStyle || (globalStyles as any)?.frameStyle,
                         ...frameStyles,
                         minHeight: '160px',
-                        maxHeight: '600px'
+                        maxHeight: '600px',
+                        aspectRatio: item.playerAspectRatio === '16:9' ? '16 / 9' : item.playerAspectRatio === '1:1' ? '1 / 1' : undefined,
                     }}
                 >
                                         {isPlayerHeaderVisible && (

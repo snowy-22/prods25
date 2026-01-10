@@ -50,7 +50,7 @@ export function ProfileSlugCard({
   };
 
   const handleDelete = async () => {
-    if (!confirm('Bu slug'u silmek istediğinize emin misiniz?')) return;
+    if (!confirm("Bu slug'u silmek istediğinize emin misiniz?")) return;
     
     setIsDeleting(true);
     try {

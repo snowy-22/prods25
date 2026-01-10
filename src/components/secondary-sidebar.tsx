@@ -69,7 +69,7 @@ import {
   Flame,
   BrainCircuit,
   Calendar,
-    MessageSquare,
+  MessageSquare,
   UserPlus,
   CheckCheck,
   GanttChart,
@@ -79,7 +79,10 @@ import {
   Bot,
   Edit2,
   Folder,
-  FileText
+  FileText,
+  Phone,
+  Users2,
+  Map,
 } from 'lucide-react';
 import { FaGoogleDrive, FaDropbox } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
@@ -113,6 +116,13 @@ import { AiChatDialog } from './ai-chat-dialog';
 import { ChatPanelState } from '@/lib/store';
 import { Separator } from './ui/separator';
 import { Message } from '@/ai/flows/assistant-schema';
+// Advanced Features Components
+import { MessageGroupsPanel } from './message-groups-panel';
+import { CallManager } from './call-manager';
+import { MeetingScheduler } from './meeting-scheduler';
+import { SocialGroupsManager } from './social-groups-manager';
+import { ProfileSlugCard } from './profile-slug-card';
+import { SlugGeneratorEditor } from './slug-generator-editor';
 import { Draggable, Droppable, DropResult } from '@hello-pangea/dnd';
 import { SocialLogo } from './icons/social-logo';
 import { MessagingLogo } from './icons/messaging-logo';
@@ -506,7 +516,7 @@ const WidgetCard = memo(function WidgetCard({
 
 
 type SecondarySidebarProps = {
-  type: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping';
+  type: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups';
   // Library props
   allItems?: ContentItem[];
   onSetView?: (item: ContentItem | null, event?: React.MouseEvent | React.TouchEvent) => void;
@@ -1159,7 +1169,8 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
     };
     
      const handleSort = (option: SortOption) => {
-        const newDirection = sortOption === option && sortDirection === 'asc' ? 'desc' : 'asc';
+        // Aynı sütuna ikinci tıklamada ters yöne dön
+        const newDirection = sortOption === option ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc';
         setSortOption(option);
         setSortDirection(newDirection);
         if(activeView && onUpdateItem) {
@@ -1178,13 +1189,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
 
         // İçerikler tab filtresi (sadece library için)
         if (type === 'library' && contentTabValue !== 'my-library') {
-            if (contentTabValue === 'shared-by-me') {
-                // Paylaştıklarım: Tüm sistemdeki paylaştığım öğeler
-                itemsToSort = allItems.filter(i => 
-                    (i.sharing as any)?.sharedBy === username || 
-                    (i as any).createdBy === username
-                );
-            } else if (contentTabValue === 'shared-with-me') {
+            if (contentTabValue === 'shared-with-me') {
                 // Benimle paylaşılanlar: Tüm sistemdeki benimle paylaşılanlar
                 itemsToSort = allItems.filter(i => 
                     i.sharing?.allowedUsers?.includes(username || '')
@@ -1337,12 +1342,12 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             const { onSetClipboard, onPaste, clipboard, onShowInfo, onShare, onRenameItem, onTogglePinItem, onNewFolder, onNewList, onNewPlayer, onNewCalendar, onNewSpace, onNewDevice, expandedItems, onToggleExpansion, setActiveDevice, activeDeviceId, setDraggedItem, onDeleteItem, onLibraryDrop } = props;
             
             return (
-              <div className="h-full flex flex-col bg-card/60 backdrop-blur-md hidden lg:flex" data-testid={`${props.type}-panel`}>
-                <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
-                  <h2 className="font-bold text-lg px-2 flex items-center gap-2">
-                    {headerIconMap[type]} {panelTitleMap[type]}
+              <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none" data-testid={`${props.type}-panel`}>
+                <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
+                  <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
+                    {headerIconMap[type]} <span className="hidden xs:inline">{panelTitleMap[type]}</span>
                   </h2>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-0.5 sm:gap-1">
                     <Button 
                         variant="ghost" 
                         size="icon" 
@@ -1434,36 +1439,32 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                 
                 {/* İçerikler Tabs - Only shown for Library */}
                 {type === 'library' && (
-                    <div className="px-3 pt-2 border-b">
+                    <div className="px-2 sm:px-3 pt-2 border-b">
                         <Tabs value={contentTabValue} onValueChange={(value: any) => setContentTabValue(value)} className="w-full">
-                            <TabsList className="grid w-full grid-cols-4 mb-2 h-9">
-                                <TabsTrigger value="my-library" className="text-[10px] px-1 flex flex-col gap-0.5 py-1">
-                                    <Library className="h-3 w-3 shrink-0" />
-                                    <span className="truncate leading-none">Kitaplığım</span>
+                            <TabsList className="grid w-full grid-cols-3 mb-2 h-10 sm:h-9">
+                                <TabsTrigger value="my-library" className="text-[10px] sm:text-xs px-1 sm:px-2 flex flex-col gap-0.5 py-1.5 sm:py-1 touch-manipulation">
+                                    <Library className="h-4 w-4 sm:h-3 sm:w-3 shrink-0" />
+                                    <span className="truncate leading-none hidden xs:inline">Kitaplığım</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="shared-by-me" className="text-[10px] px-1 flex flex-col gap-0.5 py-1">
-                                    <Share2 className="h-3 w-3 shrink-0" />
-                                    <span className="truncate leading-none">Paylaştıklarım</span>
+                                <TabsTrigger value="shared-with-me" className="text-[10px] sm:text-xs px-1 sm:px-2 flex flex-col gap-0.5 py-1.5 sm:py-1 touch-manipulation">
+                                    <Users className="h-4 w-4 sm:h-3 sm:w-3 shrink-0" />
+                                    <span className="truncate leading-none hidden xs:inline">Benimle</span>
                                 </TabsTrigger>
-                                <TabsTrigger value="shared-with-me" className="text-[10px] px-1 flex flex-col gap-0.5 py-1">
-                                    <Users className="h-3 w-3 shrink-0" />
-                                    <span className="truncate leading-none">Benimle</span>
-                                </TabsTrigger>
-                                <TabsTrigger value="saved" className="text-[10px] px-1 flex flex-col gap-0.5 py-1">
-                                    <Bookmark className="h-3 w-3 shrink-0" />
-                                    <span className="truncate leading-none">Kaydedilenler</span>
+                                <TabsTrigger value="saved" className="text-[10px] sm:text-xs px-1 sm:px-2 flex flex-col gap-0.5 py-1.5 sm:py-1 touch-manipulation">
+                                    <Bookmark className="h-4 w-4 sm:h-3 sm:w-3 shrink-0" />
+                                    <span className="truncate leading-none hidden xs:inline">Kaydedilenler</span>
                                 </TabsTrigger>
                             </TabsList>
                         </Tabs>
                     </div>
                 )}
                 
-                <div className="px-3 py-2 border-b space-y-2">
+                <div className="px-2 sm:px-3 py-2 border-b space-y-2">
                     <div className="relative">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                         <Input 
-                            placeholder="Kitaplıkta ara..." 
-                            className="pl-8 h-9" 
+                            placeholder="Ara..." 
+                            className="pl-8 h-10 sm:h-9 text-sm" 
                             value={librarySearchQuery}
                             onChange={(e) => setLibrarySearchQuery(e.target.value)}
                         />
@@ -1471,18 +1472,18 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="absolute right-1 top-1 h-7 w-7" 
+                                className="absolute right-1 top-1.5 sm:top-1 h-7 w-7 touch-manipulation" 
                                 onClick={() => setLibrarySearchQuery('')}
                             >
-                                <X className="h-3 w-3" />
+                                <X className="h-4 w-4 sm:h-3 sm:w-3" />
                             </Button>
                         )}
                     </div>
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar">
                         <div className='flex items-center gap-1 border-r pr-2 mr-1'>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                     <Button variant="ghost" size="icon" className="h-7 w-7">
+                                     <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation">
                                         <Columns2 className="h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -1507,7 +1508,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             </DropdownMenu>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation">
                                         {sortDirection === 'asc' ? <ArrowUpAZ className="h-4 w-4" /> : <ArrowDownAZ className="h-4 w-4" />}
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -1567,7 +1568,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                         <Button 
                             variant={filterType.length === 0 ? 'secondary' : 'ghost'} 
                             size="sm" 
-                            className="h-7 text-xs rounded-full"
+                            className="h-8 sm:h-7 px-3 sm:px-2 text-xs rounded-full touch-manipulation"
                             onClick={() => setFilterType([])}
                         >
                             Hepsi
@@ -1577,7 +1578,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                                 key={t}
                                 variant={filterType.includes(t) ? 'secondary' : 'ghost'} 
                                 size="sm" 
-                                className="h-7 text-xs rounded-full capitalize"
+                                className="h-8 sm:h-7 px-3 sm:px-2 text-xs rounded-full capitalize touch-manipulation whitespace-nowrap"
                                 onClick={() => {
                                     setFilterType(prev => {
                                         if (prev.includes(t)) {
@@ -1751,10 +1752,10 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             );
         case 'social':
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="social-panel">
-                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
-                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
-                            <Users className="h-5 w-5" /> Sosyal Merkez
+                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none" data-testid="social-panel">
+                    <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
+                        <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
+                            <Users className="h-5 w-5 sm:h-4 sm:w-4" /> <span className="hidden xs:inline">Sosyal Merkez</span>
                         </h2>
                         <Button
                             variant="ghost"
@@ -1823,27 +1824,27 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
         case 'notifications':
             // Use hooks from component level
             return (
-                 <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="notifications-panel">
-                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
-                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
-                            <Bell className="h-5 w-5" /> Bildirimler
+                 <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none" data-testid="notifications-panel">
+                    <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
+                        <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
+                            <Bell className="h-5 w-5 sm:h-4 sm:w-4" /> <span className="hidden xs:inline">Bildirimler</span>
                             {activeNotifications.length > 0 && (
                                 <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
                                     {activeNotifications.length}
                                 </span>
                             )}
                         </h2>
-                         <div className="flex items-center gap-1">
+                         <div className="flex items-center gap-0.5 sm:gap-1">
                              <Button 
                                 variant="ghost" 
                                 size="sm"
                                 onClick={handleMarkAllRead}
                                 disabled={activeNotifications.length === 0}
-                                className="h-8"
+                                className="h-8 text-xs px-2 touch-manipulation"
                              >
-                                <CheckCheck className="mr-1 h-4 w-4"/>Temizle
+                                <CheckCheck className="mr-1 h-4 w-4 sm:h-3 sm:w-3"/><span className="hidden xs:inline">Temizle</span>
                              </Button>
-                             <Button variant="ghost" size="icon" className="h-8 w-8">
+                             <Button variant="ghost" size="icon" className="h-8 w-8 touch-manipulation">
                                 <Settings className="h-4 w-4"/>
                              </Button>
                              <Button
@@ -1907,15 +1908,15 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             );
         case 'ai-chat':
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="ai-chat-panel">
-                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
-                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
-                            <Bot className="h-5 w-5" /> Yapay Zeka Asistanı
+                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none" data-testid="ai-chat-panel">
+                    <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
+                        <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
+                            <Bot className="h-5 w-5 sm:h-4 sm:w-4" /> <span className="hidden xs:inline">AI Asistan</span>
                         </h2>
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 touch-manipulation"
                             onClick={() => setSidebarOpen(false)}
                             title="Paneli Kapat"
                         >
@@ -1957,25 +1958,25 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             }, {} as Record<string, Omit<ContentItem, 'id' | 'createdAt' | 'updatedAt' | 'parentId'>[]>);
 
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="widgets-panel">
-                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
-                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
-                            <Puzzle className="h-5 w-5" /> Araç Takımları
+                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none" data-testid="widgets-panel">
+                    <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
+                        <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
+                            <Puzzle className="h-5 w-5 sm:h-4 sm:w-4" /> <span className="hidden xs:inline">Araçlar</span>
                         </h2>
-                        <div className='flex items-center gap-1'>
+                        <div className='flex items-center gap-0.5 sm:gap-1'>
                             <Button 
                                 variant={isWidgetSearchOpen ? 'secondary': 'ghost'} 
                                 size="icon" 
-                                className="h-8 w-8" 
+                                className="h-8 w-8 touch-manipulation" 
                                 onClick={() => setIsWidgetSearchOpen(!isWidgetSearchOpen)}
                             >
                                 <Search className="h-4 w-4"/>
                             </Button>
-                            <div className='flex items-center gap-1 p-0.5 rounded-md border bg-muted'>
+                            <div className='flex items-center gap-0.5 p-0.5 rounded-md border bg-muted'>
                                 <Button 
                                     variant={widgetViewMode === 'preview' ? 'secondary' : 'ghost'} 
                                     size="icon" 
-                                    className="h-7 w-7" 
+                                    className="h-7 w-7 touch-manipulation" 
                                     onClick={() => setWidgetViewMode('preview')}
                                 >
                                     <View className="h-4 w-4"/>
@@ -1983,7 +1984,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                                 <Button 
                                     variant={widgetViewMode === 'icon' ? 'secondary' : 'ghost'} 
                                     size="icon" 
-                                    className="h-7 w-7" 
+                                    className="h-7 w-7 touch-manipulation" 
                                     onClick={() => setWidgetViewMode('icon')}
                                 >
                                     <Columns2 className="h-4 w-4"/>
@@ -1992,7 +1993,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-8 w-8 touch-manipulation"
                                 onClick={() => setSidebarOpen(false)}
                                 title="Paneli Kapat"
                             >
@@ -2072,16 +2073,16 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             // Hooks are now at component top level - just use the variables here
 
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md">
+                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none">
                     {/* Header */}
-                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
-                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
-                            🛒 E-Ticaret
+                    <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
+                        <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
+                            🛒 <span className="hidden xs:inline">E-Ticaret</span>
                         </h2>
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 touch-manipulation"
                             onClick={() => setSidebarOpen(false)}
                             title="Paneli Kapat"
                         >
@@ -2330,6 +2331,132 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                 </div>
             );
         }
+        case 'advanced-profiles':
+            return (
+                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="profiles-panel">
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <User className="h-5 w-5" /> Profil Slugları
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <ScrollArea className="h-full">
+                            <div className="p-4">
+                                <SlugGeneratorEditor />
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </div>
+            );
+        case 'message-groups':
+            return (
+                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="message-groups-panel">
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <MessageSquare className="h-5 w-5" /> Mesaj Grupları
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <MessageGroupsPanel />
+                    </div>
+                </div>
+            );
+        case 'calls':
+            return (
+                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="calls-panel">
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <Phone className="h-5 w-5" /> Aramalar
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <ScrollArea className="h-full">
+                            <div className="p-4">
+                                <CallManager />
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </div>
+            );
+        case 'meetings':
+            return (
+                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="meetings-panel">
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <Calendar className="h-5 w-5" /> Toplantılar
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <ScrollArea className="h-full">
+                            <div className="p-4">
+                                <MeetingScheduler />
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </div>
+            );
+        case 'social-groups':
+            return (
+                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="social-groups-panel">
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <Users2 className="h-5 w-5" /> Sosyal Gruplar
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <ScrollArea className="h-full">
+                            <div className="p-4">
+                                <SocialGroupsManager />
+                            </div>
+                        </ScrollArea>
+                    </div>
+                </div>
+            );
         default:
             return (
               <div className="h-full flex flex-col bg-card p-4 items-center justify-center">

@@ -27,6 +27,8 @@ import {
   CallStatus,
   CallType,
 } from '@/lib/advanced-features-types';
+import { JitsiEmbed } from '@/components/jitsi-embed';
+import { nanoid } from 'nanoid';
 
 interface CallManagerProps {
   activeCall?: CallSession;
@@ -54,6 +56,8 @@ export function CallManager({
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [videoEnabled, setVideoEnabled] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [embedActive, setEmbedActive] = useState(false);
+  const [embedRoom, setEmbedRoom] = useState<string>('');
 
   // Call duration timer
   useEffect(() => {
@@ -88,6 +92,8 @@ export function CallManager({
     try {
       await onEndCall(activeCall.id);
       setCallDuration(0);
+      setEmbedActive(false);
+      setEmbedRoom('');
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +120,7 @@ export function CallManager({
               Aktif Arama
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">
-              {activeCall.call_type} araması
+              {activeCall.type} araması
             </p>
           </div>
 
@@ -132,14 +138,14 @@ export function CallManager({
               </p>
               <div className="space-y-1">
                 {activeCall.participants.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2 text-xs">
+                  <div key={`${p.user_id}-${p.joined_at}`} className="flex items-center gap-2 text-xs">
                     <div
                       className={`w-2 h-2 rounded-full ${
-                        p.is_active ? 'bg-green-500' : 'bg-gray-400'
+                        p.left_at ? 'bg-gray-400' : 'bg-green-500'
                       }`}
                     />
                     <span className="text-gray-700 dark:text-gray-300">
-                      {p.participant_id}
+                      {p.user_id}
                     </span>
                     <div className="flex gap-1 ml-auto">
                       {p.audio_enabled ? (
@@ -193,7 +199,7 @@ export function CallManager({
               Kamera
             </Button>
 
-            {activeCall.call_type !== 'direct' && (
+            {activeCall.type !== 'direct' && (
               <Button
                 onClick={() => {
                   const userId = prompt('Eklenecek kullanıcı ID:');
@@ -218,6 +224,33 @@ export function CallManager({
               <PhoneOff className="w-4 h-4 mr-1" />
               Bitir
             </Button>
+          </div>
+
+          {/* Embedded Meeting */}
+          <div className="mt-3 space-y-2">
+            {!embedActive ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const room = `canvasflow-${activeCall?.id || nanoid(8)}`;
+                  setEmbedRoom(room);
+                  setEmbedActive(true);
+                }}
+              >
+                <Video className="w-4 h-4 mr-1" />
+                Gömülü Görüşmeyi Aç (Jitsi)
+              </Button>
+            ) : (
+              <div className="rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <JitsiEmbed
+                  roomName={embedRoom}
+                  userName={activeCall?.initiator_id || 'Kullanıcı'}
+                  onEnd={() => setEmbedActive(false)}
+                  height={520}
+                />
+              </div>
+            )}
           </div>
 
           {activeCall.recorded && (
@@ -295,6 +328,25 @@ export function CallManager({
                   {isLoading ? 'Başlatılıyor...' : 'Başlat'}
                 </Button>
               </div>
+
+              {/* Quick Jitsi start without waiting for external signaling */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => {
+                    setIsCreatingCall(false);
+                    setEmbedRoom(`canvasflow-${nanoid(8)}`);
+                    setEmbedActive(true);
+                  }}
+                >
+                  <Video className="w-4 h-4 mr-2" />
+                  Jitsi ile Gömülü Hızlı Görüşme
+                </Button>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Ücretsiz ve gömülü görüşme için Jitsi kullanılır. Link paylaşmadan doğrudan bu sayfada görüşürsünüz.
+                </p>
+              </div>
             </div>
           )}
         </div>
@@ -315,7 +367,7 @@ export function CallManager({
               >
                 <div className="flex-1">
                   <p className="font-medium text-gray-900 dark:text-white capitalize">
-                    {call.call_type}
+                    {call.type}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     {new Date(call.created_at).toLocaleString('tr-TR')}

@@ -15,7 +15,7 @@ interface ProfilePanelProps {
 }
 
 export function ProfilePanel({ onOpenContent }: ProfilePanelProps = {}) {
-  const { username, user, socialPosts, mySharedItems, profileCanvasId, setProfileCanvasId } = useAppStore();
+  const { username, user, socialPosts, profileCanvasId, setProfileCanvasId } = useAppStore();
 
   const myPosts = socialPosts.filter(p => p.author_id === user?.id);
 
@@ -79,7 +79,7 @@ export function ProfilePanel({ onOpenContent }: ProfilePanelProps = {}) {
         <div className="px-4">
           <TabsList className="w-full">
             <TabsTrigger value="feed" className="flex-1">Akış</TabsTrigger>
-            <TabsTrigger value="shares" className="flex-1">Paylaşımlar</TabsTrigger>
+            <TabsTrigger value="tagged" className="flex-1">Etiketlendiklerim</TabsTrigger>
             <TabsTrigger value="saved" className="flex-1">Kaydedilenler</TabsTrigger>
           </TabsList>
         </div>
@@ -123,32 +123,13 @@ export function ProfilePanel({ onOpenContent }: ProfilePanelProps = {}) {
               )}
             </div>
           </TabsContent>
-          <TabsContent value="shares" className="m-0 p-4">
+          <TabsContent value="tagged" className="m-0 p-4">
             <div className="space-y-4">
-              {mySharedItems.length === 0 ? (
-                <div className="text-center py-10">
-                  <Share2 className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-30" />
-                  <p className="text-muted-foreground text-sm">Henüz bir içerik paylaşmadınız.</p>
-                </div>
-              ) : (
-                mySharedItems.map((item) => (
-                   <Card 
-                    key={item.id} 
-                    className="border-primary/10 cursor-pointer hover:bg-accent/5 transition-colors"
-                    onClick={() => handleItemClick(item)}
-                   >
-                    <CardContent className="p-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
-                        <Grid className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-bold truncate">{item.title}</h4>
-                        <p className="text-xs text-muted-foreground capitalize">{item.type}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+              <div className="text-center py-10">
+                <User className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-30" />
+                <p className="text-muted-foreground text-sm">Henüz etiketlendiğiniz içerik yok.</p>
+                <p className="text-xs text-muted-foreground mt-1">Birisi sizi bir gönderide etiketlediğinde burada görünür.</p>
+              </div>
             </div>
           </TabsContent>
           <TabsContent value="saved" className="m-0 p-4">

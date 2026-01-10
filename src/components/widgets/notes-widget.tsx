@@ -121,9 +121,9 @@ export default function NotesWidget({
   // Toolbar her zaman görünür (player frame içinde tam boyut için)
   const editorContent = (
     <div className="absolute inset-0 flex flex-col">
-      {/* Toolbar - Her zaman aktif */}
+      {/* Toolbar - Responsive: XS/S'de daha az buton */}
       <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-700 flex-wrap p-1 flex-shrink-0 bg-background/95 backdrop-blur-sm">
-        {/* Basic formatting (B/I/U) */}
+        {/* Basic formatting (B/I/U) - Always visible */}
         <Button 
           size="icon" 
           variant="ghost" 
@@ -142,42 +142,52 @@ export default function NotesWidget({
         >
           <Italic className="h-3.5 w-3.5" />
         </Button>
-        <Button 
-          size="icon" 
-          variant="ghost" 
-          className="h-7 w-7" 
-          onMouseDown={(e) => { e.preventDefault(); handleCommand('underline'); }}
-          title="Altı Çizili"
-        >
-          <Underline className="h-3.5 w-3.5" />
-        </Button>
+        {/* Underline - Hidden on XS */}
+        {size !== 'XS' && (
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            className="h-7 w-7" 
+            onMouseDown={(e) => { e.preventDefault(); handleCommand('underline'); }}
+            title="Altı Çizili"
+          >
+            <Underline className="h-3.5 w-3.5" />
+          </Button>
+        )}
         
-        {/* List buttons */}
-        <Button size="icon" variant="ghost" className="h-7 w-7" onMouseDown={(e) => { e.preventDefault(); handleCommand('insertUnorderedList'); }} title="Madde İşaretli Liste">
-          <List className="h-3.5 w-3.5" />
-        </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7" onMouseDown={(e) => { e.preventDefault(); handleCommand('insertOrderedList'); }} title="Numaralı Liste">
-          <ListOrdered className="h-3.5 w-3.5" />
-        </Button>
-
-        {/* Color formatting */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button size="icon" variant="ghost" className="h-7 w-7" title="Renk">
-              <Palette className="h-3.5 w-3.5" />
+        {/* List buttons - Hidden on XS/S */}
+        {size !== 'XS' && size !== 'S' && (
+          <>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onMouseDown={(e) => { e.preventDefault(); handleCommand('insertUnorderedList'); }} title="Madde İşaretli Liste">
+              <List className="h-3.5 w-3.5" />
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-2">
-            <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium">Yazı Rengi</label>
-                <input type="color" onChange={(e) => handleColorChange(e, 'foreColor')} className="w-full h-8" />
-                <label className="text-sm font-medium">Arka Plan Rengi</label>
-                <input type="color" onChange={(e) => handleColorChange(e, 'backColor')} className="w-full h-8" />
-            </div>
-          </PopoverContent>
-        </Popover>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onMouseDown={(e) => { e.preventDefault(); handleCommand('insertOrderedList'); }} title="Numaralı Liste">
+              <ListOrdered className="h-3.5 w-3.5" />
+            </Button>
+          </>
+        )}
+
+        {/* Color formatting - Hidden on XS/S, Compact popover on M */}
+        {size !== 'XS' && size !== 'S' && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-7 w-7" title="Renk">
+                <Palette className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className={cn("p-2", size === 'M' ? 'w-40' : 'w-auto')}>
+              <div className="flex flex-col gap-2">
+                  <label className="text-xs font-medium">Yazı Rengi</label>
+                  <input type="color" onChange={(e) => handleColorChange(e, 'foreColor')} className="w-full h-7" />
+                  <label className="text-xs font-medium">Arka Plan Rengi</label>
+                  <input type="color" onChange={(e) => handleColorChange(e, 'backColor')} className="w-full h-7" />
+              </div>
+            </PopoverContent>
+          </Popover>
+        )}
         
-        {/* Font selection */}
+        {/* Font selection - Only on L/XL */}
+        {(size === 'L' || size === 'XL') && (
         <Popover>
           <PopoverTrigger asChild>
             <Button size="icon" variant="ghost" className="h-7 w-7" title="Font">
@@ -193,6 +203,7 @@ export default function NotesWidget({
             </div>
           </PopoverContent>
         </Popover>
+        )}
       </div>
 
       {/* Editor */}

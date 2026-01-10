@@ -223,8 +223,8 @@ export interface ViewportEditorState {
   // View
   currentSceneId: string;
   zoom: number; // 0.1 - 3.0
-  panX: number;
-  panY: number;
+  panX?: number;
+  panY?: number;
   
   // Selection
   selectedItemIds: string[];
@@ -249,6 +249,11 @@ export interface ViewportEditorState {
   // Preview
   isPreviewMode: boolean;
   isFullscreen: boolean;
+
+  // Player Frame Settings
+  playerFrameAspectRatio?: '16:9' | '1:1' | 'auto';
+  playerFrameWidth?: number;
+  playerFrameHeight?: number;
 
   // Editor extras
   remoteControls?: RemoteControlConfig[];

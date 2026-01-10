@@ -134,10 +134,10 @@ const GridModeControls = memo(function GridModeControls({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 px-2 py-1 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm rounded-lg border border-slate-700/50 min-w-0">
-      {/* Left Section: Mode Switcher + Column Selector */}
-      <div className="flex items-center gap-1">
-        {/* Mode Switcher */}
+    <div className="flex flex-wrap items-center gap-1.5 px-2 sm:px-3 md:px-4 py-2 sm:py-1 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm rounded-lg border border-slate-700/50 min-w-0 max-w-full overflow-x-auto">
+      {/* Left Section: Mode Switcher + Column Selector - Responsive */}
+      <div className="flex items-center gap-1 flex-wrap sm:flex-nowrap">
+        {/* Mode Switcher - Touch friendly */}
         <div className="flex items-center gap-0.5 bg-slate-900/60 rounded-md p-0.5 border border-slate-700/50">
           {/* Vertical Mode Button */}
           <motion.button
@@ -148,15 +148,15 @@ const GridModeControls = memo(function GridModeControls({
               onChangeGridType('vertical');
             }}
             className={cn(
-              "px-1.5 py-1 rounded-sm text-[10px] font-medium transition-colors flex items-center gap-1",
+              "px-2 sm:px-1.5 py-1.5 sm:py-1 rounded-sm text-xs sm:text-[10px] font-medium transition-colors flex items-center gap-1 touch-manipulation",
               gridState.enabled && isVertical
                 ? "bg-blue-500/80 text-white shadow-lg shadow-blue-500/30"
                 : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
             )}
             title="Sonsuz Görünüm - Aşağıya kaydırarak göz at"
           >
-            <Columns3 className="w-3 h-3" />
-            <span>Sonsuz</span>
+            <Columns3 className="w-4 h-4 sm:w-3 sm:h-3" />
+            <span className="hidden xs:inline">Sonsuz</span>
           </motion.button>
 
           {/* Square Grid Mode Button */}
@@ -168,19 +168,19 @@ const GridModeControls = memo(function GridModeControls({
               onChangeGridType('square');
             }}
             className={cn(
-              "px-1.5 py-1 rounded-sm text-[10px] font-medium transition-colors flex items-center gap-1",
+              "px-2 sm:px-1.5 py-1.5 sm:py-1 rounded-sm text-xs sm:text-[10px] font-medium transition-colors flex items-center gap-1 touch-manipulation",
               gridState.enabled && isSquare
                 ? "bg-emerald-500/80 text-white shadow-lg shadow-emerald-500/30"
                 : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
             )}
             title="Sayfa Görünümü - Sayfalarla aşın"
           >
-            <SquareStack className="w-3 h-3" />
-            <span>Sayfa</span>
+            <SquareStack className="w-4 h-4 sm:w-3 sm:h-3" />
+            <span className="hidden xs:inline">Sayfa</span>
           </motion.button>
         </div>
 
-        {/* Grid Resizer - Works for both modes */}
+        {/* Grid Resizer - Responsive: mobilde 4, tablette 6, masaüstünde 8 sütun */}
         <AnimatePresence mode="wait">
           {gridState.enabled && (
             <motion.div
@@ -188,8 +188,9 @@ const GridModeControls = memo(function GridModeControls({
               animate={{ opacity: 1, scale: 1, width: 'auto' }}
               exit={{ opacity: 0, scale: 0.95, width: 0 }}
               transition={{ duration: 0.2 }}
-              className="flex items-center gap-0.5 bg-slate-900/60 rounded-md p-0.5 border border-slate-700/50"
+              className="flex items-center gap-1 sm:gap-0.5 bg-slate-900/60 rounded-md p-1 sm:p-0.5 border border-slate-700/50 overflow-x-auto max-w-full"
             >
+              {/* Mobil: 1-4, Tablet: 1-6, Masaüstü: 1-8 */}
               {[1, 2, 3, 4, 5, 6, 7, 8].map((col) => (
                 <motion.button
                   key={col}
@@ -197,10 +198,12 @@ const GridModeControls = memo(function GridModeControls({
                   whileTap={{ scale: 0.95 }}
                   onClick={() => onChangeColumns(col)}
                   className={cn(
-                    "w-5 h-5 rounded text-[10px] font-medium transition-colors",
+                    "w-7 h-7 sm:w-6 sm:h-6 md:w-5 md:h-5 rounded text-xs sm:text-[10px] font-medium transition-colors flex-shrink-0",
                     gridState.columns === col
                       ? "bg-purple-500/80 text-white shadow-lg shadow-purple-500/30"
-                      : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
+                      : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50",
+                    col > 4 && "hidden sm:flex",
+                    col > 6 && "hidden md:flex"
                   )}
                   title={`${col} ${isSquare ? 'x' + col + ' ızgara' : 'sütun'}`}
                 >

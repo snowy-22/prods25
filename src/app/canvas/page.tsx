@@ -1590,7 +1590,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                     username={state.username || 'Guest'}
                                     onNewFolder={() => addItemToView({ type: 'folder' }, activeViewId)}
                                     onNewList={() => addItemToView({ type: 'list' }, activeViewId)}
-                                    onNewPlayer={() => addItemToView({type: 'player', title: 'URL Ekle', content: ''}, activeViewId)}
+                                    onNewPlayer={() => addItemToView({type: 'player', title: 'URL Ekle', content: '', url: 'ADD_SOURCE_PLACEHOLDER'}, activeViewId)}
                                     expandedItems={state.expandedItems}
                                     onToggleExpansion={state.toggleExpansion}
                                     onSaveItem={(item) => {

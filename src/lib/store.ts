@@ -1,3 +1,108 @@
+// --- Multi-Tab Split View & Gridify Utilities ---
+export type SplitTabSection = {
+  id: string;
+  tabId: string;
+  width: number; // percent or px
+  height: number; // percent or px
+  x: number;
+  y: number;
+};
+
+export type SplitViewState = {
+  mode: 'single' | 'split-2' | 'split-3' | 'split-grid';
+  sections: SplitTabSection[];
+};
+
+// Add to AppStore interface:
+// splitView: SplitViewState;
+// setSplitView: (state: Partial<SplitViewState>) => void;
+// splitTabs: (mode: 'split-2' | 'split-3' | 'split-grid') => void;
+// gridifySplitView: () => void;
+// resizeSplitSection: (sectionId: string, newSize: { width?: number; height?: number }) => void;
+
+// --- Advanced Move/Transfer Utilities ---
+/**
+ * Move a ContentItem to a new parent (folder/canvas/grid), updating parentId, order, and layoutMode as needed.
+ * Supports moving between folders, canvas, and grid, and can be extended for cross-tab/cross-viewport moves.
+ */
+
+export function moveContentItem({
+  itemId,
+  newParentId,
+  newOrder = 0,
+  newLayoutMode,
+  tabs,
+  items,
+}: {
+  itemId: string;
+  newParentId: string;
+  newOrder?: number;
+  newLayoutMode?: 'grid' | 'canvas';
+  tabs: Tab[];
+  items: ContentItem[];
+}): { updatedTabs: Tab[]; updatedItems: ContentItem[] } {
+  // Map 'canvas' to 'free' for compatibility
+  const normalizeLayoutMode = (mode?: 'grid' | 'canvas' | string): ContentItem['layoutMode'] => {
+    if (mode === 'canvas') return 'free';
+    if (mode === 'grid') return 'grid';
+    if (["studio","presentation","stream","free","carousel"].includes(String(mode))) {
+      return mode as ContentItem['layoutMode'];
+    }
+    return undefined;
+  };
+  // Find the item
+  const item = items.find(i => i.id === itemId);
+  if (!item) return { updatedTabs: tabs, updatedItems: items };
+  // Remove from old parent
+  let updatedItems = items.map(i =>
+    i.id === itemId
+      ? {
+          ...i,
+          parentId: newParentId,
+          order: newOrder,
+          layoutMode: normalizeLayoutMode(newLayoutMode || i.layoutMode)
+        } as ContentItem
+      : i
+  );
+  return { updatedTabs: tabs, updatedItems };
+}
+
+/**
+ * Move multiple ContentItems (batch move), e.g. for drag-select or multi-select moves.
+ */
+
+export function moveMultipleContentItems({
+  itemIds,
+  newParentId,
+  newLayoutMode,
+  tabs,
+  items,
+}: {
+  itemIds: string[];
+  newParentId: string;
+  newLayoutMode?: 'grid' | 'canvas';
+  tabs: Tab[];
+  items: ContentItem[];
+}): { updatedTabs: Tab[]; updatedItems: ContentItem[] } {
+  const normalizeLayoutMode = (mode?: 'grid' | 'canvas' | string): ContentItem['layoutMode'] => {
+    if (mode === 'canvas') return 'free';
+    if (mode === 'grid') return 'grid';
+    if (["studio","presentation","stream","free","carousel"].includes(String(mode))) {
+      return mode as ContentItem['layoutMode'];
+    }
+    return undefined;
+  };
+  let updatedItems = items.map(i =>
+    itemIds.includes(i.id)
+      ? {
+          ...i,
+          parentId: newParentId,
+          layoutMode: normalizeLayoutMode(newLayoutMode || i.layoutMode)
+        } as ContentItem
+      : i
+  );
+  return { updatedTabs: tabs, updatedItems };
+}
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
@@ -98,6 +203,23 @@ import {
   BroadcastSession,
   StreamSettings,
 } from './scene-types';
+import {
+  ProfileSlug,
+  ProfileSlugReference,
+  FolderSlug,
+  FolderStructure,
+  MessageGroup,
+  GroupInviteLink,
+  CallSession,
+  CallHistory,
+  ScheduledMeeting,
+  MeetingRecording,
+  MeetingFollowUp,
+  SocialGroup,
+  SocialGroupMember,
+  SocialGroupPost,
+  JoinRequest,
+} from './advanced-features-types';
 
 export type SearchPanelState = {
   isOpen: boolean;
@@ -147,7 +269,15 @@ export type NewTabBehavior = 'chrome-style' | 'library' | 'folder' | 'custom';
 export type StartupBehavior = 'last-session' | 'new-tab' | 'library' | 'folder' | 'custom';
 export type EcommerceView = 'products' | 'marketplace' | 'cart' | 'orders';
 
+import type { SplitViewState } from './store';
+
 interface AppStore {
+    // Split View State
+    splitView: SplitViewState;
+    setSplitView: (state: Partial<SplitViewState>) => void;
+    splitTabs: (mode: 'split-2' | 'split-3' | 'split-grid') => void;
+    gridifySplitView: () => void;
+    resizeSplitSection: (sectionId: string, newSize: { width?: number; height?: number }) => void;
   user: User | null;
   username: string | null;
   
@@ -167,7 +297,7 @@ interface AppStore {
   customNewTabContent?: ContentItem;
   customStartupContent?: ContentItem;
   isSecondLeftSidebarOpen: boolean;
-  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | null;
+  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | null;
   isStyleSettingsOpen: boolean;
   isViewportEditorOpen: boolean;
   isSpacesPanelOpen: boolean;
@@ -592,6 +722,76 @@ interface AppStore {
   removeSocialPost: (postId: string) => void;
   addMySharedItem: (item: ContentItem) => void;
   removeMySharedItem: (itemId: string) => void;
+
+  // Advanced Features State
+  profileSlugs: ProfileSlug[];
+  profileSlugReferences: ProfileSlugReference[];
+  folderSlugs: FolderSlug[];
+  folderStructure: FolderStructure | null;
+  messageGroups: MessageGroup[];
+  messageGroupInviteLinks: GroupInviteLink[];
+  callSessions: CallSession[];
+  callHistory: CallHistory[];
+  scheduledMeetings: ScheduledMeeting[];
+  meetingRecordings: MeetingRecording[];
+  meetingFollowUps: MeetingFollowUp[];
+  socialGroups: SocialGroup[];
+  socialGroupMembers: SocialGroupMember[];
+  socialGroupPosts: SocialGroupPost[];
+  joinRequests: JoinRequest[];
+
+  // Advanced Features Actions
+  // Profile Slugs
+  createProfileSlug: (displayName: string, bio?: string, profileImageUrl?: string) => Promise<ProfileSlug | null>;
+  updateProfileSlug: (slugId: string, updates: Partial<ProfileSlug>) => Promise<void>;
+  deleteProfileSlug: (slugId: string) => Promise<void>;
+  getProfileBySlug: (slug: string) => Promise<ProfileSlug | null>;
+  createProfileReference: (targetSlug: string, relationshipType: 'follow' | 'friend' | 'subscriber' | 'collaborator') => Promise<ProfileSlugReference | null>;
+
+  // Folder Slugs
+  createFolderSlug: (folderId: string, displayName: string, parentSlug?: string) => Promise<FolderSlug | null>;
+  updateFolderSlug: (slugId: string, updates: Partial<FolderSlug>) => Promise<void>;
+  deleteFolderSlug: (slugId: string) => Promise<void>;
+  getFolderStructure: () => Promise<FolderStructure | null>;
+
+  // Message Groups
+  createMessageGroup: (name: string, memberIds: string[], isPrivate?: boolean) => Promise<MessageGroup | null>;
+  updateMessageGroup: (groupId: string, updates: Partial<MessageGroup>) => Promise<void>;
+  deleteMessageGroup: (groupId: string) => Promise<void>;
+  addMessageGroupMember: (groupId: string, userId: string, role?: string) => Promise<void>;
+  removeMessageGroupMember: (groupId: string, userId: string) => Promise<void>;
+  createMessageGroupInviteLink: (groupId: string, expiresIn?: number, maxUses?: number) => Promise<GroupInviteLink | null>;
+
+  // Calls
+  initiateCall: (callType: 'direct' | 'group' | 'conference' | 'webinar', participantIds: string[]) => Promise<CallSession | null>;
+  addCallParticipant2: (callId: string, userId: string) => Promise<void>;
+  removeCallParticipant: (callId: string, userId: string) => Promise<void>;
+  toggleCallAudio: (callId: string, enabled: boolean) => Promise<void>;
+  toggleCallVideo: (callId: string, enabled: boolean) => Promise<void>;
+  toggleScreenShare: (callId: string, enabled: boolean) => Promise<void>;
+  endCallSession: (callId: string) => Promise<void>;
+  logCallHistory: (callId: string) => Promise<void>;
+
+  // Meetings
+  createScheduledMeeting: (title: string, startTime: string, endTime: string, participantIds: string[], recurrence?: string, agenda?: string) => Promise<ScheduledMeeting | null>;
+  updateScheduledMeeting: (meetingId: string, updates: Partial<ScheduledMeeting>) => Promise<void>;
+  deleteScheduledMeeting: (meetingId: string) => Promise<void>;
+  addMeetingParticipant: (meetingId: string, userId: string, email?: string) => Promise<void>;
+  removeMeetingParticipant: (meetingId: string, userId: string) => Promise<void>;
+  startMeetingRecording: (meetingId: string) => Promise<MeetingRecording | null>;
+  stopMeetingRecording: (recordingId: string) => Promise<void>;
+  addMeetingFollowUp: (meetingId: string, action: string, assignedTo: string, dueDate: string) => Promise<void>;
+
+  // Social Groups
+  createSocialGroup: (name: string, category: string, isPrivate?: boolean) => Promise<SocialGroup | null>;
+  updateSocialGroup: (groupId: string, updates: Partial<SocialGroup>) => Promise<void>;
+  deleteSocialGroup: (groupId: string) => Promise<void>;
+  inviteToSocialGroup: (groupId: string, userId: string) => Promise<void>;
+  postToSocialGroup: (groupId: string, content: string, mediaUrls?: string[]) => Promise<SocialGroupPost | null>;
+  requestJoinSocialGroup: (groupId: string) => Promise<JoinRequest | null>;
+  approveSocialGroupJoinRequest: (requestId: string) => Promise<void>;
+  rejectSocialGroupJoinRequest: (requestId: string) => Promise<void>;
+  removeSocialGroupMember: (groupId: string, userId: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -832,6 +1032,70 @@ export const useAppStore = create<AppStore>()(
         id: `provider-${idx}`,
         apiKey: undefined // API keys will be set by user if needed
       })),
+
+      // --- Split View State ---
+      splitView: {
+        mode: 'single',
+        sections: [
+          { id: 'section-0', tabId: '', width: 100, height: 100, x: 0, y: 0 }
+        ]
+      },
+      setSplitView: (state) => set((s) => ({ splitView: { ...s.splitView, ...state } })),
+      splitTabs: (mode) => set((s) => {
+        const { tabs, activeTabId } = s;
+        let sections: SplitTabSection[] = [];
+        if (mode === 'split-2') {
+          const tabIds = [activeTabId, tabs.find(t => t.id !== activeTabId)?.id || activeTabId];
+          sections = [
+            { id: 'section-0', tabId: tabIds[0], width: 50, height: 100, x: 0, y: 0 },
+            { id: 'section-1', tabId: tabIds[1], width: 50, height: 100, x: 50, y: 0 }
+          ];
+        } else if (mode === 'split-3') {
+          const tabIds = [activeTabId, ...tabs.filter(t => t.id !== activeTabId).slice(0,2).map(t => t.id)];
+          sections = [
+            { id: 'section-0', tabId: tabIds[0], width: 33.33, height: 100, x: 0, y: 0 },
+            { id: 'section-1', tabId: tabIds[1], width: 33.33, height: 100, x: 33.33, y: 0 },
+            { id: 'section-2', tabId: tabIds[2], width: 33.34, height: 100, x: 66.66, y: 0 }
+          ];
+        } else if (mode === 'split-grid') {
+          // 2x2 grid for up to 4 tabs
+          const tabIds = [activeTabId, ...tabs.filter(t => t.id !== activeTabId).slice(0,3).map(t => t.id)];
+          sections = [
+            { id: 'section-0', tabId: tabIds[0], width: 50, height: 50, x: 0, y: 0 },
+            { id: 'section-1', tabId: tabIds[1], width: 50, height: 50, x: 50, y: 0 },
+            { id: 'section-2', tabId: tabIds[2], width: 50, height: 50, x: 0, y: 50 },
+            { id: 'section-3', tabId: tabIds[3], width: 50, height: 50, x: 50, y: 50 }
+          ];
+        } else {
+          sections = [{ id: 'section-0', tabId: activeTabId, width: 100, height: 100, x: 0, y: 0 }];
+        }
+        return { splitView: { mode, sections } };
+      }),
+      gridifySplitView: () => set((s) => {
+        const { splitView } = s;
+        // Convert current split sections to grid layout (equal size)
+        const n = splitView.sections.length;
+        const gridSize = Math.ceil(Math.sqrt(n));
+        const sections = splitView.sections.map((sec, i) => {
+          const row = Math.floor(i / gridSize);
+          const col = i % gridSize;
+          return {
+            ...sec,
+            width: 100 / gridSize,
+            height: 100 / gridSize,
+            x: (100 / gridSize) * col,
+            y: (100 / gridSize) * row
+          };
+        });
+        return { splitView: { ...splitView, mode: 'split-grid', sections } };
+      }),
+      resizeSplitSection: (sectionId, newSize) => set((s) => {
+        const { splitView } = s;
+        const sections = splitView.sections.map(sec =>
+          sec.id === sectionId ? { ...sec, ...newSize } : sec
+        );
+        return { splitView: { ...splitView, sections } };
+      }),
       aiAgentConfig: {
         mode: 'manual',
         defaultProvider: 'provider-0',
@@ -852,7 +1116,7 @@ export const useAppStore = create<AppStore>()(
       playerControlGroups: [],
 
       // Cloud Sync defaults
-      isSyncEnabled: false,
+      isSyncEnabled: true,
       lastSyncTime: null,
 
       // E-Commerce & Marketplace defaults
@@ -1070,6 +1334,23 @@ export const useAppStore = create<AppStore>()(
       socialPosts: [],
       mySharedItems: [],
 
+      // Advanced Features defaults
+      profileSlugs: [],
+      profileSlugReferences: [],
+      folderSlugs: [],
+      folderStructure: null,
+      messageGroups: [],
+      messageGroupInviteLinks: [],
+      callSessions: [],
+      callHistory: [],
+      scheduledMeetings: [],
+      meetingRecordings: [],
+      meetingFollowUps: [],
+      socialGroups: [],
+      socialGroupMembers: [],
+      socialGroupPosts: [],
+      joinRequests: [],
+
       setUser: (user) => {
         set({ user });
         if (user) {
@@ -1149,6 +1430,11 @@ export const useAppStore = create<AppStore>()(
       setTabs: (tabs) => {
         set({ tabs });
         get().syncToCloud('tabs', tabs);
+      },
+
+      setTabGroups: (tabGroups) => {
+        set({ tabGroups });
+        get().syncToCloud('tabGroups', tabGroups);
       },
       setIsUiHidden: (isUiHidden) => set({ isUiHidden }),
       setPointerFrameEnabled: (pointerFrameEnabled) => set({ pointerFrameEnabled }),
@@ -3506,6 +3792,379 @@ export const useAppStore = create<AppStore>()(
       removeMySharedItem: (itemId) => set((state) => ({
         mySharedItems: state.mySharedItems.filter(i => i.id !== itemId)
       })),
+
+      // Advanced Features Actions
+      // Profile Slugs
+      createProfileSlug: async (displayName, bio, profileImageUrl) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        const slug = displayName.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 50);
+        const { data, error } = await supabase
+          .from('profile_slugs')
+          .insert({ user_id: user.id, slug, display_name: displayName, bio, profile_image_url: profileImageUrl, is_primary: true, public: true })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          set((state) => ({ profileSlugs: [...state.profileSlugs, data] }));
+          return data;
+        }
+        return null;
+      },
+      updateProfileSlug: async (slugId, updates) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        const { error } = await supabase
+          .from('profile_slugs')
+          .update({ ...updates, updated_at: new Date().toISOString() })
+          .eq('id', slugId);
+        
+        if (!error) {
+          set((state) => ({
+            profileSlugs: state.profileSlugs.map(s => s.id === slugId ? { ...s, ...updates } : s)
+          }));
+        }
+      },
+      deleteProfileSlug: async (slugId) => {
+        const supabase = createClient();
+        const { error } = await supabase.from('profile_slugs').delete().eq('id', slugId);
+        if (!error) {
+          set((state) => ({ profileSlugs: state.profileSlugs.filter(s => s.id !== slugId) }));
+        }
+      },
+      getProfileBySlug: async (slug) => {
+        const supabase = createClient();
+        const { data, error } = await supabase.from('profile_slugs').select('*').eq('slug', slug).single();
+        return data || null;
+      },
+      createProfileReference: async (targetSlug, relationshipType) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        const { data, error } = await supabase
+          .from('profile_slug_references')
+          .insert({ source_user_id: user.id, target_profile_slug: targetSlug, relationship_type: relationshipType })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          set((state) => ({ profileSlugReferences: [...state.profileSlugReferences, data] }));
+          return data;
+        }
+        return null;
+      },
+
+      // Folder Slugs
+      createFolderSlug: async (folderId, displayName, parentSlug) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        const slug = displayName.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 50);
+        const { data, error } = await supabase
+          .from('folder_slugs')
+          .insert({ folder_id: folderId, user_id: user.id, slug, display_name: displayName, parent_slug: parentSlug, is_public: true })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          set((state) => ({ folderSlugs: [...state.folderSlugs, data] }));
+          return data;
+        }
+        return null;
+      },
+      updateFolderSlug: async (slugId, updates) => {
+        const supabase = createClient();
+        const { error } = await supabase.from('folder_slugs').update(updates).eq('id', slugId);
+        if (!error) {
+          set((state) => ({ folderSlugs: state.folderSlugs.map(s => s.id === slugId ? { ...s, ...updates } : s) }));
+        }
+      },
+      deleteFolderSlug: async (slugId) => {
+        const supabase = createClient();
+        const { error } = await supabase.from('folder_slugs').delete().eq('id', slugId);
+        if (!error) {
+          set((state) => ({ folderSlugs: state.folderSlugs.filter(s => s.id !== slugId) }));
+        }
+      },
+      getFolderStructure: async () => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        const { data } = await supabase.from('folder_slugs').select('*').eq('user_id', user.id);
+        if (data) {
+          const structure: FolderStructure = { folders: data, hierarchy: {} };
+          set({ folderStructure: structure });
+          return structure;
+        }
+        return null;
+      },
+
+      // Message Groups
+      createMessageGroup: async (name, memberIds, isPrivate) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 50);
+        const { data, error } = await supabase
+          .from('message_groups')
+          .insert({ name, slug, created_by: user.id, is_private: isPrivate ?? false, message_count: 0 })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          set((state) => ({ messageGroups: [...state.messageGroups, data] }));
+          return data;
+        }
+        return null;
+      },
+      updateMessageGroup: async (groupId, updates) => {
+        const supabase = createClient();
+        await supabase.from('message_groups').update(updates).eq('id', groupId);
+        set((state) => ({ messageGroups: state.messageGroups.map(g => g.id === groupId ? { ...g, ...updates } : g) }));
+      },
+      deleteMessageGroup: async (groupId) => {
+        const supabase = createClient();
+        await supabase.from('message_groups').delete().eq('id', groupId);
+        set((state) => ({ messageGroups: state.messageGroups.filter(g => g.id !== groupId) }));
+      },
+      addMessageGroupMember: async (groupId, userId, role) => {
+        const supabase = createClient();
+        await supabase.from('group_members').insert({ group_id: groupId, user_id: userId, role: role ?? 'member' });
+      },
+      removeMessageGroupMember: async (groupId, userId) => {
+        const supabase = createClient();
+        await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', userId);
+      },
+      createMessageGroupInviteLink: async (groupId, expiresIn, maxUses) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 24 * 60 * 60 * 1000).toISOString() : null;
+        
+        const { data, error } = await supabase
+          .from('group_invite_links')
+          .insert({ group_id: groupId, token, created_by: user.id, expires_at: expiresAt, max_uses: maxUses })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          set((state) => ({ messageGroupInviteLinks: [...state.messageGroupInviteLinks, data] }));
+          return data;
+        }
+        return null;
+      },
+
+      // Calls
+      initiateCall: async (callType, participantIds) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        const { data, error } = await supabase
+          .from('call_sessions')
+          .insert({ initiator_id: user.id, call_type: callType, status: 'pending' })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          set((state) => ({ callSessions: [...state.callSessions, data] }));
+          return data;
+        }
+        return null;
+      },
+      addCallParticipant2: async (callId, userId) => {
+        const supabase = createClient();
+        await supabase.from('call_participants').insert({ call_id: callId, user_id: userId, is_active: true });
+      },
+      removeCallParticipant: async (callId, userId) => {
+        const supabase = createClient();
+        await supabase.from('call_participants').delete().eq('call_id', callId).eq('user_id', userId);
+      },
+      toggleCallAudio: async (callId, enabled) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) await supabase.from('call_participants').update({ audio_enabled: enabled }).eq('call_id', callId).eq('user_id', user.id);
+      },
+      toggleCallVideo: async (callId, enabled) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) await supabase.from('call_participants').update({ video_enabled: enabled }).eq('call_id', callId).eq('user_id', user.id);
+      },
+      toggleScreenShare: async (callId, enabled) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) await supabase.from('call_participants').update({ screen_share_enabled: enabled }).eq('call_id', callId).eq('user_id', user.id);
+      },
+      endCallSession: async (callId) => {
+        const supabase = createClient();
+        await supabase.from('call_sessions').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', callId);
+        set((state) => ({ callSessions: state.callSessions.map(c => c.id === callId ? { ...c, status: 'ended' } : c) }));
+      },
+      logCallHistory: async (callId) => {
+        const supabase = createClient();
+        const session = get().callSessions.find(c => c.id === callId);
+        if (session) {
+          const { data, error } = await supabase
+            .from('call_history')
+            .insert({ call_id: callId, user_id: session.initiator_id, duration_seconds: 0 })
+            .select()
+            .single();
+          
+          if (!error && data) {
+            set((state) => ({ callHistory: [...state.callHistory, data] }));
+          }
+        }
+      },
+
+      // Meetings
+      createScheduledMeeting: async (title, startTime, endTime, participantIds, recurrence, agenda) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        const slug = title.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 50);
+        const { data, error } = await supabase
+          .from('scheduled_meetings')
+          .insert({ user_id: user.id, title, slug, start_time: startTime, end_time: endTime, recurrence, agenda, status: 'scheduled' })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          set((state) => ({ scheduledMeetings: [...state.scheduledMeetings, data] }));
+          return data;
+        }
+        return null;
+      },
+      updateScheduledMeeting: async (meetingId, updates) => {
+        const supabase = createClient();
+        await supabase.from('scheduled_meetings').update(updates).eq('id', meetingId);
+        set((state) => ({ scheduledMeetings: state.scheduledMeetings.map(m => m.id === meetingId ? { ...m, ...updates } : m) }));
+      },
+      deleteScheduledMeeting: async (meetingId) => {
+        const supabase = createClient();
+        await supabase.from('scheduled_meetings').delete().eq('id', meetingId);
+        set((state) => ({ scheduledMeetings: state.scheduledMeetings.filter(m => m.id !== meetingId) }));
+      },
+      addMeetingParticipant: async (meetingId, userId, email) => {
+        const supabase = createClient();
+        await supabase.from('meeting_participants').insert({ meeting_id: meetingId, user_id: userId, email, rsvp_status: 'pending' });
+      },
+      removeMeetingParticipant: async (meetingId, userId) => {
+        const supabase = createClient();
+        await supabase.from('meeting_participants').delete().eq('meeting_id', meetingId).eq('user_id', userId);
+      },
+      startMeetingRecording: async (meetingId) => {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from('meeting_recordings')
+          .insert({ meeting_id: meetingId, status: 'recording', started_at: new Date().toISOString() })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          set((state) => ({ meetingRecordings: [...state.meetingRecordings, data] }));
+          return data;
+        }
+        return null;
+      },
+      stopMeetingRecording: async (recordingId) => {
+        const supabase = createClient();
+        await supabase.from('meeting_recordings').update({ status: 'completed', ended_at: new Date().toISOString() }).eq('id', recordingId);
+      },
+      addMeetingFollowUp: async (meetingId, action, assignedTo, dueDate) => {
+        const supabase = createClient();
+        await supabase.from('meeting_follow_ups').insert({ meeting_id: meetingId, action, assigned_to: assignedTo, due_date: dueDate, status: 'pending' });
+      },
+
+      // Social Groups
+      createSocialGroup: async (name, category, isPrivate) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        const slug = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 50);
+        const { data, error } = await supabase
+          .from('social_groups')
+          .insert({ name, slug, category, created_by: user.id, is_private: isPrivate ?? false, member_count: 1 })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          set((state) => ({ socialGroups: [...state.socialGroups, data] }));
+          return data;
+        }
+        return null;
+      },
+      updateSocialGroup: async (groupId, updates) => {
+        const supabase = createClient();
+        await supabase.from('social_groups').update(updates).eq('id', groupId);
+        set((state) => ({ socialGroups: state.socialGroups.map(g => g.id === groupId ? { ...g, ...updates } : g) }));
+      },
+      deleteSocialGroup: async (groupId) => {
+        const supabase = createClient();
+        await supabase.from('social_groups').delete().eq('id', groupId);
+        set((state) => ({ socialGroups: state.socialGroups.filter(g => g.id !== groupId) }));
+      },
+      inviteToSocialGroup: async (groupId, userId) => {
+        const supabase = createClient();
+        await supabase.from('social_group_invites').insert({ group_id: groupId, user_id: userId, status: 'pending' });
+      },
+      postToSocialGroup: async (groupId, content, mediaUrls) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        const { data, error } = await supabase
+          .from('social_group_posts')
+          .insert({ group_id: groupId, user_id: user.id, content, media: mediaUrls })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          set((state) => ({ socialGroupPosts: [...state.socialGroupPosts, data] }));
+          return data;
+        }
+        return null;
+      },
+      requestJoinSocialGroup: async (groupId) => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        const { data, error } = await supabase
+          .from('join_requests')
+          .insert({ group_id: groupId, user_id: user.id, status: 'pending' })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          set((state) => ({ joinRequests: [...state.joinRequests, data] }));
+          return data;
+        }
+        return null;
+      },
+      approveSocialGroupJoinRequest: async (requestId) => {
+        const supabase = createClient();
+        await supabase.from('join_requests').update({ status: 'approved' }).eq('id', requestId);
+      },
+      rejectSocialGroupJoinRequest: async (requestId) => {
+        const supabase = createClient();
+        await supabase.from('join_requests').update({ status: 'rejected' }).eq('id', requestId);
+      },
+      removeSocialGroupMember: async (groupId, userId) => {
+        const supabase = createClient();
+        await supabase.from('social_group_members').delete().eq('group_id', groupId).eq('user_id', userId);
+      },
     }),
     {
       name: 'tv25-storage',

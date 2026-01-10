@@ -4,6 +4,11 @@
 @plugin "tailwindcss-animate";
 
 /* ============================================
+   CUSTOM BREAKPOINTS
+   ============================================ */
+@custom-media --xs (min-width: 480px);
+
+/* ============================================
    MOBILE-FIRST RESPONSIVE FOUNDATION
    ============================================ */
 

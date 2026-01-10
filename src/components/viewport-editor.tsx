@@ -38,6 +38,7 @@ import {
   Monitor,
   Tablet,
   Smartphone,
+  Square,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -167,7 +168,7 @@ export function ViewportEditor({ item, onUpdateItem, onClose }: ViewportEditorPr
           </div>
         ) : (
           <Tabs defaultValue="layout" className="w-full">
-            <TabsList className="w-full grid grid-cols-4 mx-4 mb-4">
+            <TabsList className="w-full grid grid-cols-5 mx-4 mb-4">
               <TabsTrigger value="layout">
                 <Layout className="h-4 w-4 mr-1.5" />
                 Layout
@@ -179,6 +180,10 @@ export function ViewportEditor({ item, onUpdateItem, onClose }: ViewportEditorPr
               <TabsTrigger value="spacing">
                 <Box className="h-4 w-4 mr-1.5" />
                 Spacing
+              </TabsTrigger>
+              <TabsTrigger value="player">
+                <Square className="h-4 w-4 mr-1.5" />
+                Player
               </TabsTrigger>
               <TabsTrigger value="effects">
                 <Sparkles className="h-4 w-4 mr-1.5" />
@@ -576,6 +581,100 @@ export function ViewportEditor({ item, onUpdateItem, onClose }: ViewportEditorPr
                     />
                   </div>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="player" className="mt-0 space-y-4">
+                <Accordion type="multiple" defaultValue={['player-frame']} className="w-full">
+                  <AccordionItem value="player-frame">
+                    <AccordionTrigger className="text-sm">Oynatıcı Çerçevesi</AccordionTrigger>
+                    <AccordionContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs font-bold flex items-center gap-2">
+                          <Square className="h-3 w-3" /> En-Boy Oranı
+                        </Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { label: '16:9', value: '16:9' },
+                            { label: '1:1', value: '1:1' },
+                            { label: 'Otomatik', value: 'auto' },
+                          ].map((option) => (
+                            <Button
+                              key={option.value}
+                              variant="outline"
+                              size="sm"
+                              className={cn(
+                                "h-8 text-[11px] px-2 transition-colors",
+                                item.playerAspectRatio === option.value && 'bg-primary text-primary-foreground border-primary'
+                              )}
+                              onClick={() =>
+                                onUpdateItem({
+                                  playerAspectRatio: option.value as '16:9' | '1:1' | 'auto',
+                                })
+                              }
+                              title={`En-boy oranı: ${option.label}`}
+                            >
+                              {option.label}
+                            </Button>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-2">
+                          {item.playerAspectRatio === '16:9'
+                            ? 'Standart geniş ekran oranı (16:9)'
+                            : item.playerAspectRatio === '1:1'
+                              ? 'Kare format (1:1)'
+                              : 'Otomatik oranlandırma'}
+                        </p>
+                      </div>
+
+                      <Separator />
+
+                      <div className="space-y-2">
+                        <Label>Oynatıcı Genişliği</Label>
+                        <Input
+                          type="number"
+                          value={item.width || 300}
+                          onChange={(e) => onUpdateItem({ width: parseInt(e.target.value) || 300 })}
+                          min="100"
+                          max="1200"
+                          step="10"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Oynatıcı Yüksekliği</Label>
+                        <Input
+                          type="number"
+                          value={item.height || 300}
+                          onChange={(e) => onUpdateItem({ height: parseInt(e.target.value) || 300 })}
+                          min="100"
+                          max="1200"
+                          step="10"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Hata Ağırlığı (px)</Label>
+                        <Input
+                          type="number"
+                          value={item.frameWidth || 2}
+                          onChange={(e) => onUpdateItem({ frameWidth: parseInt(e.target.value) || 2 })}
+                          min="1"
+                          max="10"
+                          step="1"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Hata Rengı</Label>
+                        <Input
+                          type="color"
+                          value={item.frameColor || '#ffffff'}
+                          onChange={(e) => onUpdateItem({ frameColor: e.target.value })}
+                        />
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </TabsContent>
 
               <TabsContent value="effects" className="mt-0 space-y-4">

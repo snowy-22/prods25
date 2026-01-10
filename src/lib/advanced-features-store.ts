@@ -518,6 +518,7 @@ export const socialGroupActions = {
  */
 
 export function generateSlug(text: string): string {
+  if (!text || typeof text !== 'string') return '';
   return text
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')

@@ -1,6 +1,6 @@
 'use client';
 import { useParams } from 'next/navigation';
-import { usersData } from '../../page';
+import { usersData } from '@/app/analytics/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';

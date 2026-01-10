@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Code, FileJson, Link as LinkIcon, Twitter, Linkedin, Facebook, MessageSquare, Send, Globe, Users, Lock, KeyRound, Settings, Share2, ExternalLink, Loader2 } from 'lucide-react';
+import { Copy, Code, FileJson, Link as LinkIcon, Twitter, Linkedin, Facebook, MessageSquare, Send, Globe, Users, Lock, KeyRound, Settings, Share2, ExternalLink, Loader2, User, Eye } from 'lucide-react';
 import { ContentItem, SharingSettings } from '@/lib/initial-content';
 import Image from 'next/image';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -400,6 +400,29 @@ export default function ShareDialog({ isOpen, onOpenChange, item, onUpdateItem }
                     {(shareUrl && (!isFolder || sharedFolder)) && (
                       <div>
                           <h4 className="font-semibold mb-3">Sosyal Ağda Paylaş</h4>
+                          
+                          {/* Sosyal Profilde Paylaş Butonu */}
+                          <Button 
+                            variant="default" 
+                            className="w-full mb-3 gap-2"
+                            onClick={() => {
+                              if (item) {
+                                toast({
+                                  title: 'Sosyal Profilde Paylaşıldı',
+                                  description: `"${item.title}" sosyal profilinizde yayınlandı.`,
+                                });
+                                // TODO: Implement actual sharing to social profile
+                                onOpenChange(false);
+                              }
+                            }}
+                          >
+                            <User className="h-4 w-4" />
+                            Sosyal Profilde Paylaş
+                          </Button>
+
+                          <Separator className="my-3" />
+                          <p className="text-xs text-muted-foreground mb-2">Veya sosyal medyada paylaş:</p>
+                          
                           <div className="grid grid-cols-7 gap-2">
                               <Button variant="outline" size="icon" onClick={() => handleSocialShare('twitter')} title="Twitter">
                                 <Twitter className="h-5 w-5 text-[#1DA1F2]"/>

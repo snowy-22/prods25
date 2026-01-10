@@ -1,3 +1,60 @@
+// Utility: Generate 'Tüm Widgetlar' test page with all widget groups as subfolders
+import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * Creates a 'Tüm Widgetlar' folder with all widget groups as subfolders and all widgets inside.
+ * Returns an array of ContentItem (the main folder and all subfolders/items).
+ */
+export function generateAllWidgetsTestPage(now: string): ContentItem[] {
+  const mainFolderId = `tum-widgetlar-${now.replace(/\D/g, '')}`;
+  const mainFolder: ContentItem = {
+    id: mainFolderId,
+    type: 'folder',
+    title: 'Tüm Widgetlar',
+    icon: 'folder',
+    createdAt: now,
+    updatedAt: now,
+    parentId: 'root',
+    isDeletable: true,
+    order: 100,
+    styles: { width: '1200px', height: '900px' },
+  };
+
+  const allItems: ContentItem[] = [mainFolder];
+  let groupOrder = 0;
+  for (const [group, widgets] of Object.entries(widgetTemplates)) {
+    const groupFolderId = `${mainFolderId}-grp-${groupOrder}`;
+    const groupFolder: ContentItem = {
+      id: groupFolderId,
+      type: 'folder',
+      title: group,
+      icon: 'folder',
+      createdAt: now,
+      updatedAt: now,
+      parentId: mainFolderId,
+      isDeletable: true,
+      order: groupOrder,
+      styles: { width: '900px', height: '700px' },
+    };
+    allItems.push(groupFolder);
+    let widgetOrder = 0;
+    for (const widget of widgets) {
+      const widgetId = `${groupFolderId}-w${widgetOrder}`;
+      allItems.push({
+        ...widget,
+        id: widgetId,
+        createdAt: now,
+        updatedAt: now,
+        parentId: groupFolderId,
+        isDeletable: true,
+        order: widgetOrder,
+      });
+      widgetOrder++;
+    }
+    groupOrder++;
+  }
+  return allItems;
+}
 
 import { CSSProperties } from "react";
 import { IconName } from "./icons";
@@ -270,6 +327,9 @@ export type ContentItem = {
   borderRadius?: number;
   padding?: number;
   baseFrameStyles?: CSSProperties;
+  
+  // Player Aspect Ratio (for media players, iframes)
+  playerAspectRatio?: '16:9' | '1:1' | 'auto'; // Oynatıcı en-boy oranı
   
   // Frame Effects
   frameEffect?: 'none' | 'glowing' | 'neon' | 'pulsing' | 'patterned' | 'braided';

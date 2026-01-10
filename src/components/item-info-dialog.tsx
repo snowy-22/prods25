@@ -37,7 +37,7 @@ interface ItemInfoDialogProps {
 
 const predefinedMetrics = {
     letterGrade: { label: 'Harf Notu', icon: BookOpen },
-    fiveStarRating: { label: '5 Yıldız Puanı', icon: Star },
+    fiveStarRating: { label: '10 Puanlık Değerlendirme', icon: Star },
     hundredPointScale: { label: '100\'lük Puan', icon: GanttChart },
     energyScore: { label: 'Enerji Skoru', icon: BatteryCharging },
     temperature: { label: 'Sıcaklık', icon: Thermometer },
@@ -57,7 +57,7 @@ const getMetricInput = (metricKey: string, item: ContentItem, onUpdate: (updates
                 </Select>
             );
         case 'fiveStarRating':
-            return <Slider value={[item.fiveStarRating || 0]} onValueChange={(val) => onUpdate({ fiveStarRating: val[0] })} min={0} max={5} step={0.5} />;
+            return <Slider value={[item.fiveStarRating || 0]} onValueChange={(val) => onUpdate({ fiveStarRating: val[0] })} min={0} max={10} step={0.5} />;
         case 'hundredPointScale':
             return <Input type="number" value={item.hundredPointScale || 0} onChange={(e) => onUpdate({ hundredPointScale: parseInt(e.target.value) })} />;
         case 'energyScore':

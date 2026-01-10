@@ -3,7 +3,7 @@
 'use client';
 
 import { memo, useRef, useState, useEffect, useMemo, ReactNode } from 'react';
-import { Bot, Library, Plus, Trash2, Folder as FolderIcon, FileText as FileIcon, Frame, Copy, List, Eye, Clock, StickyNote, Calendar, Play, Upload, LayoutGrid, AlertCircle, Film, Save, Pencil, MousePointer, Settings, Monitor, Moon, Sun, GripHorizontal, Image as ImageIcon, Expand, RotateCw, ArrowUpNarrowWide, Info, GanttChart, Wand2, User, LogOut, LogIn, ChevronDown, ListIcon, Undo, Redo, Share, Users, MessageSquare, Pin, PinOff, Palette, ArrowDownAZ, ArrowUpAZ, UserPlus, MessageSquarePlus, Minus, EyeOff, ChevronRight, PanelLeft, Link as LinkIcon, ChevronsRight, FolderSync, Award, Mic, History, Sparkles, Bell, Search, Puzzle, Globe, Camera, Tv, UserCog, Home, MonitorSmartphone, Airplay, Projector, QrCode, KeyRound, Maximize, Minimize, ExternalLink, BarChart, ShoppingCart, Columns3, SquareStack } from 'lucide-react';
+import { Bot, Library, Plus, Trash2, Folder as FolderIcon, FileText as FileIcon, Frame, Copy, List, Eye, Clock, StickyNote, Calendar, Play, Upload, LayoutGrid, AlertCircle, Film, Save, Pencil, MousePointer, Settings, Monitor, Moon, Sun, GripHorizontal, Image as ImageIcon, Expand, RotateCw, ArrowUpNarrowWide, Info, GanttChart, Wand2, User, LogOut, LogIn, ChevronDown, ListIcon, Undo, Redo, Share, Users, MessageSquare, Pin, PinOff, Palette, ArrowDownAZ, ArrowUpAZ, UserPlus, MessageSquarePlus, Minus, EyeOff, ChevronRight, PanelLeft, Link as LinkIcon, ChevronsRight, FolderSync, Award, Mic, History, Sparkles, Bell, Search, Puzzle, Globe, Camera, Tv, UserCog, Home, MonitorSmartphone, Airplay, Projector, QrCode, KeyRound, Maximize, Minimize, ExternalLink, BarChart, ShoppingCart, Columns3, SquareStack, Phone, Users2 } from 'lucide-react';
 import { AppLogo } from '@/components/icons/app-logo';
 import type { ContentItem, ItemType, SortOption } from '@/lib/initial-content';
 import { Button } from '@/components/ui/button';
@@ -33,8 +33,8 @@ interface PrimarySidebarProps {
   onSetView: (item: ContentItem | null, event?: React.MouseEvent) => void;
   username: string;
   setUsername: (username: string) => void;
-  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | null;
-  setActiveSecondaryPanel: (panel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | null) => void;
+  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | null;
+  setActiveSecondaryPanel: (panel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | null) => void;
   isSecondLeftSidebarOpen: boolean;
   toggleSecondLeftSidebar: (open?: boolean) => void;
   toggleSearchDialog: () => void;
@@ -260,27 +260,7 @@ export default function PrimarySidebar({
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Araç Takımları</p></TooltipContent>
                         </Tooltip>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button 
-                                    variant={activeSecondaryPanel === 'social' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
-                                    size="icon" 
-                                    className='h-10 w-10' 
-                                    onClick={() => {
-                                        if (activeSecondaryPanel === 'social' && isSecondLeftSidebarOpen) {
-                                            toggleSecondLeftSidebar(false);
-                                        } else {
-                                            setActiveSecondaryPanel('social');
-                                            toggleSecondLeftSidebar(true);
-                                        }
-                                    }} 
-                                    data-testid="social-button"
-                                >
-                                    <Users className="h-5 w-5"/>
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="right"><p>Sosyal Merkez</p></TooltipContent>
-                        </Tooltip>
+                        {/* --- Main Messaging/Notification Row --- */}
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button 
@@ -325,53 +305,70 @@ export default function PrimarySidebar({
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Sohbetler</p></TooltipContent>
                         </Tooltip>
-
-                        <Separator className='my-2 w-8' />
-                        
+                        {/* --- Search and Calendar below messages --- */}
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button 
-                                    variant={activeSecondaryPanel === 'shopping' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    variant={activeSecondaryPanel === 'search' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
                                     className='h-10 w-10' 
                                     onClick={() => {
-                                        if (activeSecondaryPanel === 'shopping' && isSecondLeftSidebarOpen) {
+                                        if (activeSecondaryPanel === 'search' && isSecondLeftSidebarOpen) {
                                             toggleSecondLeftSidebar(false);
                                         } else {
-                                            setActiveSecondaryPanel('shopping');
+                                            setActiveSecondaryPanel('search');
                                             toggleSecondLeftSidebar(true);
                                         }
                                     }} 
-                                    data-testid="shopping-button"
+                                    data-testid="search-button"
                                 >
-                                    <ShoppingCart className="h-5 w-5"/>
+                                    <Puzzle className="h-5 w-5"/>
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent side="right"><p>E-Ticaret</p></TooltipContent>
+                            <TooltipContent side="right"><p>Arama</p></TooltipContent>
                         </Tooltip>
-
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button 
-                                    variant={activeSecondaryPanel === 'profile' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    variant={activeSecondaryPanel === 'meetings' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
                                     className='h-10 w-10' 
                                     onClick={() => {
-                                        if (activeSecondaryPanel === 'profile' && isSecondLeftSidebarOpen) {
+                                        if (activeSecondaryPanel === 'meetings' && isSecondLeftSidebarOpen) {
                                             toggleSecondLeftSidebar(false);
                                         } else {
-                                            setActiveSecondaryPanel('profile');
+                                            setActiveSecondaryPanel('meetings');
                                             toggleSecondLeftSidebar(true);
                                         }
                                     }} 
-                                    data-testid="profile-button"
+                                    data-testid="meetings-button"
                                 >
-                                    <User className="h-5 w-5"/>
+                                    <Calendar className="h-5 w-5"/>
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent side="right"><p>Profilim</p></TooltipContent>
+                            <TooltipContent side="right"><p>Takvim</p></TooltipContent>
                         </Tooltip>
-
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'calls' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-10 w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'calls' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('calls');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="calls-button"
+                                >
+                                    <Phone className="h-5 w-5"/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right"><p>Aramalar</p></TooltipContent>
+                        </Tooltip>
                         <Separator className='my-2 w-8' />
                  </div>
             </ScrollArea>
