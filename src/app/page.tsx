@@ -153,7 +153,7 @@ export default function LandingPage() {
 
 	useEffect(() => {
 		if (isAuthenticated && user) {
-			router.replace('/home');
+			router.replace('/canvas');
 		}
 	}, [isAuthenticated, user, router]);
 
