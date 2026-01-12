@@ -151,11 +151,11 @@ export default function LandingPage() {
 	const { user } = useAuth();
 	const isAuthenticated = !!user;
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      router.replace('/sca');
-    }
-  }, [isAuthenticated, user, router]);
+	useEffect(() => {
+		if (isAuthenticated && user) {
+			router.replace('/home');
+		}
+	}, [isAuthenticated, user, router]);
 
   useEffect(() => {
     const timer = setInterval(() => {
