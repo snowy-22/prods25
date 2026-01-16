@@ -115,6 +115,7 @@ import { persist } from 'zustand/middleware';
 import { ContentItem, KeyboardShortcut, Gesture, MacroDefinition, MacroPadLayout, PlayerControlGroup, Account, CorporateAccount, CorporateMember, AccountType } from './initial-content';
 import { User } from '@supabase/supabase-js';
 import { Message as MessageData, MessageType, Conversation as ConversationData, Group, Call, GroupMember, PermissionLevel, PrivateAccount, MessageSearchFilter, CallStatus } from './messaging-types';
+import { syncLogger } from './logger';
 
 // Simplified conversation interface for store (backward compatible)
 export interface Conversation {

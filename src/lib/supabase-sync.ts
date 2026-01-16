@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Tab, NewTabBehavior, StartupBehavior } from './store';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { GridModeState } from './layout-engine';
+import { syncLogger } from './logger';
 
 export type SyncDataType = 'tabs' | 'layout' | 'settings' | 'expanded_items';
 
@@ -83,13 +84,13 @@ export async function saveCanvasData(
       });
 
     if (error) {
-      console.error('Failed to save canvas data:', error);
+      syncLogger.error('Failed to save canvas data', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error saving canvas data:', error);
+    syncLogger.error('Error saving canvas data', error);
     return false;
   }
 }
@@ -116,13 +117,13 @@ export async function loadCanvasData(
         // No data found, return null
         return null;
       }
-      console.error('Failed to load canvas data:', error);
+      syncLogger.error('Failed to load canvas data', error);
       return null;
     }
 
     return data?.data || null;
   } catch (error) {
-    console.error('Error loading canvas data:', error);
+    syncLogger.error('Error loading canvas data', error);
     return null;
   }
 }

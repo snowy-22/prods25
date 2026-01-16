@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { useAppStore } from '@/lib/store';
 import { ContentItem } from '@/lib/initial-content';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { syncLogger } from '@/lib/logger';
+import { realtimeManager } from '@/lib/realtime-manager';
 
 export function useRealtimeSync(enabled: boolean = true) {
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -103,7 +105,10 @@ export function useRealtimeSync(enabled: boolean = true) {
           table: 'items'
         },
         (payload) => {
-          console.log('Supabase realtime event:', payload);
+          syncLogger.debug('Supabase realtime event', { 
+            eventType: payload.eventType,
+            table: payload.table 
+          });
           
           // Broadcast to other tabs via BroadcastChannel
           if (payload.eventType === 'INSERT') {
@@ -136,7 +141,7 @@ export function useRealtimeSync(enabled: boolean = true) {
         }
       )
       .subscribe((status) => {
-        console.log('Supabase Realtime status:', status);
+        syncLogger.info('Supabase Realtime status', { status });
       });
 
     channelRef.current = channel;

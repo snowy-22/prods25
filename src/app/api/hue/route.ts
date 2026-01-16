@@ -19,6 +19,9 @@ export async function POST(req: NextRequest) {
       getHueLights,
       setLightState,
       saveBridgeLights,
+      getUserBridges,
+      getUserLights,
+      deleteBridge,
     } = await import('@/lib/hue-service');
 
     const supabase = createClient(

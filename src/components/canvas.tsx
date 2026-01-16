@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { AppLogo } from './icons/app-logo';
 import { Draggable, Droppable } from '@hello-pangea/dnd';
 import { Skeleton } from './ui/skeleton';
+import { canvasLogger } from '@/lib/logger';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, ContextMenuSeparator } from './ui/context-menu';
 import { Plus, Clipboard, Settings, Folder, Trash2 } from 'lucide-react';
 
@@ -222,19 +223,17 @@ const Canvas = memo(function Canvas({
 
   // DEBUG - Monitor items prop changes
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Canvas] Items prop changed:', {
-        itemsCount: items.length,
-        activeViewId,
-        activeViewTitle: activeView?.title,
-        items: items.map(i => ({ id: i.id, title: i.title, type: i.type }))
-      });
-    }
+    canvasLogger.debug('Items prop changed', {
+      itemsCount: items.length,
+      activeViewId,
+      activeViewTitle: activeView?.title,
+      items: items.map(i => ({ id: i.id, title: i.title, type: i.type }))
+    });
   }, [items, activeViewId, activeView]);
 
   useEffect(() => {
-    if (items.length === 0 && activeViewId === 'root' && process.env.NODE_ENV === 'development') {
-      console.warn('[Canvas] Root view has NO items:', {
+    if (items.length === 0 && activeViewId === 'root') {
+      canvasLogger.warn('Root view has NO items', {
         itemsCount: items.length,
         activeViewId,
         activeView: { id: activeView?.id, title: activeView?.title, childrenCount: activeView?.children?.length },
@@ -514,11 +513,7 @@ const Canvas = memo(function Canvas({
         });
       }
     } catch (err) {
-      if (process.env.NODE_ENV === 'development') {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Drop error:', err);
-        }
-      }
+      canvasLogger.error('Drop error', err);
     }
   }, [isPreviewMode, onAddItem, activeViewId]);
 
@@ -530,9 +525,7 @@ const Canvas = memo(function Canvas({
       isDragging: true,
       draggedItemId: draggedId,
     }));
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Canvas Drag Start] Item ID: ${draggedId}`);
-    }
+    canvasLogger.debug('Drag start', { draggedId });
   }, []);
 
   const handleDragOverUpdate = useCallback((dragUpdate: any) => {
@@ -550,9 +543,7 @@ const Canvas = memo(function Canvas({
       dropTarget: null,
       dropPosition: null,
     });
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[Canvas Drag End] Dropped at:`, dragUpdate.destination);
-    }
+    canvasLogger.debug('Drag end', { destination: dragUpdate.destination });
   }, []);
 
   // Canvas mode drag end handler: converts viewport drag end to canvas coordinates and persists
