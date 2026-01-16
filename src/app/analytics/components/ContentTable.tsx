@@ -20,7 +20,7 @@ export function ContentTable() {
       type: i.type,
       createdAt: i.createdAt?.slice(0, 10) || "-",
       childCount: (i.children?.length || 0),
-      score: (i.hundredPointScale ?? 0).toFixed ? (i.hundredPointScale as number) : 0,
+      score: typeof i.hundredPointScale === 'number' ? i.hundredPointScale : 0,
     }));
   }, [q]);
 

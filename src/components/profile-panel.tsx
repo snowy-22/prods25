@@ -17,7 +17,15 @@ interface ProfilePanelProps {
 export function ProfilePanel({ onOpenContent }: ProfilePanelProps = {}) {
   const { username, user, socialPosts, profileCanvasId, setProfileCanvasId } = useAppStore();
 
+  // Akışım: Posts authored by the user
   const myPosts = socialPosts.filter(p => p.author_id === user?.id);
+  // Etiketlenenler: Posts where user is tagged (assume post.tags includes user id or username)
+  const taggedPosts = socialPosts.filter(p => {
+    if (!user) return false;
+    // Support both user id and username in tags
+    const tags = p.tags || [];
+    return tags.includes(user.id) || tags.includes(user.username) || tags.includes(username);
+  });
 
   const handleItemClick = (item: any) => {
     if (onOpenContent) {
@@ -78,8 +86,8 @@ export function ProfilePanel({ onOpenContent }: ProfilePanelProps = {}) {
       <Tabs defaultValue="feed" className="flex-1 overflow-hidden flex flex-col pt-2">
         <div className="px-4">
           <TabsList className="w-full">
-            <TabsTrigger value="feed" className="flex-1">Akış</TabsTrigger>
-            <TabsTrigger value="tagged" className="flex-1">Etiketlendiklerim</TabsTrigger>
+            <TabsTrigger value="feed" className="flex-1">Akışım</TabsTrigger>
+            <TabsTrigger value="tagged" className="flex-1">Etiketlenenler</TabsTrigger>
             <TabsTrigger value="saved" className="flex-1">Kaydedilenler</TabsTrigger>
           </TabsList>
         </div>
@@ -125,11 +133,39 @@ export function ProfilePanel({ onOpenContent }: ProfilePanelProps = {}) {
           </TabsContent>
           <TabsContent value="tagged" className="m-0 p-4">
             <div className="space-y-4">
-              <div className="text-center py-10">
-                <User className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-30" />
-                <p className="text-muted-foreground text-sm">Henüz etiketlendiğiniz içerik yok.</p>
-                <p className="text-xs text-muted-foreground mt-1">Birisi sizi bir gönderide etiketlediğinde burada görünür.</p>
-              </div>
+              {taggedPosts.length === 0 ? (
+                <div className="text-center py-10">
+                  <User className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-30" />
+                  <p className="text-muted-foreground text-sm">Henüz etiketlendiğiniz içerik yok.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Birisi sizi bir gönderide etiketlediğinde burada görünür.</p>
+                </div>
+              ) : (
+                taggedPosts.map((post) => (
+                  <Card 
+                    key={post.id} 
+                    className="border-primary/5 bg-accent/5 cursor-pointer hover:bg-accent/10 transition-colors"
+                    onClick={() => handleItemClick(post)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: tr })}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium mb-2">{post.content}</p>
+                      {post.attachments && post.attachments.length > 0 && (
+                        <div className="grid grid-cols-2 gap-1">
+                           {post.attachments.map((at: any) => (
+                              <div key={at.id} className="aspect-video bg-muted rounded flex items-center justify-center text-[10px] text-center p-1">
+                                {at.title}
+                              </div>
+                           ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
           <TabsContent value="saved" className="m-0 p-4">

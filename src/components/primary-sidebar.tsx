@@ -150,7 +150,7 @@ export default function PrimarySidebar({
     
     if (!allItems) {
         return (
-            <div className="w-14 flex flex-col items-center py-2 border-r bg-sidebar z-20">
+            <div className="w-12 sm:w-14 flex flex-col items-center py-2 border-r bg-sidebar z-20">
             </div>
         );
     }
@@ -160,22 +160,22 @@ export default function PrimarySidebar({
 
   return (
     <div className="flex min-h-0 relative">
-        <div className="w-14 flex flex-col items-center py-2 border-r bg-sidebar/60 backdrop-blur-md z-20 h-screen">
+        <div className="w-12 sm:w-14 flex flex-col items-center py-1 sm:py-2 border-r bg-sidebar/60 backdrop-blur-md z-20 h-screen">
             {/* Fixed Header */}
-             <Button variant="ghost" className="h-10 w-10 p-0" onClick={handleLogoClick}>
-                <AppLogo className="h-6 w-6 text-primary" />
+             <Button variant="ghost" className="h-8 w-8 sm:h-10 sm:w-10 p-0" onClick={handleLogoClick}>
+                <AppLogo className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             </Button>
             
             {/* Scrollable Middle */}
-            <ScrollArea className="flex-1 mt-4">
-                 <div className='flex flex-col items-center gap-2 p-2'>
+            <ScrollArea className="flex-1 mt-2 sm:mt-4">
+                 <div className='flex flex-col items-center gap-1 sm:gap-2 p-1 sm:p-2'>
                         {/* Main Tools */}
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button 
                                     variant={activeSecondaryPanel === 'library' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
-                                    className='h-10 w-10' 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
                                     onClick={() => {
                                         if (activeSecondaryPanel === 'library' && isSecondLeftSidebarOpen) {
                                             toggleSecondLeftSidebar(false);
@@ -186,7 +186,7 @@ export default function PrimarySidebar({
                                     }} 
                                     data-testid="library-button"
                                 >
-                                    <Library className="h-5 w-5"/>
+                                    <Library className="h-4 w-4 sm:h-5 sm:w-5"/>
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Kitaplık</p></TooltipContent>
@@ -197,7 +197,7 @@ export default function PrimarySidebar({
                                 <Button 
                                     variant={activeSecondaryPanel === 'profile' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
-                                    className='h-10 w-10' 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
                                     onClick={() => {
                                         if (activeSecondaryPanel === 'profile' && isSecondLeftSidebarOpen) {
                                             toggleSecondLeftSidebar(false);
@@ -208,7 +208,7 @@ export default function PrimarySidebar({
                                     }} 
                                     data-testid="profile-sidebar-button"
                                 >
-                                    <UserCog className="h-5 w-5"/>
+                                    <UserCog className="h-4 w-4 sm:h-5 sm:w-5"/>
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Profilim</p></TooltipContent>
@@ -219,7 +219,7 @@ export default function PrimarySidebar({
                                 <Button 
                                     variant={activeSecondaryPanel === 'ai-chat' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
-                                    className='h-10 w-10' 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
                                     onClick={() => {
                                         if (activeSecondaryPanel === 'ai-chat' && isSecondLeftSidebarOpen) {
                                             toggleSecondLeftSidebar(false);
@@ -230,7 +230,7 @@ export default function PrimarySidebar({
                                     }} 
                                     data-testid="ai-chat-button"
                                 >
-                                    <Bot className="h-5 w-5"/>
+                                    <Bot className="h-4 w-4 sm:h-5 sm:w-5"/>
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>AI Asistan</p></TooltipContent>
@@ -244,7 +244,7 @@ export default function PrimarySidebar({
                                 <Button 
                                     variant={activeSecondaryPanel === 'widgets' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
-                                    className='h-10 w-10' 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
                                     onClick={() => {
                                         if (activeSecondaryPanel === 'widgets' && isSecondLeftSidebarOpen) {
                                             toggleSecondLeftSidebar(false);
@@ -255,7 +255,7 @@ export default function PrimarySidebar({
                                     }} 
                                     data-testid="widgets-button"
                                 >
-                                    <Puzzle className="h-5 w-5"/>
+                                    <Puzzle className="h-4 w-4 sm:h-5 sm:w-5"/>
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Araç Takımları</p></TooltipContent>
@@ -266,7 +266,7 @@ export default function PrimarySidebar({
                                 <Button 
                                     variant={activeSecondaryPanel === 'notifications' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
-                                    className='h-10 w-10 relative' 
+                                    className='h-8 w-8 sm:h-10 sm:w-10 relative' 
                                     onClick={() => {
                                         if (activeSecondaryPanel === 'notifications' && isSecondLeftSidebarOpen) {
                                             toggleSecondLeftSidebar(false);
@@ -277,7 +277,7 @@ export default function PrimarySidebar({
                                     }} 
                                     data-testid="notifications-button"
                                 >
-                                    <Bell className="h-5 w-5"/>
+                                    <Bell className="h-4 w-4 sm:h-5 sm:w-5"/>
                                     <NotificationBadge count={unreadNotificationsCount} />
                                 </Button>
                             </TooltipTrigger>
@@ -288,7 +288,7 @@ export default function PrimarySidebar({
                                 <Button 
                                     variant={activeSecondaryPanel === 'messages' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
-                                    className='h-10 w-10 relative' 
+                                    className='h-8 w-8 sm:h-10 sm:w-10 relative' 
                                     onClick={() => {
                                         if (activeSecondaryPanel === 'messages' && isSecondLeftSidebarOpen) {
                                             toggleSecondLeftSidebar(false);
@@ -299,7 +299,7 @@ export default function PrimarySidebar({
                                     }} 
                                     data-testid="messages-button"
                                 >
-                                    <MessageSquare className="h-5 w-5"/>
+                                    <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5"/>
                                     <NotificationBadge count={unreadMessagesCount} />
                                 </Button>
                             </TooltipTrigger>
@@ -311,7 +311,7 @@ export default function PrimarySidebar({
                                 <Button 
                                     variant={activeSecondaryPanel === 'search' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
-                                    className='h-10 w-10' 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
                                     onClick={() => {
                                         if (activeSecondaryPanel === 'search' && isSecondLeftSidebarOpen) {
                                             toggleSecondLeftSidebar(false);
@@ -322,7 +322,7 @@ export default function PrimarySidebar({
                                     }} 
                                     data-testid="search-button"
                                 >
-                                    <Puzzle className="h-5 w-5"/>
+                                    <Puzzle className="h-4 w-4 sm:h-5 sm:w-5"/>
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Arama</p></TooltipContent>
@@ -332,7 +332,7 @@ export default function PrimarySidebar({
                                 <Button 
                                     variant={activeSecondaryPanel === 'meetings' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
-                                    className='h-10 w-10' 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
                                     onClick={() => {
                                         if (activeSecondaryPanel === 'meetings' && isSecondLeftSidebarOpen) {
                                             toggleSecondLeftSidebar(false);
@@ -343,7 +343,7 @@ export default function PrimarySidebar({
                                     }} 
                                     data-testid="meetings-button"
                                 >
-                                    <Calendar className="h-5 w-5"/>
+                                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5"/>
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Takvim</p></TooltipContent>
@@ -353,7 +353,7 @@ export default function PrimarySidebar({
                                 <Button 
                                     variant={activeSecondaryPanel === 'calls' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
-                                    className='h-10 w-10' 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
                                     onClick={() => {
                                         if (activeSecondaryPanel === 'calls' && isSecondLeftSidebarOpen) {
                                             toggleSecondLeftSidebar(false);
@@ -364,7 +364,7 @@ export default function PrimarySidebar({
                                     }} 
                                     data-testid="calls-button"
                                 >
-                                    <Phone className="h-5 w-5"/>
+                                    <Phone className="h-4 w-4 sm:h-5 sm:w-5"/>
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Aramalar</p></TooltipContent>
@@ -378,13 +378,13 @@ export default function PrimarySidebar({
                     {/* System & Device Management */}
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant={isSpacesPanelOpen ? "secondary" : "ghost"} size="icon" className='h-10 w-10' onClick={() => toggleSpacesPanel()} data-testid="spaces-button"><Home className="h-5 w-5"/></Button>
+                            <Button variant={isSpacesPanelOpen ? "secondary" : "ghost"} size="icon" className='h-8 w-8 sm:h-10 sm:w-10' onClick={() => toggleSpacesPanel()} data-testid="spaces-button"><Home className="h-4 w-4 sm:h-5 sm:w-5"/></Button>
                         </TooltipTrigger>
                         <TooltipContent side="right"><p>Mekanlar</p></TooltipContent>
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant={isDevicesPanelOpen ? "secondary" : "ghost"} size="icon" className='h-10 w-10' onClick={() => toggleDevicesPanel()} data-testid="devices-button"><MonitorSmartphone className="h-5 w-5"/></Button>
+                            <Button variant={isDevicesPanelOpen ? "secondary" : "ghost"} size="icon" className='h-8 w-8 sm:h-10 sm:w-10' onClick={() => toggleDevicesPanel()} data-testid="devices-button"><MonitorSmartphone className="h-4 w-4 sm:h-5 sm:w-5"/></Button>
                         </TooltipTrigger>
                         <TooltipContent side="right"><p>Eşyalarım</p></TooltipContent>
                     </Tooltip>
@@ -392,8 +392,8 @@ export default function PrimarySidebar({
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <PopoverTrigger asChild>
-                                    <Button variant={activeBroadcastTargetId ? "secondary" : "ghost"} size="icon" className="h-10 w-10">
-                                        <Airplay className="h-5 w-5" />
+                                    <Button variant={activeBroadcastTargetId ? "secondary" : "ghost"} size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
+                                        <Airplay className="h-4 w-4 sm:h-5 sm:w-5" />
                                     </Button>
                                 </PopoverTrigger>
                             </TooltipTrigger>
@@ -435,10 +435,10 @@ export default function PrimarySidebar({
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className='h-10 w-10' 
+                            className='h-8 w-8 sm:h-10 sm:w-10' 
                             onClick={() => toggleSettingsDialog('integrations')}
                         >
-                            <Settings className="h-5 w-5" />
+                            <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="right">
@@ -450,7 +450,7 @@ export default function PrimarySidebar({
                     <DropdownMenuTrigger asChild>
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className='h-10 w-10'>
+                                <Button variant="ghost" size="icon" className='h-8 w-8 sm:h-10 sm:w-10'>
                                     <Avatar className='h-9 w-9'>
                                         <AvatarImage src={`https://avatar.vercel.sh/${username}.png`} alt={username} />
                                         <AvatarFallback>
@@ -497,94 +497,11 @@ export default function PrimarySidebar({
                             <span>Görünüm Ayarları</span>
                         </DropdownMenuItem>
                         
-                        {/* Grid Mode Controls - Only in grid mode */}
-                        {normalizedLayoutMode === 'grid' && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel className="text-xs text-muted-foreground">İzgara Modu</DropdownMenuLabel>
-                            
-                            {/* Mode Switcher */}
-                            <div className="px-2 py-2 flex items-center gap-1 mb-2">
-                              <Button
-                                variant={gridModeState?.enabled && gridModeState?.type === 'vertical' ? 'default' : 'outline'}
-                                size="sm"
-                                className="h-8 text-xs flex-1"
-                                onClick={() => {
-                                  setGridModeEnabled?.(true);
-                                  setGridModeType?.('vertical');
-                                }}
-                              >
-                                <Columns3 className="h-3.5 w-3.5 mr-1" />
-                                Sonsuz
-                              </Button>
-                              <Button
-                                variant={gridModeState?.enabled && gridModeState?.type === 'square' ? 'default' : 'outline'}
-                                size="sm"
-                                className="h-8 text-xs flex-1"
-                                onClick={() => {
-                                  setGridModeEnabled?.(true);
-                                  setGridModeType?.('square');
-                                }}
-                              >
-                                <SquareStack className="h-3.5 w-3.5 mr-1" />
-                                Sayfa
-                              </Button>
-                            </div>
-                            
-                            {/* Column Selector */}
-                            {gridModeState?.enabled && (
-                              <div className="px-2 py-2 grid grid-cols-5 gap-1 mb-2">
-                                {[2, 3, 4, 5, 6].map((col) => (
-                                  <Button
-                                    key={col}
-                                    variant={gridModeState?.columns === col ? 'default' : 'outline'}
-                                    size="sm"
-                                    className="h-8 text-xs p-0"
-                                    onClick={() => setGridColumns?.(col)}
-                                  >
-                                    {col}
-                                  </Button>
-                                ))}
-                              </div>
-                            )}
-                            
-                            {/* Page Navigation - Only in square mode */}
-                            {gridModeState?.enabled && gridModeState?.type === 'square' && (
-                              <div className="px-2 py-2">
-                                <div className="flex items-center gap-1 justify-center">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-xs"
-                                    onClick={() => setGridCurrentPage?.(Math.max(1, (gridModeState?.currentPage || 1) - 1))}
-                                    disabled={(gridModeState?.currentPage || 1) <= 1}
-                                  >
-                                    ←
-                                  </Button>
-                                  <span className="text-xs font-medium whitespace-nowrap px-2">
-                                    Sayfa {gridModeState?.currentPage || 1}
-                                  </span>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-xs"
-                                    onClick={() => setGridCurrentPage?.((gridModeState?.currentPage || 1) + 1)}
-                                  >
-                                    →
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        )}
+
                         
                         <DropdownMenuSeparator />
                         {isUserLoggedIn ? (
                             <>
-                                <DropdownMenuItem onClick={(e) => userProfileItem && onSetView(userProfileItem, e)}>
-                                    <User className="mr-2 h-4 w-4" />
-                                    <span>Profilim</span>
-                                </DropdownMenuItem>
                                 {savedItems && (
                                      <DropdownMenuItem onClick={(e) => { e.preventDefault(); onSetView(savedItems, e); }}>
                                         <Save className="mr-2 h-4 w-4" />

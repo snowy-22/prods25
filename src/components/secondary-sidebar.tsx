@@ -137,7 +137,7 @@ import { useRouter } from 'next/navigation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Textarea } from './ui/textarea';
-import MiniGridPreview from './mini-grid-preview';
+import UnifiedGridPreview from './unified-grid-preview';
 import UrlInputWidget from './widgets/url-input-widget';
 import { WidgetRenderer } from './widget-renderer';
 
@@ -207,7 +207,7 @@ const SocialFeedCard = memo(function SocialFeedCard({ item, onSetView, onPreview
              onPreviewItem={() => {}}
              onSaveItem={() => {}}
         >
-          <MiniGridPreview item={item} onLoad={() => {}} />
+          <UnifiedGridPreview items={item.children || []} layoutMode="grid" maxItems={9} showTitle />
         </PlayerFrame>
       </div>
       <div className="flex justify-between items-center mt-1.5 text-xs text-muted-foreground">
@@ -935,18 +935,18 @@ const LibraryItem = memo(function LibraryItem({
                 
                 {/* Icon */}
                 <div className="flex items-center justify-center h-4 w-4 flex-shrink-0">
-                  {item.thumbnail_url ? (
-                    <div className="relative h-4 w-4 rounded-sm overflow-hidden">
-                      <Image 
-                        src={item.thumbnail_url} 
-                        alt={item.title} 
-                        fill 
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <Icon className="h-4 w-4 flex-shrink-0" />
-                  )}
+                                    {item.thumbnail_url || item.coverImage ? (
+                                        <div className="relative h-4 w-4 rounded-sm overflow-hidden">
+                                            <Image 
+                                                src={item.thumbnail_url || item.coverImage} 
+                                                alt={item.title} 
+                                                fill 
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <Icon className="h-4 w-4 flex-shrink-0" />
+                                    )}
                 </div>
                 {isEditing ? (
                 <Input
@@ -1335,6 +1335,28 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
         { id: 'preview', label: 'Önizle' },
     ];
 
+    // Mobile backdrop - click to close
+    const MobileBackdrop = () => (
+        <div 
+            className="fixed inset-0 bg-black/50 z-30 lg:hidden" 
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+        />
+    );
+
+    // Common panel wrapper with mobile optimizations
+    const PanelWrapper = ({ children, testId }: { children: React.ReactNode; testId?: string }) => (
+        <>
+            <MobileBackdrop />
+            <div 
+                className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 left-12 right-0 sm:left-14 sm:right-auto sm:w-80 md:w-96 lg:relative lg:left-auto lg:inset-auto lg:w-80 xl:w-96 transition-all duration-300 z-40 shadow-xl lg:shadow-none" 
+                data-testid={testId}
+            >
+                {children}
+            </div>
+        </>
+    );
+
     switch (type) {
         case 'library':
         case 'spaces':
@@ -1342,7 +1364,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             const { onSetClipboard, onPaste, clipboard, onShowInfo, onShare, onRenameItem, onTogglePinItem, onNewFolder, onNewList, onNewPlayer, onNewCalendar, onNewSpace, onNewDevice, expandedItems, onToggleExpansion, setActiveDevice, activeDeviceId, setDraggedItem, onDeleteItem, onLibraryDrop } = props;
             
             return (
-              <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none" data-testid={`${props.type}-panel`}>
+              <PanelWrapper testId={`${props.type}-panel`}>
                 <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
                   <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
                     {headerIconMap[type]} <span className="hidden xs:inline">{panelTitleMap[type]}</span>
@@ -1748,11 +1770,11 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                         </div>
                     </div>
                 )}
-              </div>
+              </PanelWrapper>
             );
         case 'social':
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none" data-testid="social-panel">
+                <PanelWrapper testId="social-panel">
                     <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
                         <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
                             <Users className="h-5 w-5 sm:h-4 sm:w-4" /> <span className="hidden xs:inline">Sosyal Merkez</span>
@@ -1767,14 +1789,46 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             <X className="h-4 w-4" />
                         </Button>
                     </div>
-                    <div className='flex-1 min-h-0 overflow-hidden'>
-                        <SocialPanel onOpenContent={(item) => {
-                            if (props.onOpenInNewTab) {
-                                props.onOpenInNewTab(item, allItems);
-                            }
-                        }} />
+                    <div className='flex-1 min-h-0 overflow-hidden flex flex-col'>
+                        <Tabs defaultValue="akis" className="flex-1 flex flex-col min-h-0">
+                            <TabsList className="grid w-full grid-cols-3 mb-2 h-10 sm:h-9">
+                                <TabsTrigger value="akis" className="gap-2">
+                                    <TrendingUp className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Akış</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="kesfet" className="gap-2">
+                                    <Compass className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Keşfet</span>
+                                </TabsTrigger>
+                                <TabsTrigger value="profilim" className="gap-2">
+                                    <User className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Profilim</span>
+                                </TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="akis" className="flex-1 min-h-0">
+                                <SocialPanel onOpenContent={(item) => {
+                                    if (props.onOpenInNewTab) {
+                                        props.onOpenInNewTab(item, allItems);
+                                    }
+                                }} activeTab="feed" />
+                            </TabsContent>
+                            <TabsContent value="kesfet" className="flex-1 min-h-0">
+                                <SocialPanel onOpenContent={(item) => {
+                                    if (props.onOpenInNewTab) {
+                                        props.onOpenInNewTab(item, allItems);
+                                    }
+                                }} activeTab="content" />
+                            </TabsContent>
+                            <TabsContent value="profilim" className="flex-1 min-h-0">
+                                <ProfilePanel onOpenContent={(item) => {
+                                    if (props.onOpenInNewTab) {
+                                        props.onOpenInNewTab(item, allItems);
+                                    }
+                                }} />
+                            </TabsContent>
+                        </Tabs>
                     </div>
-                </div>
+                </PanelWrapper>
             );
         case 'messages': {
             // Use hooks from component level
@@ -1787,44 +1841,46 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             });
 
             return (
-                <div className='flex-1 min-h-0 overflow-hidden'>
-                    {convsLoading ? (
-                        <div className='flex items-center justify-center h-full'>
-                            <div className='text-center'>
-                                <Sparkles className='h-8 w-8 animate-spin mx-auto mb-2 text-primary' />
-                                <p className='text-sm text-muted-foreground'>Sohbetler yükleniyor...</p>
+                <PanelWrapper testId="messages-panel">
+                    <div className='flex-1 min-h-0 overflow-hidden'>
+                        {convsLoading ? (
+                            <div className='flex items-center justify-center h-full'>
+                                <div className='text-center'>
+                                    <Sparkles className='h-8 w-8 animate-spin mx-auto mb-2 text-primary' />
+                                    <p className='text-sm text-muted-foreground'>Sohbetler yükleniyor...</p>
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <MessagingPanel
-                            conversations={conversationsToUse}
-                            groups={groups}
-                            messages={messagesMap}
-                            calls={calls}
-                            currentUserId={user?.id || ''}
-                            currentConversationId={selectedConversationId || currentConversationId}
-                            currentGroupId={currentGroupId}
-                            onAddMessage={addMessage}
-                            onSearchMessages={searchMessages}
-                            onCreateGroup={createGroup}
-                            onUpdateGroup={updateGroup}
-                            onRemoveGroupMember={removeGroupMember}
-                            onUpdateMemberRole={updateMemberRole}
-                            onStartCall={startCall}
-                            onSetCurrentConversation={(id) => {
-                                setSelectedConversationId(id);
-                                setCurrentConversation(id);
-                            }}
-                            onSetCurrentGroup={setCurrentGroup}
-                        />
-                    )}
-                </div>
+                        ) : (
+                            <MessagingPanel
+                                conversations={conversationsToUse}
+                                groups={groups}
+                                messages={messagesMap}
+                                calls={calls}
+                                currentUserId={user?.id || ''}
+                                currentConversationId={selectedConversationId || currentConversationId}
+                                currentGroupId={currentGroupId}
+                                onAddMessage={addMessage}
+                                onSearchMessages={searchMessages}
+                                onCreateGroup={createGroup}
+                                onUpdateGroup={updateGroup}
+                                onRemoveGroupMember={removeGroupMember}
+                                onUpdateMemberRole={updateMemberRole}
+                                onStartCall={startCall}
+                                onSetCurrentConversation={(id) => {
+                                    setSelectedConversationId(id);
+                                    setCurrentConversation(id);
+                                }}
+                                onSetCurrentGroup={setCurrentGroup}
+                            />
+                        )}
+                    </div>
+                </PanelWrapper>
             );
         }
         case 'notifications':
             // Use hooks from component level
             return (
-                 <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none" data-testid="notifications-panel">
+                <PanelWrapper testId="notifications-panel">
                     <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
                         <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
                             <Bell className="h-5 w-5 sm:h-4 sm:w-4" /> <span className="hidden xs:inline">Bildirimler</span>
@@ -1878,11 +1934,11 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             </div>
                         )}
                     </ScrollArea>
-                </div>
+                </PanelWrapper>
             );
         case 'profile':
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="profile-panel">
+                <PanelWrapper testId="profile-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
                         <h2 className="font-bold text-lg px-2 flex items-center gap-2">
                             <User className="h-5 w-5" /> Profilim
@@ -1904,11 +1960,11 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             }
                         }} />
                     </div>
-                </div>
+                </PanelWrapper>
             );
         case 'ai-chat':
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none" data-testid="ai-chat-panel">
+                <PanelWrapper testId="ai-chat-panel">
                     <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
                         <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
                             <Bot className="h-5 w-5 sm:h-4 sm:w-4" /> <span className="hidden xs:inline">AI Asistan</span>
@@ -1945,7 +2001,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             onToolCall={props.onToolCall}
                         />
                     </div>
-                </div>
+                </PanelWrapper>
             );
         case 'widgets': {
             const { widgetTemplates: templates = {}, onWidgetClick, setDraggedItem, onNewFolder, onNewList, onNewPlayer } = props;
@@ -1958,7 +2014,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             }, {} as Record<string, Omit<ContentItem, 'id' | 'createdAt' | 'updatedAt' | 'parentId'>[]>);
 
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none" data-testid="widgets-panel">
+                <PanelWrapper testId="widgets-panel">
                     <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
                         <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
                             <Puzzle className="h-5 w-5 sm:h-4 sm:w-4" /> <span className="hidden xs:inline">Araçlar</span>
@@ -2066,14 +2122,14 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             </Link>
                         </div>
                     </div>
-                </div>
+                </PanelWrapper>
             );
         }
         case 'shopping': {
             // Hooks are now at component top level - just use the variables here
 
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 right-0 w-full sm:w-96 lg:w-80 xl:w-96 lg:relative lg:inset-auto transition-transform duration-300 z-40 shadow-xl lg:shadow-none">
+                <PanelWrapper testId="shopping-panel">
                     {/* Header */}
                     <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
                         <h2 className="font-bold text-base sm:text-lg px-1 sm:px-2 flex items-center gap-1.5 sm:gap-2">
@@ -2328,12 +2384,12 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             </div>
                         )}
                     </div>
-                </div>
+                </PanelWrapper>
             );
         }
         case 'advanced-profiles':
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="profiles-panel">
+                <PanelWrapper testId="profiles-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
                         <h2 className="font-bold text-lg px-2 flex items-center gap-2">
                             <User className="h-5 w-5" /> Profil Slugları
@@ -2355,11 +2411,11 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             </div>
                         </ScrollArea>
                     </div>
-                </div>
+                </PanelWrapper>
             );
         case 'message-groups':
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="message-groups-panel">
+                <PanelWrapper testId="message-groups-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
                         <h2 className="font-bold text-lg px-2 flex items-center gap-2">
                             <MessageSquare className="h-5 w-5" /> Mesaj Grupları
@@ -2377,11 +2433,11 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     <div className="flex-1 min-h-0 overflow-hidden">
                         <MessageGroupsPanel />
                     </div>
-                </div>
+                </PanelWrapper>
             );
         case 'calls':
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="calls-panel">
+                <PanelWrapper testId="calls-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
                         <h2 className="font-bold text-lg px-2 flex items-center gap-2">
                             <Phone className="h-5 w-5" /> Aramalar
@@ -2403,11 +2459,11 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             </div>
                         </ScrollArea>
                     </div>
-                </div>
+                </PanelWrapper>
             );
         case 'meetings':
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="meetings-panel">
+                <PanelWrapper testId="meetings-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
                         <h2 className="font-bold text-lg px-2 flex items-center gap-2">
                             <Calendar className="h-5 w-5" /> Toplantılar
@@ -2429,11 +2485,11 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             </div>
                         </ScrollArea>
                     </div>
-                </div>
+                </PanelWrapper>
             );
         case 'social-groups':
             return (
-                <div className="h-full flex flex-col bg-card/60 backdrop-blur-md" data-testid="social-groups-panel">
+                <PanelWrapper testId="social-groups-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
                         <h2 className="font-bold text-lg px-2 flex items-center gap-2">
                             <Users2 className="h-5 w-5" /> Sosyal Gruplar
@@ -2455,7 +2511,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             </div>
                         </ScrollArea>
                     </div>
-                </div>
+                </PanelWrapper>
             );
         default:
             return (

@@ -14,7 +14,7 @@ const GradientClockWidget = dynamic(() => import('./widgets/gradient-clock-widge
 const AstronomicalClockWidget = dynamic(() => import('./widgets/astronomical-clock-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const ToDoListWidget = dynamic(() => import('./widgets/todo-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const WebsitePreview = dynamic(() => import('./widgets/WebsitePreview'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
-const MiniGridPreview = dynamic(() => import('./mini-grid-preview'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const UnifiedGridPreview = dynamic(() => import('./unified-grid-preview'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const PharmacyWidget = dynamic(() => import('./widgets/pharmacy-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const WeatherWidget = dynamic(() => import('./widgets/weather-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const CalculatorWidget = dynamic(() => import('./widgets/calculator-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
@@ -81,18 +81,18 @@ const PerformanceMonitorWidget = dynamic(() => import('./widgets/performance-mon
 const NewTabScreen = dynamic(() => import('./new-tab-screen').then(m => ({ default: m.NewTabScreen })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 
 const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
-  item: MiniGridPreview,
-  folder: MiniGridPreview,
-  list: MiniGridPreview,
-  player: MiniGridPreview,
-  inventory: MiniGridPreview,
-  space: MiniGridPreview,
-  devices: MiniGridPreview,
-  'saved-items': MiniGridPreview,
-  'awards-folder': MiniGridPreview,
-  'spaces-folder': MiniGridPreview,
-  'devices-folder': MiniGridPreview,
-  'trash-folder': MiniGridPreview,
+    item: UnifiedGridPreview,
+    folder: UnifiedGridPreview,
+    list: UnifiedGridPreview,
+    player: UnifiedGridPreview,
+    inventory: UnifiedGridPreview,
+    space: UnifiedGridPreview,
+    devices: UnifiedGridPreview,
+    'saved-items': UnifiedGridPreview,
+    'awards-folder': UnifiedGridPreview,
+    'spaces-folder': UnifiedGridPreview,
+    'devices-folder': UnifiedGridPreview,
+    'trash-folder': UnifiedGridPreview,
   website: WebsitePreview,
   image: WebsitePreview,
   video: WebsitePreview,

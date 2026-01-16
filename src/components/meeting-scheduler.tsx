@@ -21,8 +21,8 @@ import {
 import { ScheduledMeeting, MeetingParticipant } from '@/lib/advanced-features-types';
 
 interface MeetingSchedulerProps {
-  meetings: ScheduledMeeting[];
-  onCreateMeeting: (
+  meetings?: ScheduledMeeting[];
+  onCreateMeeting?: (
     title: string,
     startTime: string,
     endTime: string,
@@ -36,7 +36,7 @@ interface MeetingSchedulerProps {
 }
 
 export function MeetingScheduler({
-  meetings,
+  meetings = [],
   onCreateMeeting,
   onDeleteMeeting,
   onAddParticipant,
@@ -57,6 +57,11 @@ export function MeetingScheduler({
   const handleCreateMeeting = async () => {
     if (!title.trim() || !startTime || !endTime) {
       alert('Lütfen başlık ve saatleri giriniz');
+      return;
+    }
+
+    if (!onCreateMeeting) {
+      alert('Toplantı oluşturma özelliği henüz aktif değil');
       return;
     }
 

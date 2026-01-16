@@ -77,10 +77,10 @@ export default function StyleSettingsPanel({
   const [openAccordions, setOpenAccordions] = useState<string[]>(accordionItems);
   const scale = activeView.scale || 100;
   const setScale = (newScale: number) => onUpdate({ scale: newScale });
-    const coverPreset = (activeView as any)?.coverPreset ?? 'm';
-    const coverMaxItems = (activeView as any)?.coverMaxItems ?? 10;
+    // Removed coverPreset and coverMaxItems settings
     const coverBlurFallback = (activeView as any)?.coverBlurFallback ?? false;
     const coverBoldTitle = (activeView as any)?.coverBoldTitle ?? false;
+    const coverPreviewEnabled = (activeView as any)?.coverPreviewEnabled ?? true;
     const minimapDefaultOpen = (activeView as any)?.minimapDefaultOpen ?? false;
     const minimapSize = (activeView as any)?.minimapSize ?? 'm';
 
@@ -248,24 +248,12 @@ export default function StyleSettingsPanel({
                         <div className="space-y-4">
                             <h4 className="text-xs font-semibold text-muted-foreground">KAPAK & MINI MAP</h4>
                             <div className="grid grid-cols-1 gap-3">
-                                <div className="space-y-1">
-                                    <Label>Kapak Boyutu</Label>
-                                    <ToggleGroup type="single" value={coverPreset} onValueChange={(val) => val && onUpdate({ coverPreset: val })} className="grid grid-cols-4 gap-1">
-                                        <ToggleGroupItem value="xxxs" title="Minimal">●</ToggleGroupItem>
-                                        <ToggleGroupItem value="xxs" title="Çok Çok Küçük">●●</ToggleGroupItem>
-                                        <ToggleGroupItem value="xs" title="Çok Küçük">●●●</ToggleGroupItem>
-                                        <ToggleGroupItem value="s" title="Küçük">●●●●</ToggleGroupItem>
-                                    </ToggleGroup>
-                                    <ToggleGroup type="single" value={coverPreset} onValueChange={(val) => val && onUpdate({ coverPreset: val })} className="grid grid-cols-4 gap-1 mt-1">
-                                        <ToggleGroupItem value="m" title="Orta">●●●●●</ToggleGroupItem>
-                                        <ToggleGroupItem value="l" title="Büyük">●●●●●●</ToggleGroupItem>
-                                        <ToggleGroupItem value="xl" title="Çok Büyük">●●●●●●●</ToggleGroupItem>
-                                        <ToggleGroupItem value="xxl" title="Maksimum">●●●●●●●●</ToggleGroupItem>
-                                    </ToggleGroup>
-                                </div>
-                                <div className="space-y-1">
-                                    <Label>Kapakta Gösterilecek İçerik Sayısı ({coverMaxItems})</Label>
-                                    <Slider value={[coverMaxItems]} min={4} max={10} step={1} onValueChange={([v]) => onUpdate({ coverMaxItems: v })} />
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label>Kapak Önizleme Görselleri</Label>
+                                        <p className="text-xs text-muted-foreground">Kapak üstü önizleme görsellerini göster/gizle.</p>
+                                    </div>
+                                    <Switch checked={coverPreviewEnabled} onCheckedChange={(val) => onUpdate({ coverPreviewEnabled: val })} />
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <div className="space-y-0.5">

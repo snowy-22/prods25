@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import TabGridViewportEditor from './tab-grid-viewport-editor';
+import { GridModeViewportSettings } from './grid-mode-viewport-settings';
+import { useAppStore } from '../lib/store';
 import { ContentItem } from '@/lib/initial-content';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -39,6 +42,7 @@ import {
   Tablet,
   Smartphone,
   Square,
+  Grid3X3,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +55,7 @@ interface ViewportEditorProps {
 type ResponsiveMode = 'desktop' | 'tablet' | 'mobile';
 
 export function ViewportEditor({ item, onUpdateItem, onClose }: ViewportEditorProps) {
+  const splitView = useAppStore(s => s.splitView);
   const [responsiveMode, setResponsiveMode] = useState<ResponsiveMode>('desktop');
   const [showCode, setShowCode] = useState(false);
 
@@ -90,6 +95,7 @@ export function ViewportEditor({ item, onUpdateItem, onClose }: ViewportEditorPr
     return `.${item.type} {\n${cssLines.join('\n')}\n}`;
   };
 
+  const showGridTab = splitView.mode !== 'single';
   return (
     <div className="h-full flex flex-col bg-card">
       {/* Header */}
@@ -167,8 +173,18 @@ export function ViewportEditor({ item, onUpdateItem, onClose }: ViewportEditorPr
             </div>
           </div>
         ) : (
-          <Tabs defaultValue="layout" className="w-full">
-            <TabsList className="w-full grid grid-cols-5 mx-4 mb-4">
+          <Tabs defaultValue="gridmode" className="w-full">
+            <TabsList className={`w-full grid grid-cols-${showGridTab ? 7 : 6} mx-4 mb-4`}>
+              <TabsTrigger value="gridmode">
+                <Grid3X3 className="h-4 w-4 mr-1.5" />
+                Mode
+              </TabsTrigger>
+              {showGridTab && (
+                <TabsTrigger value="grid">
+                  <Layout className="h-4 w-4 mr-1.5" />
+                  Grid
+                </TabsTrigger>
+              )}
               <TabsTrigger value="layout">
                 <Layout className="h-4 w-4 mr-1.5" />
                 Layout
@@ -192,6 +208,14 @@ export function ViewportEditor({ item, onUpdateItem, onClose }: ViewportEditorPr
             </TabsList>
 
             <div className="px-4 pb-4">
+              <TabsContent value="gridmode" className="mt-0 space-y-4">
+                <GridModeViewportSettings />
+              </TabsContent>
+              {showGridTab && (
+                <TabsContent value="grid" className="mt-0 space-y-4">
+                  <TabGridViewportEditor />
+                </TabsContent>
+              )}
               <TabsContent value="layout" className="mt-0 space-y-4">
                 <Accordion type="multiple" defaultValue={['display', 'dimensions']} className="w-full">
                   <AccordionItem value="display">

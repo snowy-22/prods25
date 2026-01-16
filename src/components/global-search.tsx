@@ -21,7 +21,7 @@ import { getIconByName, IconName } from '@/lib/icons';
 import { SearchPanelState } from '@/lib/store';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import MiniGridPreview from '@/components/mini-grid-preview';
+import UnifiedGridPreview from '@/components/unified-grid-preview';
 import { MultiSourceSearchDialog } from '@/components/multi-source-search-dialog';
 
 type SearchableItem = {
@@ -488,7 +488,7 @@ function GlobalSearch({
                                         </CardHeader>
                                         <CardContent>
                                             <div className="aspect-video bg-muted rounded-md overflow-hidden mb-4">
-                                                <MiniGridPreview item={{ children: set.items } as ContentItem} onLoad={() => {}} maxItems={9} />
+                                                <UnifiedGridPreview items={set.items} layoutMode="grid" maxItems={9} showTitle />
                                             </div>
                                             <Button className="w-full" onClick={() => { onAddFolderWithItems(set.title, set.items as any, activeViewId); handleOpenChange(false); }}>
                                                 <Import className="mr-2 h-4 w-4"/> İçe Aktar

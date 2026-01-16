@@ -17,13 +17,15 @@ import {
   Map,
   MessageSquare,
   FileText,
-  BarChart3
+  BarChart3,
+  GripVertical
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GridModeState } from '@/lib/layout-engine';
 import { GridModeInfo } from './integration-info-button';
 import { SmartPlayerPanel } from './smart-player-panel';
 import { ContentItem } from '@/lib/initial-content';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,6 +86,9 @@ const GridModeControls = memo(function GridModeControls({
   onToggleDescriptions,
   isDescriptionsVisible = false
 }: GridModeControlsProps) {
+  // Responsive layout hook for device-specific columns
+  const responsive = useResponsiveLayout();
+  
   const isVertical = gridState.type === 'vertical';
   const isSquare = gridState.type === 'square';
   
@@ -109,6 +114,7 @@ const GridModeControls = memo(function GridModeControls({
   const itemsOnPage = Math.min(itemsPerPage, totalItems - ((gridState.currentPage - 1) * itemsPerPage));
 
   const handlePlayPause = () => {
+    console.debug('[GridModeControls] handlePlayPause', { isPlaying });
     if (isPlaying) {
       onPauseAll?.();
       setIsPlaying(false);
@@ -119,6 +125,7 @@ const GridModeControls = memo(function GridModeControls({
   };
 
   const handleMuteToggle = () => {
+    console.debug('[GridModeControls] handleMuteToggle', { isMuted });
     if (isMuted) {
       onUnmuteAll?.();
       setIsMuted(false);
@@ -129,93 +136,17 @@ const GridModeControls = memo(function GridModeControls({
   };
 
   const handleSpeedChange = (speed: number) => {
+    console.debug('[GridModeControls] handleSpeedChange', { speed });
     setPlaybackSpeed(speed);
     onChangeSpeed?.(speed);
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 px-2 sm:px-3 md:px-4 py-2 sm:py-1 bg-gradient-to-r from-slate-900/40 to-slate-800/40 backdrop-blur-sm rounded-lg border border-slate-700/50 min-w-0 max-w-full overflow-x-auto">
-      {/* Left Section: Mode Switcher + Column Selector - Responsive */}
-      <div className="flex items-center gap-1 flex-wrap sm:flex-nowrap">
-        {/* Mode Switcher - Touch friendly */}
-        <div className="flex items-center gap-0.5 bg-slate-900/60 rounded-md p-0.5 border border-slate-700/50">
-          {/* Vertical Mode Button */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              onToggleGridMode(true);
-              onChangeGridType('vertical');
-            }}
-            className={cn(
-              "px-2 sm:px-1.5 py-1.5 sm:py-1 rounded-sm text-xs sm:text-[10px] font-medium transition-colors flex items-center gap-1 touch-manipulation",
-              gridState.enabled && isVertical
-                ? "bg-blue-500/80 text-white shadow-lg shadow-blue-500/30"
-                : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
-            )}
-            title="Sonsuz Görünüm - Aşağıya kaydırarak göz at"
-          >
-            <Columns3 className="w-4 h-4 sm:w-3 sm:h-3" />
-            <span className="hidden xs:inline">Sonsuz</span>
-          </motion.button>
+    <div className="flex flex-wrap items-center gap-2 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-slate-900/50 to-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700/40 min-w-0 max-w-full overflow-x-auto shadow-lg">
+      {/* Mode Switcher ve Column Selector artık sadece Viewport Editor'da.
+          Bu bileşen sadece pagination dots ve video kontrollerini içerir. */}
 
-          {/* Square Grid Mode Button */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              onToggleGridMode(true);
-              onChangeGridType('square');
-            }}
-            className={cn(
-              "px-2 sm:px-1.5 py-1.5 sm:py-1 rounded-sm text-xs sm:text-[10px] font-medium transition-colors flex items-center gap-1 touch-manipulation",
-              gridState.enabled && isSquare
-                ? "bg-emerald-500/80 text-white shadow-lg shadow-emerald-500/30"
-                : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
-            )}
-            title="Sayfa Görünümü - Sayfalarla aşın"
-          >
-            <SquareStack className="w-4 h-4 sm:w-3 sm:h-3" />
-            <span className="hidden xs:inline">Sayfa</span>
-          </motion.button>
-        </div>
-
-        {/* Grid Resizer - Responsive: mobilde 4, tablette 6, masaüstünde 8 sütun */}
-        <AnimatePresence mode="wait">
-          {gridState.enabled && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, width: 0 }}
-              animate={{ opacity: 1, scale: 1, width: 'auto' }}
-              exit={{ opacity: 0, scale: 0.95, width: 0 }}
-              transition={{ duration: 0.2 }}
-              className="flex items-center gap-1 sm:gap-0.5 bg-slate-900/60 rounded-md p-1 sm:p-0.5 border border-slate-700/50 overflow-x-auto max-w-full"
-            >
-              {/* Mobil: 1-4, Tablet: 1-6, Masaüstü: 1-8 */}
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((col) => (
-                <motion.button
-                  key={col}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => onChangeColumns(col)}
-                  className={cn(
-                    "w-7 h-7 sm:w-6 sm:h-6 md:w-5 md:h-5 rounded text-xs sm:text-[10px] font-medium transition-colors flex-shrink-0",
-                    gridState.columns === col
-                      ? "bg-purple-500/80 text-white shadow-lg shadow-purple-500/30"
-                      : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50",
-                    col > 4 && "hidden sm:flex",
-                    col > 6 && "hidden md:flex"
-                  )}
-                  title={`${col} ${isSquare ? 'x' + col + ' ızgara' : 'sütun'}`}
-                >
-                  {col}
-                </motion.button>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Center Section: Page Navigation - Only in square/page mode, hidden in canvas */}
+      {/* Center Section: Page Navigation - Only in square/page mode */}
       <AnimatePresence mode="wait">
         {gridState.enabled && gridState.type === 'square' && (
           <motion.div
@@ -223,11 +154,11 @@ const GridModeControls = memo(function GridModeControls({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="flex items-center gap-1.5 bg-slate-900/60 rounded-md px-2 py-1 border border-slate-700/50"
+            className="flex items-center gap-2 bg-slate-900/70 rounded-lg px-3 py-1.5 border border-slate-700/40 shadow-sm"
           >
             {/* Page Indicator - Interactive Swipeable Dots */}
             <motion.div 
-              className="flex items-center gap-1.5 cursor-grab active:cursor-grabbing select-none"
+              className="flex items-center gap-2 cursor-grab active:cursor-grabbing select-none"
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.2}
@@ -256,22 +187,25 @@ const GridModeControls = memo(function GridModeControls({
                       onClick={() => {
                         // Dot'a tıklayarak direkt o sayfaya git
                         const diff = pageNumber - gridState.currentPage;
+                        console.debug('[GridModeControls] Page dot clicked', { pageNumber, current: gridState.currentPage, diff });
                         if (diff > 0) {
                           for (let j = 0; j < diff; j++) onNextPage();
                         } else if (diff < 0) {
                           for (let j = 0; j < Math.abs(diff); j++) onPreviousPage();
                         }
                       }}
-                      whileHover={{ scale: 1.2 }}
-                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ scale: 1.25 }}
+                      whileTap={{ scale: 0.85 }}
                       animate={{
-                        scale: isActive ? 1.2 : 1,
-                        backgroundColor: isActive ? '#3b82f6' : '#64748b',
-                        width: isActive ? '20px' : '6px',
+                        scale: isActive ? 1.1 : 1,
+                        backgroundColor: isActive ? '#3b82f6' : '#475569',
+                        width: isActive ? '24px' : '8px',
+                        height: isActive ? '8px' : '8px',
                         borderRadius: isActive ? '4px' : '50%'
                       }}
-                      transition={{ duration: 0.3, ease: 'easeOut' }}
-                      className="h-1.5 hover:opacity-80 transition-opacity"
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      className="hover:opacity-90 transition-opacity shadow-sm"
+                      style={{ minWidth: '8px', minHeight: '8px' }}
                       title={`Sayfa ${pageNumber} / ${calculatedTotalPages}`}
                       aria-label={`Sayfa ${pageNumber}`}
                     />
@@ -279,6 +213,11 @@ const GridModeControls = memo(function GridModeControls({
                 });
               })()}
             </motion.div>
+            
+            {/* Page Counter Badge */}
+            <span className="text-[11px] font-semibold text-slate-300 bg-slate-800/80 px-2 py-0.5 rounded-md ml-1 whitespace-nowrap tabular-nums">
+              {gridState.currentPage} / {calculatedTotalPages}
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -298,15 +237,15 @@ const GridModeControls = memo(function GridModeControls({
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsSmartPlayerOpen(!isSmartPlayerOpen)}
             className={cn(
-              "flex items-center gap-1.5 px-2 py-1 rounded-md transition-all border border-slate-700/50",
+              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all border",
               isSmartPlayerOpen
-                ? "bg-gradient-to-r from-purple-500/80 to-pink-500/80 text-white shadow-lg shadow-purple-500/30"
-                : "bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800/80"
+                ? "bg-gradient-to-r from-purple-500/80 to-pink-500/80 text-white shadow-lg shadow-purple-500/30 border-purple-400/40"
+                : "bg-slate-900/70 text-slate-300 hover:text-white hover:bg-slate-800/90 border-slate-700/40"
             )}
             title="Akıllı Oynatıcı Panelini Aç/Kapat"
           >
-            <MonitorPlay className="w-3.5 h-3.5" />
-            <span className="text-[10px] font-medium">Akıllı Oynatıcı</span>
+            <MonitorPlay className="w-4 h-4" />
+            <span className="text-[11px] font-semibold hidden sm:inline">Akıllı Oynatıcı</span>
           </motion.button>
         )}
       </AnimatePresence>
@@ -319,75 +258,93 @@ const GridModeControls = memo(function GridModeControls({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="flex items-center gap-1 bg-slate-900/60 rounded-md p-1 border border-slate-700/50"
+            className="flex items-center gap-1.5 bg-slate-900/70 rounded-lg p-1.5 border border-slate-700/40 shadow-sm"
           >
             {/* Skip Back */}
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onSkipBack}
-              className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                console.debug('[GridModeControls] SkipBack clicked');
+                onSkipBack?.();
+              }}
+              className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
               title="10s geri"
             >
-              <SkipBack className="w-3.5 h-3.5" />
+              <SkipBack className="w-4 h-4" />
             </motion.button>
 
             {/* Play/Pause */}
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handlePlayPause}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                console.debug('[GridModeControls] PlayPause clicked');
+                handlePlayPause();
+              }}
               className={cn(
-                "p-1 rounded transition-colors",
+                "p-1.5 rounded-md transition-colors",
                 isPlaying
-                  ? "bg-blue-500/80 text-white shadow-lg shadow-blue-500/30"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  ? "bg-blue-500/90 text-white shadow-lg shadow-blue-500/30"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/80"
               )}
               title={isPlaying ? "Tümünü duraklat" : "Tümünü oynat"}
             >
-              {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </motion.button>
 
             {/* Skip Forward */}
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onSkipForward}
-              className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                console.debug('[GridModeControls] SkipForward clicked');
+                onSkipForward?.();
+              }}
+              className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
               title="10s ileri"
             >
-              <SkipForward className="w-3.5 h-3.5" />
+              <SkipForward className="w-4 h-4" />
             </motion.button>
+
+            {/* Separator */}
+            <div className="w-px h-5 bg-slate-700/60 mx-0.5" />
 
             {/* Volume Control */}
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleMuteToggle}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => {
+                console.debug('[GridModeControls] Mute/Unmute clicked', { isMuted });
+                handleMuteToggle();
+              }}
               className={cn(
-                "p-1 rounded transition-colors",
+                "p-1.5 rounded-md transition-colors",
                 isMuted
-                  ? "text-red-400 hover:text-red-300"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800"
+                  ? "text-red-400 hover:text-red-300 bg-red-500/10"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/80"
               )}
               title={isMuted ? "Sesi aç" : "Sesi kapat"}
             >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </motion.button>
 
             {/* Playback Speed */}
-            <div className="flex items-center gap-0.5 border-l border-slate-700 pl-1 ml-0.5">
+            <div className="flex items-center gap-1 border-l border-slate-700/50 pl-2 ml-1">
               {[0.5, 1, 1.5, 2].map((speed) => (
                 <motion.button
                   key={speed}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleSpeedChange(speed)}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => {
+                    console.debug('[GridModeControls] Speed button clicked', { speed });
+                    handleSpeedChange(speed);
+                  }}
                   className={cn(
-                    "px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors",
+                    "px-2 py-1 rounded-md text-[11px] font-semibold transition-colors",
                     playbackSpeed === speed
-                      ? "bg-orange-500/80 text-white shadow-lg shadow-orange-500/30"
-                      : "text-slate-400 hover:text-slate-300 hover:bg-slate-800/50"
+                      ? "bg-orange-500/90 text-white shadow-md shadow-orange-500/30"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                   )}
                   title={`${speed}x hız`}
                 >
@@ -402,11 +359,11 @@ const GridModeControls = memo(function GridModeControls({
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-slate-400 hover:text-slate-300 hover:bg-slate-800/50 transition-colors border-l border-slate-700 ml-0.5 pl-1"
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-colors border-l border-slate-700/50 ml-1.5 pl-2.5"
                   title="Video Kalitesi"
                 >
-                  <Gauge className="w-3 h-3" />
-                  <span>Kalite</span>
+                  <Gauge className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Kalite</span>
                 </motion.button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-32">
@@ -424,7 +381,7 @@ const GridModeControls = memo(function GridModeControls({
                         }), '*');
                       });
                     }}
-                    className="text-xs"
+                    className="text-xs font-medium"
                   >
                     {quality}
                   </DropdownMenuItem>

@@ -2,24 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { AppLogo } from '@/components/icons/app-logo';
 import { Button, ButtonProps } from '@/components/ui/button';
-import { AuthDialog } from '@/components/auth-dialog';
-import { useToast } from '@/hooks/use-toast';
-import { User } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
-import { useAppStore } from '@/lib/store';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, ChevronRight, Grid, Share2, Palette, SlidersHorizontal, Presentation, Cpu, Tv, Building, Container } from 'lucide-react';
+import { CheckCircle, ChevronRight, Grid, Share2, Palette, SlidersHorizontal, Presentation, Cpu, Tv, Building, Container, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LandingPageDemoGrid } from '@/components/landing/LandingPageDemoGrid';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { BouncingDvd } from '@/components/landing/BouncingDvd';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { QRCodeCanvas } from 'qrcode.react';
+import { AnimatedBorderButton } from '@/components/animated-border-button';
 
 const Logo = () => {
 	const [pageUrl, setPageUrl] = useState('');
@@ -55,8 +49,11 @@ const Logo = () => {
 
 const pricingTiers = [
 	{
+		id: 'free',
 		name: 'Ücretsiz',
-		price: '₺0',
+		price: 0,
+		description: 'Kişisel kullanım için ideal',
+		featured: false,
 		features: [
 			'1 Dinamik Lİste',
 			'Temel Izgara Modu',
@@ -66,8 +63,11 @@ const pricingTiers = [
 		ctaLink: '/register'
 	},
 	{
+		id: 'plus',
 		name: 'Plus',
-		price: '₺49/ay',
+		price: 49,
+		description: 'Profesyoneller ve küçük takımlar için',
+		featured: true,
 		features: [
 			'Sınırsız Liste',
 			'Tüm Izgara Modları',
@@ -78,8 +78,11 @@ const pricingTiers = [
 		ctaLink: '/register'
 	},
 	{
+		id: 'pro',
 		name: 'Pro',
-		price: '₺99/ay',
+		price: 99,
+		description: 'Gelişmiş özellikler ve AI desteği',
+		featured: false,
 		features: [
 			'Plus\'taki Her Şey',
 			'AI Asistan',
@@ -90,8 +93,11 @@ const pricingTiers = [
 		ctaLink: '/register'
 	},
 	{
+		id: 'enterprise',
 		name: 'Kurumsal',
-		price: 'Bize Ulaşın',
+		price: null,
+		description: 'Kuruluşlar için özel çözümler',
+		featured: false,
 		features: [
 			'Pro\'daki Her Şey',
 			'Özel Entegrasyonlar',
@@ -99,20 +105,13 @@ const pricingTiers = [
 			'Eğitim & Danışmanlık'
 		],
 		cta: 'Demo Talep Edin',
-		ctaLink: '/kurumlar'
+		ctaLink: '/corporate'
 	}
-]
+];
+
 
 // (removed duplicate import of Button, ButtonProps)
 import React from "react";
-type AnimatedBorderButtonProps = ButtonProps & { children: React.ReactNode };
-const AnimatedBorderButton: React.FC<AnimatedBorderButtonProps> = ({ children, className, ...props }) => (
-	<div className="relative inline-block p-[2px] rounded-md bg-gradient-to-r from-primary via-purple-500 to-cyan-400 animate-gradient-pan bg-[length:200%_auto]">
-		<Button className={cn("w-full", className)} {...props}>
-			{children}
-		</Button>
-	</div>
-);
 
 const SectionSeparator = () => <div className="section-separator" />;
 
@@ -143,7 +142,6 @@ const heroWords = [
 ];
 
 export default function LandingPage() {
-  const businessImage = PlaceHolderImages.find(p => p.id === 'business-wide');
   const [heroWordIndex, setHeroWordIndex] = useState(0);
   const heroWord = heroWords[heroWordIndex];
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
@@ -190,35 +188,197 @@ export default function LandingPage() {
     }
   };
 
-	// Local state for AuthDialog props
-	const [authAction, setAuthAction] = useState<'login' | 'signup' | null>('login');
-	const [authData, setAuthData] = useState<{ email: string; isRegistered?: boolean } | null>(null);
-	const handleAuthSuccess = (username: string) => {
-		// Optionally show a toast or redirect, but since user will be authenticated, redirect will happen via useEffect
-	};
+	return (
+		<div className="bg-black text-foreground font-body antialiased min-h-screen flex flex-col">
+			{isHeaderVisible && <MainHeader />}
+			<main className="flex-1 flex flex-col items-center justify-center px-2 sm:px-0 w-full pt-64">
+				<section className="w-full max-w-5xl flex flex-col md:flex-row items-center justify-between gap-8 py-12 md:py-24">
+					{/* Left: Hero Text */}
+					<div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left gap-6">
+						<h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-headline font-bold leading-tight">
+							<span className="block mb-2">Hayalindeki</span>
+							<span className={getWordStyle(heroWord)}>{heroWord}</span>
+							<span className="block mt-2">CanvasFlow ile oluştur!</span>
+						</h1>
+						<p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-md md:max-w-lg">
+							Web içeriklerini, videoları, widget'ları ve daha fazlasını tek bir dijital kanvasta organize et. Sürükle-bırak, AI entegrasyonu ve çoklu görünüm modları ile üretkenliğini artır.
+						</p>
+						<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center md:justify-start">
+							<AnimatedBorderButton asChild>
+								<Link href="/auth">Hemen Başla</Link>
+							</AnimatedBorderButton>
+							<AnimatedBorderButton asChild className="bg-background/80">
+								<Link href="#pricing">Fiyatlandırma</Link>
+							</AnimatedBorderButton>
+						</div>
+					</div>
+					{/* Right: Responsive DVD Animation */}
+					<div className="flex-1 flex items-center justify-center w-full md:w-auto">
+						<div className="w-[220px] h-[120px] sm:w-[320px] sm:h-[180px] md:w-[400px] md:h-[220px] lg:w-[480px] lg:h-[260px] xl:w-[560px] xl:h-[300px] max-w-full">
+							<BouncingDvd />
+						</div>
+					</div>
+				</section>
+				{/* Demo Grid Section */}
+				<section className="w-full max-w-6xl mx-auto py-8 md:py-16 px-2">
+					<LandingPageDemoGrid />
+				</section>
 
-	if (!isAuthenticated) {
-		return (
-			<div className="bg-black text-foreground font-body antialiased min-h-screen flex flex-col items-center justify-center">
-				<MainHeader />
-				<div className="w-full max-w-md mx-auto mt-12">
-					<AuthDialog
-						action={authAction}
-						authData={authData}
-						setAction={setAuthAction}
-						onAuthSuccess={handleAuthSuccess}
-					/>
-				</div>
-			</div>
-		);
-	}
+				{/* Features Section */}
+				<section className="w-full bg-gradient-to-b from-background to-accent/5 py-20">
+					<div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+						<div className="text-center mb-16">
+							<h2 className="text-3xl md:text-4xl font-bold mb-4">Neden CanvasFlow?</h2>
+							<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+								Tüm dijital içeriklerinizi organize etmek ve yönetmek için gereken güçlü araçlar
+							</p>
+						</div>
 
-  return (
-    <div className="bg-black text-foreground font-body antialiased">
-      {isHeaderVisible && <MainHeader />}
-      <main className="snap-y snap-mandatory h-screen w-screen overflow-y-auto overflow-x-hidden">
-        {/* ...existing code... */}
-      </main>
-    </div>
-  );
+						<div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+							{[
+								{
+									icon: '🎨',
+									title: 'Sınırsız Yaratıcılık',
+									desc: 'Grid ve canvas modları ile tamamen özelleştirilebilir düzenleme'
+								},
+								{
+									icon: '⚡',
+									title: 'Yapay Zeka Entegrasyonu',
+									desc: 'İçeriğinizi analiz edin, öneriler alın ve otomasyonlar oluşturun'
+								},
+								{
+									icon: '📱',
+									title: 'Tüm Cihazlarda Çalışır',
+									desc: 'Mobil, tablet veya masaüstünde sorunsuz deneyim'
+								},
+								{
+									icon: '🔐',
+									title: 'Güvenli & Gizli',
+									desc: 'End-to-end şifreleme ve ISO 27001 sertifikası'
+								},
+								{
+									icon: '🚀',
+									title: 'Gerçek Zamanlı Senkronizasyon',
+									desc: 'Tüm cihazlarınızda anında güncelleme'
+								},
+								{
+									icon: '👥',
+									title: 'İşbirliği Araçları',
+									desc: 'Takımla çalışın, yorum yapın ve değişiklikleri paylaşın'
+								}
+							].map((feature, idx) => (
+								<div key={idx} className="bg-card/50 border border-border/50 rounded-lg p-6 hover:border-primary/50 transition-all hover:shadow-lg">
+									<div className="text-4xl mb-3">{feature.icon}</div>
+									<h3 className="text-xl font-bold mb-2">{feature.title}</h3>
+									<p className="text-muted-foreground">{feature.desc}</p>
+								</div>
+							))}
+						</div>
+
+						<div className="text-center mt-12">
+							<AnimatedBorderButton asChild>
+								<Link href="/features">Tüm Özellikleri Keşfet</Link>
+							</AnimatedBorderButton>
+						</div>
+					</div>
+				</section>
+
+				{/* Pricing Section */}
+				<section id="pricing" className="w-full max-w-6xl mx-auto py-20 px-2">
+					<div className="text-center mb-16">
+						<h2 className="text-3xl md:text-4xl font-bold mb-4">Şeffaf Fiyatlandırma</h2>
+						<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+							Tüm planlar sınırsız depolama, AI asistanı ve gerçek zamanlı senkronizasyon içerir
+						</p>
+					</div>
+
+					<div className="grid md:grid-cols-4 gap-6 mb-8">
+						{pricingTiers.map((tier) => (
+							<Card 
+								key={tier.id} 
+								className={`flex flex-col justify-between backdrop-blur-sm ${tier.featured ? 'border-primary/50 bg-gradient-to-br from-primary/5 to-primary/10 md:scale-105 md:shadow-2xl' : 'bg-card/50'}`}
+							>
+								<div>
+									{tier.featured && <div className="mb-3 text-center"><span className="text-xs bg-primary text-primary-foreground px-3 py-1 rounded-full">En Popüler</span></div>}
+									<h3 className="text-xl font-bold mb-2">{tier.name}</h3>
+									<p className="text-3xl font-bold text-primary mb-1">
+										{tier.price === null || tier.price === 0 ? 'Ücretsiz' : `$${tier.price}`}
+									</p>
+									{tier.price !== null && tier.price > 0 && <p className="text-sm text-muted-foreground mb-4">/ay veya yıllık %20 indirim</p>}
+									<p className="text-sm text-muted-foreground mb-6">{tier.description}</p>
+
+									<ul className="space-y-2 mb-6">
+										{tier.features.map((feature, idx) => (
+											<li key={idx} className="text-sm flex items-start">
+												<span className="text-primary mr-2">✓</span>
+												<span>{feature}</span>
+											</li>
+										))}
+									</ul>
+								</div>
+
+								<Button asChild className="w-full" variant={tier.featured ? 'default' : 'outline'}>
+									<Link href={tier.ctaLink}>{tier.cta}</Link>
+								</Button>
+							</Card>
+						))}
+					</div>
+
+					<div className="text-center">
+						<p className="text-muted-foreground mb-4">Teknik destek, özel özellikleri veya toplu satın alma hakkında mı?</p>
+						<Button asChild variant="outline" size="lg">
+							<Link href="/corporate">Kurumsal Çözümler</Link>
+						</Button>
+					</div>
+				</section>
+
+				{/* Corporate Section */}
+				<section className="w-full bg-gradient-to-r from-primary/10 via-purple-500/10 to-cyan-500/10 py-20">
+					<div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+						<div className="text-center mb-12">
+							<h2 className="text-3xl md:text-4xl font-bold mb-4">Kurumsal Çözümler</h2>
+							<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+								Büyük takımlar ve kuruluşlar için özelleştirilmiş CanvasFlow deneyimi
+							</p>
+						</div>
+
+						<div className="grid md:grid-cols-3 gap-8 mb-12">
+							{[
+								{ icon: '🏢', title: 'Adanmış Sunucu', desc: 'Kendi özel altyapınız, tam kontrol' },
+								{ icon: '👨‍💼', title: '24/7 Destek', desc: 'Ayrılmış destek takımı ve priori yardım' },
+								{ icon: '⚙️', title: 'Özelleştirme', desc: 'Markalaştırma, entegrasyonlar, özel özellikler' }
+							].map((item, idx) => (
+								<div key={idx} className="text-center">
+									<div className="text-5xl mb-3">{item.icon}</div>
+									<h3 className="font-bold text-lg mb-2">{item.title}</h3>
+									<p className="text-muted-foreground">{item.desc}</p>
+								</div>
+							))}
+						</div>
+
+						<div className="bg-card/80 border border-border/50 rounded-lg p-8 text-center">
+							<h3 className="text-2xl font-bold mb-4">Kurumsal Müşterilerin Tercih Ettiği</h3>
+							<div className="flex flex-wrap justify-center gap-8 mb-8">
+								{['Fortune 500', 'Teknoloji Başlangıçları', 'Eğitim Kurumları', 'Yayın Şirketleri'].map((type, idx) => (
+									<div key={idx} className="flex items-center gap-2">
+										<span className="w-2 h-2 bg-primary rounded-full"></span>
+										<span className="font-medium">{type}</span>
+									</div>
+								))}
+							</div>
+
+							<Button asChild size="lg">
+								<Link href="/corporate">Demo Talep Edin</Link>
+							</Button>
+						</div>
+					</div>
+				</section>
+
+				{/* Footer */}
+				<footer className="w-full py-6 text-center text-xs text-muted-foreground">
+					© {new Date().getFullYear()} tv25.app | CanvasFlow
+				</footer>
+			</main>
+		</div>
+	);
 }

@@ -43,7 +43,13 @@ export function CreatePostCard() {
 
   const handlePost = () => {
     if (!content.trim() && attachments.length === 0) return;
-    
+
+    // Parse mentions (@username) and hashtags (^hashtag)
+    const mentionRegex = /@([a-zA-Z0-9_]+)/g;
+    const hashtagRegex = /\^([a-zA-Z0-9_ğüşöçıİĞÜŞÖÇ]+)/g;
+    const mentions = Array.from(content.matchAll(mentionRegex)).map(m => m[1]);
+    const hashtags = Array.from(content.matchAll(hashtagRegex)).map(h => h[1]);
+
     const newPost: ContentItem = {
       id: `post-${Date.now()}`,
       type: 'social-post',
@@ -58,15 +64,19 @@ export function CreatePostCard() {
       likeCount: 0,
       commentCount: 0,
       viewCount: 0,
+      metadata: {
+        mentions,
+        hashtags,
+      },
     };
 
     addSocialPost(newPost);
-    
+
     toast({
       title: "Gönderi paylaşıldı!",
       description: "Sosyal akışınıza başarıyla eklendi.",
     });
-    
+
     setContent('');
     setAttachments([]);
     setIsExpanded(false);

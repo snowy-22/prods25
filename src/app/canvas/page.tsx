@@ -31,10 +31,12 @@ import { defaultDrafts } from '@/lib/layouts/broadcast-layout';
 import HeaderControls from '../../components/header-controls';
 import HeaderInfo from '../../components/header-info';
 import GlobalSearch from '../../components/global-search';
+import EnhancedSearchPanel from '../../components/search/enhanced-search-panel';
 import ShareDialog from '../../components/share-dialog';
 import SaveDialog from '../../components/save-dialog';
 import StyleSettingsPanel from '../../components/style-settings-panel';
 import { ViewportEditor } from '../../components/viewport-editor';
+import TabGridViewportEditor from '../../components/tab-grid-viewport-editor';
 import { cn } from '@/lib/utils';
 import { AppLogo } from '../../components/icons/app-logo';
 import { AiChatDialog } from '../../components/ai-chat-dialog';
@@ -57,6 +59,9 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import HeaderControlsMobile from '@/components/header-controls-mobile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import MiniGridPreview from '@/components/mini-grid-preview';
+import dynamic from 'next/dynamic';
+
+const GridModeControls = dynamic(() => import('@/components/grid-mode-controls'), { ssr: false });
 import { Button } from '@/components/ui/button';
 import { Import, Info, MessageSquare, BarChart, ChevronUp, ChevronDown, Eye, Maximize, Minimize } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -68,6 +73,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { useRealtimeSync } from '@/hooks/use-realtime-sync';
 import { BottomControlBar } from '@/components/bottom-control-bar';
 import { MiniMapOverlay } from '@/components/mini-map-overlay';
+import { CrossDragManager } from '@/lib/cross-drag-system';
 
 
 const MainContentInternal = ({ username }: { username: string | null }) => {
@@ -454,7 +460,6 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         activeViewId,
         activeViewChildren
     );
-
     // Fix invalid activeViewId
     useEffect(() => {
         if (activeTab && !activeView && itemsRef.current.length > 0) {
@@ -1471,11 +1476,27 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     }
     
     const isSingleItemView = activeTab.url && ['website', 'video', 'image', 'scan'].includes(activeTab.type);
-
     return (
-        <DragDropContext onDragEnd={handleGridDrop} onDragUpdate={handleDragUpdate}>
-            <SidebarProvider open={state.isSecondLeftSidebarOpen} onOpenChange={(open) => state.togglePanel('isSecondLeftSidebarOpen', open)}>
-                <div className={cn("flex h-screen w-screen bg-background text-foreground overflow-hidden relative", isUiHidden && "main-ui-hidden")}>
+        <>
+            <DragDropContext 
+                onDragEnd={handleGridDrop} 
+                onDragUpdate={handleDragUpdate}
+                onDragStart={(start) => {
+                    // Set active drag context for cross-drag system
+                    const dragManager = CrossDragManager.getInstance();
+                    const draggedItem = allItems.find(item => item.id === start.draggableId);
+                    if (draggedItem) {
+                        dragManager.setActiveDrag({
+                            sourceType: 'canvas-item',
+                            targetType: 'canvas', // Default, will be updated on hover
+                            item: draggedItem,
+                            sourceData: { droppableId: start.source.droppableId }
+                        });
+                    }
+                }}
+            >
+                <SidebarProvider open={state.isSecondLeftSidebarOpen} onOpenChange={(open) => state.togglePanel('isSecondLeftSidebarOpen', open)}>
+                    <div className={cn("flex h-screen w-screen bg-background text-foreground overflow-hidden relative", isUiHidden && "main-ui-hidden")}> 
                     {isUiHidden && (
                         <>
                             <div 
@@ -1802,57 +1823,73 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             ) : isSingleItemView ? (
                                 <WebsitePreview item={activeTab} onLoad={() => {}} />
                             ) : (
-                                <Canvas
-                                    items={activeViewChildren}
-                                    allItems={sidebarItems}
-                                    activeView={activeView}
-                                    layoutMode={(activeView?.layoutMode as any) || 'grid'}
-                                    onSetLayoutMode={(mode) => activeView && updateItem(activeView.id, { layoutMode: mode as any })}
-                                    onUpdateItem={updateItem}
-                                    onAddItem={addItemToView}
-                                    onPaste={() => {
-                                        if (state.clipboard.length > 0) {
-                                            state.clipboard.forEach(({ item, operation }) => {
-                                                const payload = operation === 'copy' ? { ...item, id: undefined } : item;
-                                                addItemToView(payload as any, activeViewId);
-                                            });
-                                            if (state.clipboard[0].operation === 'cut') {
-                                                state.setClipboard([]);
+                                <>
+                                    {/* Grid Mode Controls (Grid Resizer) - Only show in grid mode */}
+                                    {((activeView?.layoutMode as any) || 'grid') === 'grid' && (
+                                        <div className="w-full flex justify-center mb-2">
+                                            <GridModeControls
+                                                gridState={state.gridModeState}
+                                                onToggleGridMode={state.setGridModeEnabled}
+                                                onChangeGridType={state.setGridModeType}
+                                                onChangeColumns={state.setGridColumns}
+                                                onPreviousPage={() => state.setGridCurrentPage(Math.max(1, state.gridModeState.currentPage - 1))}
+                                                onNextPage={() => state.setGridCurrentPage(state.gridModeState.currentPage + 1)}
+                                                totalItems={activeViewChildren.length}
+                                            />
+                                        </div>
+                                    )}
+                                    <Canvas
+                                        items={activeViewChildren}
+                                        allItems={sidebarItems}
+                                        activeView={activeView}
+                                        layoutMode={(activeView?.layoutMode as any) || 'grid'}
+                                        onSetLayoutMode={(mode) => activeView && updateItem(activeView.id, { layoutMode: mode as any })}
+                                        onUpdateItem={updateItem}
+                                        onAddItem={addItemToView}
+                                        onPaste={() => {
+                                            if (state.clipboard.length > 0) {
+                                                state.clipboard.forEach(({ item, operation }) => {
+                                                    const payload = operation === 'copy' ? { ...item, id: undefined } : item;
+                                                    addItemToView(payload as any, activeViewId);
+                                                });
+                                                if (state.clipboard[0].operation === 'cut') {
+                                                    state.setClipboard([]);
+                                                }
                                             }
-                                        }
-                                    }}
-                                    onShowFolderProperties={() => {
-                                        if (activeView) state.setItemForInfo(activeView);
-                                    }}
-                                    widgetTemplates={widgetTemplates}
-                                    onSetView={(item) => state.updateTab(state.activeTabId, { activeViewId: item.id })}
-                                    deleteItem={deleteItem}
-                                    copyItem={(id) => {
-                                        const item = sidebarItems.find(i=>i.id === id);
-                                        if(item) state.setClipboard([{ item, operation: 'copy' }]);
-                                    }}
-                                    setHoveredItemId={state.setHoveredItem}
-                                    hoveredItemId={state.hoveredItemId}
-                                    selectedItemIds={state.selectedItemIds}
-                                    onItemClick={onItemClick}
-                                    isLoading={false}
-                                    onLoadComplete={()=>{}}
-                                    onShare={state.setItemToShare}
-                                    onShowInfo={state.setItemForInfo}
-                                    onNewItemInPlayer={(id, url) => updateItem(id, { url })}
-                                    onPreviewItem={state.setItemForPreview}
-                                    onOpenInNewTab={(item) => state.openInNewTab(item, allItems)}
-                                    activeViewId={activeViewId}
-                                    username={state.username || 'Guest'}
-                                    isBeingDraggedOver={!!state.draggedItem}
-                                    focusedItemId={state.focusedItemId}
-                                    onFocusCleared={() => state.setFocusedItem(null)}
-                                    onSaveItem={(item) => {
-                                        state.setItemToSave(item);
-                                    }}
-                                    gridSize={gridSize}
-                                    isSuspended={isSuspended}
-                                />
+                                        }}
+                                        onShowFolderProperties={() => {
+                                            if (activeView) state.setItemForInfo(activeView);
+                                        }}
+                                        widgetTemplates={widgetTemplates}
+                                        onSetView={(item) => state.updateTab(state.activeTabId, { activeViewId: item.id })}
+                                        deleteItem={deleteItem}
+                                        copyItem={(id) => {
+                                            const item = sidebarItems.find(i=>i.id === id);
+                                            if(item) state.setClipboard([{ item, operation: 'copy' }]);
+                                        }}
+                                        setHoveredItemId={state.setHoveredItem}
+                                        hoveredItemId={state.hoveredItemId}
+                                        selectedItemIds={state.selectedItemIds}
+                                        onItemClick={onItemClick}
+                                        isLoading={false}
+                                        onLoadComplete={()=>{}}
+                                        onShare={state.setItemToShare}
+                                        onShowInfo={state.setItemForInfo}
+                                        onNewItemInPlayer={(id, url) => updateItem(id, { url })}
+                                        onPreviewItem={state.setItemForPreview}
+                                        onOpenInNewTab={(item) => state.openInNewTab(item, allItems)}
+                                        activeViewId={activeViewId}
+                                        username={state.username || 'Guest'}
+                                        isBeingDraggedOver={!!state.draggedItem}
+                                        focusedItemId={state.focusedItemId}
+                                        onFocusCleared={() => state.setFocusedItem(null)}
+                                        onSaveItem={(item) => {
+                                            state.setItemToSave(item);
+                                        }}
+                                        gridSize={gridSize}
+                                        isSuspended={isSuspended}
+                                    />
+                                </>
                             )}
                          </div>
                          <div 
@@ -1874,6 +1911,12 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                 viewportRect={viewportRect}
                                 onItemClick={handleMiniMapItemClick}
                                 selectedItemIds={state.selectedItemIds}
+                                onItemDrop={(item, targetType, targetData) => {
+                                    // Handle minimap drops - could navigate to item or add to minimap view
+                                    console.log('Item dropped on minimap:', item, targetType, targetData);
+                                    // For now, just navigate to the item
+                                    state.updateTab(state.activeTabId, { activeViewId: item.id });
+                                }}
                             />
                             <Tabs defaultValue="description" className="w-full">
                                 {/* Bottom Control Bar - Tabs sol, Controls sağ */}
@@ -2047,6 +2090,12 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                         />
                     )}
 
+                    <EnhancedSearchPanel
+                        isOpen={state.searchPanelState.isOpen}
+                        onClose={() => state.updateSearchPanel({ isOpen: false })}
+                        onAddItem={addItemToView}
+                        activeViewId={activeViewId}
+                    />
                     <GlobalSearch
                         panelState={state.searchPanelState}
                         onStateChange={state.updateSearchPanel}
@@ -2137,77 +2186,53 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 </div>
             </SidebarProvider>
         </DragDropContext>
-    )
-}
-
-
-export default function CanvasPage() {
-  const { user, loading } = useAuth();
-  const { username: storeUsername, setUsername: setStoreUsername } = useAppStore();
-  const [isHydrated, setIsHydrated] = useState(false);
-  const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
-  const router = useRouter();
-
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  // Check localStorage for persisted username (guest mode)
-  useEffect(() => {
-    if (!isHydrated) return;
-    
-    if (!storeUsername && typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('tv25-storage');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed.state?.username) {
-            setStoreUsername(parsed.state.username);
-          }
-        }
-      } catch (e) {
-        console.error('Failed to parse localStorage:', e);
-      }
-    }
-    setHasCheckedStorage(true);
-  }, [isHydrated, storeUsername, setStoreUsername]);
-
-  // Sync auth state to store on mount/change
-  useEffect(() => {
-    if (!isHydrated) return;
-    
-    if (user) {
-      const username = user.user_metadata?.username || user.email?.split('@')[0] || 'User';
-      setStoreUsername(username);
-    }
-  }, [user, isHydrated, setStoreUsername]);
-
-  useEffect(() => {
-    if (!isHydrated || loading || !hasCheckedStorage) return;
-    
-    // Allow access if:
-    // 1. User is authenticated via Supabase
-    // 2. Has username in store (guest mode)
-    const hasAccess = user || storeUsername;
-    
-    if (!hasAccess) {
-      router.push('/');
-    }
-  }, [isHydrated, user, storeUsername, loading, router, hasCheckedStorage]);
-
-  if (!isHydrated || loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <AppLogo className="h-16 w-16 text-primary animate-pulse" />
-          <p className="text-muted-foreground text-sm">Yükleniyor...</p>
-        </div>
-      </div>
+    </>
     );
-  }
-
-  // Display name: authenticated user > store username > default
-  const displayName = user?.user_metadata?.username || storeUsername || 'User';
-
-  return <MainContentInternal username={displayName} />;
 }
+
+// Wrapper with authentication check
+const CanvasPage = () => {
+    const { user, loading } = useAuth();
+    const router = useRouter();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        
+        // Timeout fallback - if loading takes too long, redirect to auth
+        const timeout = setTimeout(() => {
+            if (loading || !user) {
+                console.log('Auth timeout - redirecting to /auth');
+                router.push('/auth');
+            }
+        }, 3000);
+
+        return () => clearTimeout(timeout);
+    }, []);
+
+    useEffect(() => {
+        if (mounted && !loading && !user) {
+            router.push('/auth');
+        }
+    }, [user, loading, router, mounted]);
+
+    if (!mounted || loading) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-background">
+                <div className="flex flex-col items-center gap-4">
+                    <AppLogo className="h-16 w-16 text-primary animate-pulse" />
+                    <p className="text-muted-foreground text-sm">Yükleniyor...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return null; // Will redirect to /auth
+    }
+
+    return <MainContentInternal username={user.email?.split('@')[0] || 'User'} />;
+};
+
+export default CanvasPage;
+

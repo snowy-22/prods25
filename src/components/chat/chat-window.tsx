@@ -71,7 +71,7 @@ export function ChatWindow({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="fixed bottom-4 right-4 z-40 flex flex-col h-[600px] w-[420px] max-w-[calc(100vw-32px)] bg-background border rounded-xl shadow-2xl overflow-hidden"
+          className="fixed bottom-4 right-4 z-40 flex flex-col bg-background border rounded-xl shadow-2xl overflow-hidden chat-window-responsive"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-transparent">
@@ -92,7 +92,7 @@ export function ChatWindow({
           </div>
 
           {/* Messages Area */}
-          <ScrollArea className="flex-1" ref={scrollRef}>
+          <ScrollArea className="flex-1 min-h-0" ref={scrollRef}>
             <div className="flex flex-col">
               <AnimatePresence mode="popLayout">
                 {messages.length === 0 ? (
@@ -164,16 +164,18 @@ export function ChatWindow({
           </ScrollArea>
 
           {/* Input Area */}
-          <ChatInput
-            onSubmit={handleSendMessage}
-            isLoading={isLoading || localLoading}
-            placeholder="Bir şey sorun..."
-            suggestions={emptyState ? suggestions : undefined}
-            allowAttachments={allowAttachments}
-            allowVoice={allowVoice}
-            currentModel={currentModel}
-            onModelChange={onModelChange}
-          />
+          <div className="p-2 bg-background border-t">
+            <ChatInput
+              onSubmit={handleSendMessage}
+              isLoading={isLoading || localLoading}
+              placeholder="Bir şey sorun..."
+              suggestions={emptyState ? suggestions : undefined}
+              allowAttachments={allowAttachments}
+              allowVoice={allowVoice}
+              currentModel={currentModel}
+              onModelChange={onModelChange}
+            />
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

@@ -18,15 +18,24 @@ export function ResponsiveProfilePanel({
 }: ResponsiveProfilePanelProps) {
   const [isMobile, setIsMobile] = useState(_isMobile ?? false);
 
-  // Detect mobile
+  // Detect mobile and orientation change, debounce resize
   useEffect(() => {
+    let resizeTimeout: any;
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-
+    const debouncedResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(checkMobile, 100);
+    };
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener('resize', debouncedResize);
+    window.addEventListener('orientationchange', checkMobile);
+    return () => {
+      window.removeEventListener('resize', debouncedResize);
+      window.removeEventListener('orientationchange', checkMobile);
+      clearTimeout(resizeTimeout);
+    };
   }, []);
 
   // Mobile: open in canvas mode

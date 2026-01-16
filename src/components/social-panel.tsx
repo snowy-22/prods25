@@ -143,7 +143,41 @@ export function SocialPanel({ onOpenContent }: SocialPanelProps = {}) {
                             </span>
                           </div>
                           
-                          <p className="text-sm mb-3 line-clamp-3">{(item as any).content}</p>
+                          <p className="text-sm mb-3 line-clamp-3">
+                            {((item as any).content || '').split(/(\s+)/).map((word: string, idx: number) => {
+                              // Mention: @username
+                              if (/^@([a-zA-Z0-9_]+)/.test(word)) {
+                                const username = word.slice(1);
+                                return (
+                                  <span
+                                    key={idx}
+                                    className="text-blue-600 font-semibold cursor-pointer hover:underline"
+                                    title={`@${username} profiline git`}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      // TODO: open profile or filter by username
+                                    }}
+                                  >{word}</span>
+                                );
+                              }
+                              // Hashtag: ^hashtag
+                              if (/^\^([a-zA-Z0-9_ğüşöçıİĞÜŞÖÇ]+)/.test(word)) {
+                                const tag = word.slice(1);
+                                return (
+                                  <span
+                                    key={idx}
+                                    className="text-purple-600 font-semibold cursor-pointer hover:underline"
+                                    title={`^${tag} etiketiyle filtrele`}
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      // TODO: filter by hashtag
+                                    }}
+                                  >{word}</span>
+                                );
+                              }
+                              return word;
+                            })}
+                          </p>
                           
                           {(item as any).attachments?.length > 0 && (
                             <div className="grid grid-cols-2 gap-2 mb-3">

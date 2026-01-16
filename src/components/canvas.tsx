@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { CSSProperties, memo, useRef, useState, useEffect, useCallback, useMemo, Suspense, DragEvent } from 'react';
@@ -33,6 +32,7 @@ import { WidgetRenderer } from './widget-renderer';
 const noop = () => {};
 
 const WebGLBackground = dynamic(() => import('./webgl-background'), { ssr: false });
+const MiniMapOverlay = dynamic(() => import('./mini-map-overlay'), { ssr: false });
 
 type CanvasProps = {
   items: ContentItem[];
@@ -248,6 +248,35 @@ const Canvas = memo(function Canvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [carouselCenterIndex, setCarouselCenterIndex] = useState(0);
+  // Mini-map viewport rectangle (fractional top/height)
+  const [viewportRect, setViewportRect] = useState<{ top: number; height: number } | undefined>(undefined);
+    // Handle scroll to update mini-map viewportRect
+    const handleScroll = useCallback(() => {
+      if (!containerRef.current) return;
+      const el = containerRef.current;
+      const scrollTop = el.scrollTop;
+      const visibleHeight = el.clientHeight;
+      const totalHeight = el.scrollHeight;
+      if (totalHeight <= visibleHeight) {
+        setViewportRect(undefined);
+        return;
+      }
+      const top = scrollTop / totalHeight;
+      const height = visibleHeight / totalHeight;
+      setViewportRect({ top, height });
+    }, []);
+
+    // Attach scroll handler
+    useEffect(() => {
+      const el = containerRef.current;
+      if (!el) return;
+      el.addEventListener('scroll', handleScroll);
+      // Initial update
+      handleScroll();
+      return () => {
+        el.removeEventListener('scroll', handleScroll);
+      };
+    }, [handleScroll]);
   const responsive = useResponsiveLayout();
 
   // Calculate responsive grid size based on breakpoint
@@ -267,16 +296,18 @@ const Canvas = memo(function Canvas({
   const responsiveGridSize = useMemo(() => getResponsiveGridSize(), [gridSize, responsive.isMobile, responsive.isTablet]);
   const normalizedLayoutMode: LayoutMode = layoutMode === 'canvas' ? 'canvas' : 'grid';
 
-  // Grid Mode Pagination Logic
+  // Grid Mode Pagination Logic - Performance Optimized
   const paginatedItems = useMemo(() => {
     // Canvas modda veya grid mode kapalıysa tüm öğeleri göster
     if (!gridModeState.enabled || normalizedLayoutMode === 'canvas') {
       return items;
     }
     
-    // Sonsuz modda (vertical) tüm öğeleri göster, scroll ile gezinilir
+    // Sonsuz modda (vertical) data/güç tasarrufu için sadece 4x sütun sayısı kadar öğe göster
+    // Bu sayede gereksiz player'lar render edilmez, scroll ile daha fazlası lazy load edilir
     if (gridModeState.type === 'vertical') {
-      return items;
+      const maxVisibleItems = gridModeState.columns * 4; // 4 satır eşdeğeri
+      return items.slice(0, maxVisibleItems);
     }
     
     // Sayfa modunda (square) sadece mevcut sayfadaki öğeleri göster
@@ -559,7 +590,7 @@ const Canvas = memo(function Canvas({
 
   return (
     <div 
-      className={cn('w-full h-full relative overflow-hidden flex flex-col')} 
+      className={cn('w-full h-full relative flex flex-col')} 
       data-testid="main-canvas" 
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -567,7 +598,19 @@ const Canvas = memo(function Canvas({
       {/* Grid Mode Controls - Moved to settings dropdown in primary-sidebar */}
 
       {/* Canvas Content Container */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative">
+              {/* MiniMapOverlay (floating, only if enabled) */}
+              {isMiniMapVisible && (
+                <MiniMapOverlay
+                  items={items}
+                  isOpen={isMiniMapVisible}
+                  onToggle={setIsMiniMapVisible}
+                  canvasWidth={containerSize.width || 1920}
+                  canvasHeight={containerSize.height || 1080}
+                  viewportRect={viewportRect}
+                  selectedItemIds={selectedItemIds}
+                />
+              )}
       {/* Fixed Background Layer */}
       <div 
         className={cn(isPreviewMode ? 'absolute' : 'fixed', 'inset-0 z-0 pointer-events-none')} 
@@ -589,13 +632,15 @@ const Canvas = memo(function Canvas({
       {/* Scrollable Content Layer */}
       <ContextMenu>
         <ContextMenuTrigger className="relative z-10 w-full h-full block">
-          <div className={cn(
-            "w-full h-full",
-            // Sayfa modunda scroll kapalı, sonsuz modda scroll açık
-            // XXL viewportlarda her zaman scroll aktif (içerik uzunsa scroll edilebilir)
-            gridModeState.enabled && gridModeState.type === 'square' && !responsive.isXXL ? 'overflow-hidden' : 'overflow-auto overflow-x-hidden'
-          )} ref={containerRef}>
-            <div className={cn(canvasScale !== 1 && 'origin-top-left')} style={scaledWrapperStyle}>
+          <div
+            className={cn(
+              "w-full h-full overflow-auto overflow-x-hidden"
+            )}
+            ref={containerRef}
+            onScroll={handleScroll}
+            style={{ maxHeight: '100%', height: '100%' }}
+          >
+            <div className={cn(canvasScale !== 1 && 'origin-top-left')} style={{...scaledWrapperStyle, minHeight: 0}}>
               <Droppable droppableId="canvas-droppable" direction="horizontal" isDropDisabled={isPreviewMode || normalizedLayoutMode !== 'grid'} type="canvas-item">
                 {(provided, snapshot) => (
                   <div
@@ -603,19 +648,29 @@ const Canvas = memo(function Canvas({
                     ref={provided.innerRef}
                     className={cn(
                       'transition-all duration-500 relative w-full select-none',
-                      normalizedLayoutMode === 'grid' ? 'grid min-h-screen' : 'block',
+                      normalizedLayoutMode === 'grid' ? 'grid' : 'block',
                       snapshot.isDraggingOver && normalizedLayoutMode !== 'canvas' && "bg-primary/5 ring-2 ring-primary/20 ring-inset rounded-lg"
                     )}
                     style={{ 
                       padding: `${padding}px`, 
                       gap: `${gap}px`, 
                       gridTemplateColumns: 
-                        (normalizedLayoutMode === 'grid' && gridModeState.type === 'vertical') ? '1fr' :
-                        normalizedLayoutMode === 'grid' ? `repeat(auto-fit, minmax(${responsiveGridSize}px, 1fr))` : undefined,
+                        // Vertical mode: single column
+                        (normalizedLayoutMode === 'grid' && gridModeState.enabled && gridModeState.type === 'vertical') 
+                          ? '1fr' 
+                        // Square mode with enabled grid: use exact column count from gridModeState
+                          : (normalizedLayoutMode === 'grid' && gridModeState.enabled)
+                            ? `repeat(${gridModeState.columns}, 1fr)`
+                        // Fallback: auto-fit responsive grid
+                            : normalizedLayoutMode === 'grid' 
+                              ? `repeat(auto-fit, minmax(${responsiveGridSize}px, 1fr))` 
+                              : undefined,
                       gridAutoRows: 
                         (normalizedLayoutMode === 'grid' && gridModeState.type === 'vertical') ? 'auto' :
                         normalizedLayoutMode === 'grid' ? 'auto' : undefined,
-                      height: normalizedLayoutMode === 'canvas' ? '100%' : undefined
+                      minHeight: 0,
+                      height: normalizedLayoutMode === 'canvas' ? '100%' : 'auto',
+                      maxHeight: '100%'
                     }}
                   >
                     {paginatedItems.length === 0 && (
@@ -633,8 +688,15 @@ const Canvas = memo(function Canvas({
                     )}
                     <AnimatePresence mode="popLayout">
                       {paginatedItems.map((item, index) => {
+                        // Determine effective layout mode for calculateLayout
+                        // When grid mode is enabled, use specific grid type (vertical/square)
+                        const effectiveLayoutMode: LayoutMode = 
+                          gridModeState.enabled && normalizedLayoutMode === 'grid'
+                            ? gridModeState.type === 'vertical' ? 'grid-vertical' : 'grid-square'
+                            : normalizedLayoutMode;
+                        
                         const layoutCalc = calculateLayout(
-                          normalizedLayoutMode,
+                          effectiveLayoutMode,
                           index,
                           paginatedItems.length,
                           containerSize.width,

@@ -25,6 +25,8 @@ export interface UnifiedGridPreviewProps {
   onItemClick?: (item: ContentItem) => void;
   selectedItemIds?: string[];
   onToggleControlPin?: (groupId: string, pinned: boolean) => void;
+  minimapWidth?: number;
+  minimapHeight?: number;
 }
 
 const sizeConfig = {
@@ -40,91 +42,43 @@ export const UnifiedGridPreview: React.FC<UnifiedGridPreviewProps> = ({
   layoutMode = 'grid',
   maxItems = 9,
   size = 'medium',
-  showTitle = true,
+  showTitle = false,
   blurFallback = false,
   boldTitle = false,
   showLogo = false,
-  canvasWidth = 1920,
-  canvasHeight = 1080,
-  gridCols,
-  gridRows,
+  canvasWidth = 320,
+  canvasHeight = 240,
+  gridCols = 3,
+  gridRows = 3,
   viewportRect,
-  slidePosition = { x: 0, y: 0 },
+  slidePosition,
   onItemClick,
   selectedItemIds = [],
   onToggleControlPin,
+  minimapWidth = 128,
+  minimapHeight = 96,
 }) => {
-  // For grid mode
-  const { cols, rows } = sizeConfig[size] || sizeConfig.medium;
-  const _gridCols = gridCols || cols;
-  const _gridRows = gridRows || rows;
-  const gridSlots = _gridCols * _gridRows;
-  const itemsToShow = items.slice(0, Math.min(maxItems, layoutMode === 'grid' ? gridSlots : maxItems));
+  // Calculate scale for minimap/canvas
+  const mapWidth = minimapWidth;
+  const mapHeight = minimapHeight;
+  const scaleX = mapWidth / (canvasWidth || 1);
+  const scaleY = mapHeight / (canvasHeight || 1);
+  const canvasScale = Math.min(scaleX, scaleY);
 
-  // For canvas mode
-  const [mapWidth, setMapWidth] = useState(240);
-  const aspect = canvasWidth / canvasHeight;
-  const mapHeight = mapWidth / aspect;
-  const canvasScale = mapWidth / canvasWidth;
-
-  // Infinite canvas: allow panning/zooming in future
-  // For now, just static preview
+  // Limit items to show
+  const itemsToShow = items.slice(0, maxItems);
 
   return (
-    <div className={cn('relative w-full h-full overflow-hidden bg-muted group', layoutMode === 'canvas' && 'rounded-lg')}
-      style={layoutMode === 'canvas' ? { width: mapWidth, height: mapHeight, aspectRatio: aspect } : {}}>
-      {/* Blur fallback */}
-      {blurFallback && (
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-accent/10 to-secondary/30 blur-2xl opacity-70" />
+    <div
+      className={cn(
+        "relative overflow-hidden bg-neutral-100 border border-neutral-200 rounded-md shadow-sm",
+        size === "small" && "w-32 h-32",
+        size === "medium" && "w-48 h-36",
+        size === "large" && "w-64 h-48",
+        size === "xl" && "w-80 h-80"
       )}
-      {/* Grid mode: grid preview */}
-      {layoutMode === 'grid' && (
-        <div
-          className={cn(
-            'absolute inset-0 z-10 grid w-full h-full transition-opacity duration-300',
-            'opacity-100',
-            {
-              'grid-cols-2': _gridCols === 2,
-              'grid-cols-3': _gridCols === 3,
-              'grid-cols-4': _gridCols === 4,
-              'grid-rows-2': _gridRows === 2,
-              'grid-rows-3': _gridRows === 3,
-              'grid-rows-4': _gridRows === 4,
-            }
-          )}
-        >
-          {itemsToShow.map((item, index) => {
-            const ChildIcon = item.icon ? getIconByName(item.icon) : null;
-            const thumb = item.thumbnail_url || (item.coverImage as string | undefined);
-            return (
-              <div key={item.id || index} className="relative w-full h-full overflow-hidden border border-white/10">
-                {thumb ? (
-                  <Image
-                    src={thumb}
-                    alt={item.title || 'thumbnail'}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 12vw, 6vw"
-                  />
-                ) : ChildIcon ? (
-                  <div className="w-full h-full flex items-center justify-center bg-secondary/30 text-muted-foreground/80">
-                    <ChildIcon className="h-5 w-5" />
-                  </div>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-secondary/20 text-[10px] font-semibold text-muted-foreground">
-                    {(item.title || '?').slice(0, 2)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {itemsToShow.length < gridSlots &&
-            Array.from({ length: gridSlots - itemsToShow.length }).map((_, filler) => (
-              <div key={`filler-${filler}`} className="relative w-full h-full overflow-hidden border border-white/5 bg-background/40" />
-            ))}
-        </div>
-      )}
-      {/* Canvas mode: absolute-positioned items */}
+      style={{ width: minimapWidth, height: minimapHeight }}
+    >
       {layoutMode === 'canvas' && (
         <div className="absolute inset-0 z-10 w-full h-full">
           {itemsToShow.map((item) => {
@@ -161,6 +115,19 @@ export const UnifiedGridPreview: React.FC<UnifiedGridPreviewProps> = ({
               />
             );
           })}
+          {/* Viewport indicator rectangle */}
+          {viewportRect && (
+            <div
+              className="absolute border-2 border-blue-500 bg-blue-500/10 rounded-md pointer-events-none z-50"
+              style={{
+                left: 0,
+                width: '100%',
+                top: `${(viewportRect.top || 0) * mapHeight}px`,
+                height: `${(viewportRect.height || 0) * mapHeight}px`,
+                boxSizing: 'border-box',
+              }}
+            />
+          )}
           {/* Pinned Player Control Groups */}
           {playerControlGroups
             .filter(g => g.isPinnedToMiniMap)

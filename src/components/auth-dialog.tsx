@@ -67,7 +67,7 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const refCode = params.get('ref');
-      setReferralCodeInput(refCode || '');
+  // Dialog import removed for inline rendering
     }
     
     form.reset({
@@ -86,7 +86,6 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
       if (isSignup) {
         const signupValues = values as z.infer<typeof signupSchema>;
         await signUp(signupValues.email, signupValues.password, signupValues.username);
-        
         // Apply referral code if provided
         if (signupValues.referralCode) {
           try {
@@ -96,10 +95,8 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
               body: JSON.stringify({ 
                 code: signupValues.referralCode,
                 autoFriend: true,
-                autoFollow: true 
               })
             });
-            
             if (response.ok) {
               toast({ 
                 title: "Referans kodu uygulandı!", 
@@ -110,7 +107,6 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
             console.error('Referral code application error:', error);
           }
         }
-        
         toast({ 
           title: "Hesap oluşturuldu!", 
           description: "E-postanızı kontrol edip doğrulayın." 
@@ -119,7 +115,6 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
       } else {
         const loginValues = values as z.infer<typeof loginSchema>;
         await signIn(loginValues.email, loginValues.password);
-        
         // Username will be set by auth provider
         const username = loginValues.username || loginValues.email.split('@')[0];
         toast({ 
@@ -128,7 +123,6 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
         });
         onAuthSuccess(username);
       }
-      
       setAction(null);
       form.reset();
     } catch (error: any) {
@@ -199,7 +193,7 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
         <DialogHeader>
           <DialogTitle>{isSignup ? 'Yeni Hesap Oluştur' : 'Giriş Yap'}</DialogTitle>
           <DialogDescription>
-            {isSignup ? 'tv25.app dünyasına katılın.' : 'Hesabınıza erişmek için giriş yapın.'}
+            {isSignup ? 'tv25.app dünyasına katılın.' : 'tv25.app hesabınıza erişmek için giriş yapın.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -214,47 +208,7 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
                         <FormControl>
               
             
-            {isSignup && (
-              <FormField
-                control={form.control}
-                name="referralCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center justify-between">
-                      <span>Referans Kodu (Opsiyonel)</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-auto p-0 text-xs"
-                        onClick={() => setShowQRScanner(!showQRScanner)}
-                      >
-                        {showQRScanner ? '❌ Kapat' : '📷 QR Tara'}
-                      </Button>
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="ABC123DEF456" 
-                        {...field}
-                        value={field.value || referralCodeInput}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          setReferralCodeInput(e.target.value);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                    {showQRScanner && (
-                      <div className="mt-2 p-2 border rounded bg-muted text-sm">
-                        <p className="text-center text-muted-foreground">
-                          QR tarayıcı henüz aktif değil. Kodu manuel girin.
-                        </p>
-                      </div>
-                    )}
-                  </FormItem>
-                )}
-              />
-            )}              <Input placeholder="kullaniciadim" {...field} />
+            <Input placeholder="kullaniciadim" {...field} />
                         </FormControl>
                         <FormMessage />
                         </FormItem>

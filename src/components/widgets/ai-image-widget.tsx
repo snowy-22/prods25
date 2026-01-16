@@ -24,6 +24,11 @@ interface AiImageWidgetProps {
   size?: 'small' | 'medium' | 'large';
 }
 
+// Widget best practice: Always use useWidgetResize and getWidgetSizeConfig defensively for responsive sizing
+// Example:
+//   const { containerRef, size: calculatedSize } = useWidgetResize();
+//   const config = getWidgetSizeConfig(calculatedSize);
+//   <div ref={containerRef} className={config.padding}>...</div>
 export default function AiImageWidget({ size = 'medium' }: AiImageWidgetProps) {
   const [prompt, setPrompt] = useState('');
   const [isLoading, setIsLoading] = useState(false);
