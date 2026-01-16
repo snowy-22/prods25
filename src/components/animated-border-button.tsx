@@ -2,9 +2,11 @@ import { Button, ButtonProps } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import React from 'react';
 
-type AnimatedBorderButtonProps = ButtonProps & { 
+type AnimatedBorderVariant = 'primary' | 'secondary' | 'glass' | 'shimmer';
+
+type AnimatedBorderButtonProps = Omit<ButtonProps, 'variant'> & { 
 	children: React.ReactNode;
-	variant?: 'primary' | 'secondary' | 'glass' | 'shimmer';
+	variant?: AnimatedBorderVariant;
 };
 
 export const AnimatedBorderButton: React.FC<AnimatedBorderButtonProps> = ({ 

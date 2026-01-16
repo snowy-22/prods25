@@ -50,6 +50,7 @@ import {
 import { Slider } from './ui/slider';
 import { PlayerModeDialog } from './player-mode-dialog';
 import { SmartRemote } from './smart-remote';
+import { StreamSharer } from './stream-sharer';
 
 import { LayoutMode } from '@/lib/layout-engine';
 
@@ -178,6 +179,9 @@ export default function HeaderControls({
 
           {/* Smart Remote */}
           <SmartRemote />
+
+          {/* Stream Sharer */}
+          <StreamSharer />
 
           <div className="w-px h-4 bg-border mx-1" />
 

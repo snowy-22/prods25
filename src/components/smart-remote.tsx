@@ -336,7 +336,7 @@ export function SmartRemote({ className, onClose }: SmartRemoteProps) {
 
       {/* Smart Remote Panel */}
       {isOpen && (
-        <div className="absolute bottom-full right-0 mb-2 w-96 bg-slate-950 border border-slate-800 rounded-lg shadow-2xl z-50 max-h-[600px] overflow-hidden flex flex-col">
+        <div className="fixed bottom-[calc(100vh-60px)] right-4 w-96 bg-slate-950 border border-slate-800 rounded-lg shadow-2xl z-50 max-h-[600px] overflow-hidden flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
