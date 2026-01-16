@@ -117,8 +117,8 @@ export function MiniMapOverlay({
   const [dropToken, setDropToken] = useState<DropToken | null>(null);
   
   const { isMobile, isTablet } = useResponsiveLayout();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<HTMLDivElement>(null);
+  // Note: Removed refs from motion.div to prevent Framer Motion/Radix UI compatibility issues
+  // that cause "Expected static flag was missing" and "Maximum update depth exceeded" errors
   const dragManager = CrossDragManager.getInstance();
 
   // Responsive dimensions
@@ -207,7 +207,6 @@ export function MiniMapOverlay({
   return (
     <TooltipProvider delayDuration={200}>
       <motion.div
-        ref={containerRef}
         className="fixed bottom-20 right-3 z-[1100] select-none"
         style={{ pointerEvents: 'auto' }}
         initial={{ opacity: 0, scale: 0.9, y: 15 }}
@@ -316,7 +315,6 @@ export function MiniMapOverlay({
 
           {/* Map Area */}
           <motion.div 
-            ref={mapRef}
             className="relative overflow-hidden cursor-crosshair"
             style={{ 
               width: baseWidth, 
