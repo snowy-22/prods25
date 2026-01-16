@@ -72,46 +72,56 @@ const MiniGridPreview: React.FC<MiniGridPreviewProps> = ({
       {showGrid && (
         <div
           className={cn(
-            'absolute inset-0 z-10 grid w-full h-full transition-opacity duration-300',
+            'absolute inset-0 z-10 grid w-full h-full gap-1 p-1 transition-opacity duration-300 overflow-hidden',
             hasCover ? 'opacity-40 group-hover:opacity-60' : 'opacity-100',
             {
               'grid-cols-2': cols === 2,
               'grid-cols-3': cols === 3,
               'grid-cols-4': cols === 4,
+            },
+            {
               'grid-rows-2': rows === 2,
               'grid-rows-3': rows === 3,
               'grid-rows-4': rows === 4,
             }
           )}
         >
-          {itemsToShow.map((child, index) => {
-            const ChildIcon = child.icon ? getIconByName(child.icon) : null;
-            const thumb = child.thumbnail_url || (child.coverImage as string | undefined);
+          {itemsToShow.map((childItem, idx) => {
+            const hasChildThumbnail = !!(childItem as any).thumbnail_url || !!(childItem as any).coverImage;
+            const ChildIcon = childItem.icon ? getIconByName(childItem.icon) : null;
+            
             return (
-              <div key={child.id || index} className="relative w-full h-full overflow-hidden border border-white/10">
-                {thumb ? (
-                  <Image
-                    src={thumb}
-                    alt={child.title || 'thumbnail'}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 12vw, 6vw"
-                  />
+              <div
+                key={childItem.id || idx}
+                className="rounded-sm bg-accent/40 border border-accent/50 overflow-hidden hover:bg-accent/60 hover:border-accent transition-colors"
+              >
+                {hasChildThumbnail ? (
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={(childItem as any).thumbnail_url || (childItem as any).coverImage || ''}
+                      alt={childItem.title || 'Item'}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
                 ) : ChildIcon ? (
-                  <div className="w-full h-full flex items-center justify-center bg-secondary/30 text-muted-foreground/80">
-                    <ChildIcon className="h-5 w-5" />
+                  <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                    <ChildIcon className="w-3 h-3 text-muted-foreground" />
                   </div>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-secondary/20 text-[10px] font-semibold text-muted-foreground">
-                    {(child.title || '?').slice(0, 2)}
+                  <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                    <span className="text-[8px] text-muted-foreground">{childItem.type}</span>
                   </div>
                 )}
               </div>
             );
           })}
+          
+          {/* Fill empty slots */}
           {itemsToShow.length < gridSlots &&
             Array.from({ length: gridSlots - itemsToShow.length }).map((_, filler) => (
-              <div key={`filler-${item.id}-${filler}`} className="relative w-full h-full overflow-hidden border border-white/5 bg-background/40" />
+              <div key={`filler-${item.id}-${filler}`} className="rounded-sm bg-background/40 border border-accent/20 overflow-hidden" />
             ))}
         </div>
       )}

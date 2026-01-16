@@ -6,6 +6,7 @@ import { tr } from 'date-fns/locale';
 import { Clock } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { ContentItem } from '@/lib/initial-content';
 import { WidgetSize, DEFAULT_WIDGET_SIZE, getWidgetSizeConfig, getWidgetFeatureFlags } from '@/lib/widget-sizes';
 import { ToolkitWidgetWrapper } from '@/components/toolkit-widget-wrapper';
 
@@ -17,12 +18,16 @@ import { ToolkitWidgetWrapper } from '@/components/toolkit-widget-wrapper';
  * ✅ Size-dependent features (seconds, timezone, extended info)
  */
 interface DigitalClockWidgetProps {
+  item?: ContentItem;
+  onUpdateItem?: (itemId: string, updates: Partial<ContentItem>) => void;
   size?: WidgetSize;
   showWrapper?: boolean;
   onSizeChange?: (size: WidgetSize) => void;
 }
 
 export default function DigitalClockWidget({ 
+  item,
+  onUpdateItem,
   size = DEFAULT_WIDGET_SIZE,
   showWrapper = true,
   onSizeChange

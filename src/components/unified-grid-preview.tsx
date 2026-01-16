@@ -79,6 +79,19 @@ export const UnifiedGridPreview: React.FC<UnifiedGridPreviewProps> = ({
       )}
       style={{ width: minimapWidth, height: minimapHeight }}
     >
+      {/* Cover Image Background */}
+      {items[0]?.coverImage && (
+        <div className="absolute inset-0 z-0">
+          <Image
+            src={items[0].coverImage}
+            alt={items[0].title || 'Cover'}
+            fill
+            className="object-cover"
+            unoptimized
+          />
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
+      )}
       {layoutMode === 'canvas' && (
         <div className="absolute inset-0 z-10 w-full h-full">
           {itemsToShow.map((item) => {
@@ -158,6 +171,52 @@ export const UnifiedGridPreview: React.FC<UnifiedGridPreviewProps> = ({
                 </motion.div>
               );
             })}
+        </div>
+      )}
+      {/* Grid Mode - Show Mini Grid Sketch */}
+      {layoutMode === 'grid' && itemsToShow.length > 0 && (
+        <div className="absolute inset-0 z-10 w-full h-full grid gap-1 p-1" style={{
+          gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${gridRows}, minmax(0, 1fr))`,
+        }}>
+          {itemsToShow.map((item) => {
+            const isSelected = selectedItemIds.includes(item.id);
+            return (
+              <div
+                key={item.id}
+                className={cn(
+                  "relative rounded-sm cursor-pointer transition-all duration-200 shadow-sm overflow-hidden",
+                  isSelected 
+                    ? 'bg-primary/60 border-2 border-primary ring-1 ring-primary/30' 
+                    : 'bg-accent/40 border border-accent/60 hover:bg-accent/60 hover:border-accent'
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onItemClick?.(item);
+                }}
+                title={item.title}
+              >
+                {item.thumbnail_url ? (
+                  <Image
+                    src={item.thumbnail_url}
+                    alt={item.title || ''}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : item.coverImage ? (
+                  <Image
+                    src={item.coverImage}
+                    alt={item.title || ''}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       )}
       {/* Title Overlay */}

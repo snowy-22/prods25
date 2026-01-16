@@ -390,6 +390,92 @@ const PlayerFrameComponent = ({
     return () => clearTimeout(timer);
   }, [item.id, onLoad]);
 
+  // Keyboard shortcuts handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if this player is selected or focused
+      if (!isSelected && !ref.current?.contains(document.activeElement)) return;
+
+      const isInputFocused = document.activeElement instanceof HTMLInputElement || 
+                            document.activeElement instanceof HTMLTextAreaElement;
+
+      switch (e.key) {
+        case ' ':
+          // Space: Play/Pause
+          if (!isInputFocused) {
+            e.preventDefault();
+            const videoElement = ref.current?.querySelector('video');
+            const audioElement = ref.current?.querySelector('audio');
+            if (videoElement) {
+              videoElement.paused ? videoElement.play() : videoElement.pause();
+            } else if (audioElement) {
+              audioElement.paused ? audioElement.play() : audioElement.pause();
+            }
+          }
+          break;
+
+        case 'ArrowRight':
+          // Arrow Right: Next item (in players with children)
+          if (!isInputFocused && item.children && item.children.length > 0) {
+            e.preventDefault();
+            handlePlayerNav('next');
+          }
+          break;
+
+        case 'ArrowLeft':
+          // Arrow Left: Previous item
+          if (!isInputFocused && item.children && item.children.length > 0) {
+            e.preventDefault();
+            handlePlayerNav('prev');
+          }
+          break;
+
+        case 'Enter':
+          // Enter: Open item (for containers)
+          if (!isInputFocused && isContainer && onSetView) {
+            e.preventDefault();
+            onSetView(item);
+          }
+          break;
+
+        case 'Escape':
+          // Escape: Deselect
+          e.preventDefault();
+          if (onItemClick) onItemClick(item, e as any);
+          break;
+
+        case 'Delete':
+          // Delete: Remove item
+          if (!isInputFocused && onDeleteItem) {
+            e.preventDefault();
+            onDeleteItem(item.id);
+          }
+          break;
+
+        case 's':
+        case 'S':
+          // Ctrl+S: Save/Share
+          if ((e.ctrlKey || e.metaKey) && !isInputFocused) {
+            e.preventDefault();
+            setItemToShare(item);
+          }
+          break;
+
+        case 'm':
+        case 'M':
+          // Ctrl+M: Message
+          if ((e.ctrlKey || e.metaKey) && !isInputFocused) {
+            e.preventDefault();
+            setItemToMessage(item);
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSelected, item, isContainer, onSetView, onDeleteItem, onItemClick, handlePlayerNav, setItemToShare, setItemToMessage]);
+
   const handlePlayerNav = (direction: 'next' | 'prev') => {
       if (!item.children || item.children.length === 0) return;
       const currentIndex = item.playerIndex || 0;
@@ -749,7 +835,7 @@ const PlayerFrameComponent = ({
                       </div>
                     )}
                     <div className={cn(
-                        "flex-1 w-full relative",
+                        "flex-1 w-full h-full relative",
                         !item.hideBlackBars ? "aspect-video" : "flex items-center justify-center",
                         isMaxMode && "flex items-center justify-center bg-black"
                     )}>
@@ -795,8 +881,10 @@ const PlayerFrameComponent = ({
                                                             )}
                                                         </div>
                                                 )}
-                        <div className="absolute inset-0">
-                            {children}
+                        <div className="absolute inset-0 w-full h-full overflow-hidden">
+                            <div className="w-full h-full">
+                                {children}
+                            </div>
                         </div>
                         {item.type === 'player' && isInteractive && onNewItemInPlayer && (
                             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-1.5">
