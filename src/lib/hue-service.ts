@@ -1,12 +1,20 @@
 'use server';
 
-import { createClient } from '@supabase/supabase-js';
 import { HueBridge, HueLight, HueLightState, HueApiResponse } from '@/lib/hue-types';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy initialization of Supabase client
+let supabaseInstance: any = null;
+
+export async function getSupabase() {
+  if (!supabaseInstance) {
+    const { createClient } = await import('@supabase/supabase-js');
+    supabaseInstance = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return supabaseInstance;
+}
 
 /**
  * Philips Hue API Service
@@ -71,6 +79,7 @@ export async function linkHueBridge(
     }
 
     // Save bridge to personal database
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('hue_bridges')
       .insert({
@@ -181,6 +190,7 @@ export async function saveBridgeLights(
     }));
 
     // Delete existing lights for this bridge
+    const supabase = await getSupabase();
     await supabase
       .from('hue_lights')
       .delete()
@@ -205,6 +215,7 @@ export async function saveBridgeLights(
 
 export async function getUserBridges(userId: string): Promise<HueApiResponse> {
   try {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('hue_bridges')
       .select('*')
@@ -223,6 +234,7 @@ export async function getUserBridges(userId: string): Promise<HueApiResponse> {
 
 export async function getUserLights(userId: string, bridgeId?: string): Promise<HueApiResponse> {
   try {
+    const supabase = await getSupabase();
     let query = supabase
       .from('hue_lights')
       .select('*')
@@ -246,6 +258,7 @@ export async function getUserLights(userId: string, bridgeId?: string): Promise<
 
 export async function deleteBridge(userId: string, bridgeId: string): Promise<HueApiResponse> {
   try {
+    const supabase = await getSupabase();
     const { error } = await supabase
       .from('hue_bridges')
       .delete()

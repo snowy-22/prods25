@@ -8,25 +8,24 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  discoverHueBridge,
-  linkHueBridge,
-  getHueLights,
-  setLightState,
-  saveBridgeLights,
-  getUserBridges,
-  getUserLights,
-  deleteBridge,
-} from '@/lib/hue-service';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function POST(req: NextRequest) {
   try {
+    // Lazy load Supabase and Hue services
+    const { createClient } = await import('@supabase/supabase-js');
+    const {
+      discoverHueBridge,
+      linkHueBridge,
+      getHueLights,
+      setLightState,
+      saveBridgeLights,
+    } = await import('@/lib/hue-service');
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const { action, ...payload } = await req.json();
 
     // Get user from auth header
@@ -131,6 +130,15 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
+    // Lazy load Supabase and Hue services
+    const { createClient } = await import('@supabase/supabase-js');
+    const { getUserBridges, getUserLights } = await import('@/lib/hue-service');
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       return NextResponse.json(
