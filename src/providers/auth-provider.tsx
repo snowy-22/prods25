@@ -10,7 +10,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, username: string) => Promise<void>;
-  signInWithOAuth: (provider: 'google' | 'github') => Promise<void>;
+  signInWithOAuth: (provider: 'google' | 'github' | 'facebook' | 'apple') => Promise<void>;
   signOut: () => Promise<void>;
   signInAnonymously: () => void;
 }
@@ -145,16 +145,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   };
 
-  const signInWithOAuth = async (provider: 'google' | 'github') => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+  const signInWithOAuth = async (provider: 'google' | 'github' | 'facebook' | 'apple') => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            prompt: 'consent',
+          },
+        },
+      });
 
-    if (error) throw error;
-    // Browser will be redirected to OAuth provider
+      if (error) {
+        console.error(`${provider} OAuth error:`, error);
+        throw error;
+      }
+      // Browser will be redirected to OAuth provider
+    } catch (error) {
+      console.error(`Error signing in with ${provider}:`, error);
+      throw error;
+    }
   };
 
   return (
