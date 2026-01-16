@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Columns3, 
   SquareStack, 
-  Info,
   Play,
   Pause,
   Volume2,
@@ -22,7 +21,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { GridModeState } from '@/lib/layout-engine';
-import { GridModeInfo } from './integration-info-button';
 import { SmartPlayerPanel } from './smart-player-panel';
 import { ContentItem } from '@/lib/initial-content';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -391,18 +389,6 @@ const GridModeControls = memo(function GridModeControls({
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Info Button */}
-      <GridModeInfo>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="p-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors"
-          title="Izgara Modu Bilgisi"
-        >
-          <Info className="w-3.5 h-3.5" />
-        </motion.button>
-      </GridModeInfo>
 
       {/* Smart Player Panel */}
       <SmartPlayerPanel

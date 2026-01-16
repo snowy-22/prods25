@@ -161,33 +161,3 @@ export function HueIntegrationInfo({ children }: { children?: React.ReactNode })
     </IntegrationInfoButton>
   );
 }
-
-// Grid Mode Info
-export function GridModeInfo({ children }: { children?: React.ReactNode }) {
-  return (
-    <IntegrationInfoButton
-      integrationName="Izgara Modu"
-      description="Canvas öğelerinizi sayfalandırılmış ızgara düzeninde görüntüleyin. İki farklı mod ile içeriklerinizi organize edin."
-      features={[
-        'Dikey Mod: Tek sütun, aşağı kaydırma',
-        'Kare Izgara Modu: Çoklu sütun ve satır, sayfalama',
-        '2-5 arası sütun seçenekleri',
-        'Android-tarzı sayfa göstergesi',
-        'Otomatik sayfa hesaplama',
-        'Responsive tasarım'
-      ]}
-      requirements={[
-        'Canvas içeriği (en az 1 öğe)',
-        'Grid layout mode aktif'
-      ]}
-      setupSteps={[
-        'Üst menüden Dikey veya Kare modu seçin',
-        'Kare modda sütun sayısını ayarlayın (2-5)',
-        'Sol/sağ okları veya sayfa noktalarını kullanarak gezinin',
-        'Sütun sayısı değişince sayfalar otomatik güncellenir'
-      ]}
-    >
-      {children}
-    </IntegrationInfoButton>
-  );
-}
