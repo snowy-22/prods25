@@ -120,7 +120,7 @@ const MainHeader = () => (
 		<div className="container mx-auto flex h-16 items-center justify-between px-4">
 			<Logo />
 			<nav className="flex items-center gap-4">
-				<AnimatedBorderButton asChild>
+				<AnimatedBorderButton asChild variant="primary" size="sm">
 					<Link href="/auth">Giriş / Kayıt Ol</Link>
 				</AnimatedBorderButton>
 			</nav>
@@ -191,10 +191,10 @@ export default function LandingPage() {
 	return (
 		<div className="bg-black text-foreground font-body antialiased min-h-screen flex flex-col">
 			{isHeaderVisible && <MainHeader />}
-			<main className="flex-1 flex flex-col items-center justify-center px-2 sm:px-0 w-full pt-64">
-				<section className="w-full max-w-5xl flex flex-col md:flex-row items-center justify-between gap-8 py-12 md:py-24">
+			<main className="flex-1 flex flex-col items-center justify-center px-2 sm:px-0 w-full">
+				<section className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-12 py-12 md:py-24 px-4">
 					{/* Left: Hero Text */}
-					<div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left gap-6">
+					<div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left gap-6 max-w-2xl">
 						<h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-headline font-bold leading-tight">
 							<span className="block mb-2">Hayalindeki</span>
 							<span className={getWordStyle(heroWord)}>{heroWord}</span>
@@ -204,16 +204,16 @@ export default function LandingPage() {
 							Web içeriklerini, videoları, widget'ları ve daha fazlasını tek bir dijital kanvasta organize et. Sürükle-bırak, AI entegrasyonu ve çoklu görünüm modları ile üretkenliğini artır.
 						</p>
 						<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center md:justify-start">
-							<AnimatedBorderButton asChild>
+							<AnimatedBorderButton asChild variant="shimmer" size="lg">
 								<Link href="/auth">Hemen Başla</Link>
 							</AnimatedBorderButton>
-							<AnimatedBorderButton asChild className="bg-background/80">
+							<AnimatedBorderButton asChild variant="glass" size="lg">
 								<Link href="#pricing">Fiyatlandırma</Link>
 							</AnimatedBorderButton>
 						</div>
 					</div>
 					{/* Right: Responsive DVD Animation */}
-					<div className="flex-1 flex items-center justify-center w-full md:w-auto">
+					<div className="flex-1 flex items-center justify-center w-full md:w-auto max-w-2xl">
 						<div className="w-[220px] h-[120px] sm:w-[320px] sm:h-[180px] md:w-[400px] md:h-[220px] lg:w-[480px] lg:h-[260px] xl:w-[560px] xl:h-[300px] max-w-full">
 							<BouncingDvd />
 						</div>
@@ -276,7 +276,7 @@ export default function LandingPage() {
 						</div>
 
 						<div className="text-center mt-12">
-							<AnimatedBorderButton asChild>
+							<AnimatedBorderButton asChild variant="secondary">
 								<Link href="/features">Tüm Özellikleri Keşfet</Link>
 							</AnimatedBorderButton>
 						</div>
@@ -317,18 +317,24 @@ export default function LandingPage() {
 									</ul>
 								</div>
 
-								<Button asChild className="w-full" variant={tier.featured ? 'default' : 'outline'}>
-									<Link href={tier.ctaLink}>{tier.cta}</Link>
-								</Button>
+								{tier.featured ? (
+									<AnimatedBorderButton asChild variant="primary" className="w-full">
+										<Link href={tier.ctaLink}>{tier.cta}</Link>
+									</AnimatedBorderButton>
+								) : (
+									<Button asChild className="w-full" variant="outline">
+										<Link href={tier.ctaLink}>{tier.cta}</Link>
+									</Button>
+								)}
 							</Card>
 						))}
 					</div>
 
 					<div className="text-center">
 						<p className="text-muted-foreground mb-4">Teknik destek, özel özellikleri veya toplu satın alma hakkında mı?</p>
-						<Button asChild variant="outline" size="lg">
+						<AnimatedBorderButton asChild variant="glass" size="lg">
 							<Link href="/corporate">Kurumsal Çözümler</Link>
-						</Button>
+						</AnimatedBorderButton>
 					</div>
 				</section>
 
@@ -367,9 +373,9 @@ export default function LandingPage() {
 								))}
 							</div>
 
-							<Button asChild size="lg">
+							<AnimatedBorderButton asChild variant="primary" size="lg">
 								<Link href="/corporate">Demo Talep Edin</Link>
-							</Button>
+							</AnimatedBorderButton>
 						</div>
 					</div>
 				</section>
