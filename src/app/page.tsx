@@ -14,6 +14,7 @@ import { BouncingDvd } from '@/components/landing/BouncingDvd';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { QRCodeCanvas } from 'qrcode.react';
 import { AnimatedBorderButton } from '@/components/animated-border-button';
+import SiteFooter from '@/components/site-footer';
 
 const Logo = () => {
 	const [pageUrl, setPageUrl] = useState('');
@@ -381,9 +382,7 @@ export default function LandingPage() {
 				</section>
 
 				{/* Footer */}
-				<footer className="w-full py-6 text-center text-xs text-muted-foreground">
-					© {new Date().getFullYear()} tv25.app | CanvasFlow
-				</footer>
+				<SiteFooter />
 			</main>
 		</div>
 	);

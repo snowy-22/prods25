@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import SiteFooter from '@/components/site-footer';
 
 export default function KVKKPage() {
 	return (
@@ -212,16 +213,7 @@ export default function KVKKPage() {
 			</main>
 
 			{/* Footer */}
-			<footer className="border-t border-border/50 mt-20 py-8">
-				<div className="max-w-7xl mx-auto px-4 text-center text-sm text-muted-foreground">
-					<div className="flex flex-wrap justify-center gap-4 mb-4">
-						<Link href="/about" className="hover:text-primary">Hakkımızda</Link>
-						<Link href="/privacy" className="hover:text-primary">Aydınlatma Metni</Link>
-						<Link href="/kvkk" className="hover:text-primary">KVKK</Link>
-					</div>
-					<p>© {new Date().getFullYear()} tv25.app</p>
-				</div>
-			</footer>
-		</div>
+		<SiteFooter />
+	</div>
 	);
 }
