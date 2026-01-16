@@ -91,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       options: {
         data: {
           username,
+          full_name: username,
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
@@ -98,25 +99,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) throw error;
 
-    // Create profile in profiles table
+    // Create profile in public.users table (trigger should handle this, but provide fallback)
     if (data.user) {
       try {
         const { error: profileError } = await supabase
-          .from('profiles')
+          .from('users')
           .insert({
             id: data.user.id,
             username,
             email: data.user.email,
             full_name: username,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           });
 
         if (profileError && profileError.code !== '23505') { // Ignore duplicate key errors
           console.error('Error creating profile:', profileError);
+          // Don't throw - auth user was created successfully
         }
       } catch (err) {
         console.error('Error creating profile:', err);
+        // Don't throw - auth user was created successfully
       }
     }
+
+    return data;
   };
 
   const signOut = async () => {
