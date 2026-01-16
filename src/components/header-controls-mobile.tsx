@@ -29,7 +29,6 @@ import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { useToast } from '@/hooks/use-toast';
-import { ControlCenter } from './control-center';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,7 +83,6 @@ export default function HeaderControlsMobile({
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -252,17 +250,6 @@ export default function HeaderControlsMobile({
             </DropdownMenuItem>
           )}
 
-          <DropdownMenuSeparator />
-
-          {/* Control Center */}
-          <DropdownMenuItem 
-            onClick={() => setIsControlCenterOpen(true)}
-            className="cursor-pointer flex items-center gap-2"
-          >
-            <Settings className="h-4 w-4" />
-            <span>Kontrol Merkezi</span>
-          </DropdownMenuItem>
-
           <DropdownMenuSeparator />          {/* Analytics */}
           <DropdownMenuItem 
             onClick={() => router.push('/analytics')}
@@ -287,12 +274,6 @@ export default function HeaderControlsMobile({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-
-      {/* Control Center Modal */}
-      <ControlCenter 
-        isOpen={isControlCenterOpen} 
-        onClose={() => setIsControlCenterOpen(false)} 
-      />
     </div>
   );
 }

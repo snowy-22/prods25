@@ -4,11 +4,16 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Play, Pause, Volume2, VolumeX, Settings, RotateCcw, 
-  Zap, X, ChevronDown, ChevronUp 
+  Zap, X, ChevronDown, ChevronUp, Eye, LayoutGrid, Radio,
+  Sliders
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 
 interface PlayerInfo {
   id: string;
@@ -45,6 +50,31 @@ export function SmartRemote({ className, onClose }: SmartRemoteProps) {
   const [loopEnabled, setLoopEnabled] = useState(false);
   const [loopInterval, setLoopInterval] = useState(5);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState('player');
+
+  // Store selectors for control center features
+  const {
+    pointerFrameEnabled,
+    audioTrackerEnabled,
+    mouseTrackerEnabled,
+    virtualizerMode,
+    visualizerMode,
+    layoutMode,
+    gridModeState,
+    isUiHidden,
+    isSecondLeftSidebarOpen,
+    // Actions
+    setPointerFrameEnabled,
+    setAudioTrackerEnabled,
+    setMouseTrackerEnabled,
+    setVirtualizerMode,
+    setVisualizerMode,
+    setLayoutMode,
+    setGridColumns,
+    setGridModeEnabled,
+    setIsUiHidden,
+    togglePanel,
+  } = useAppStore();
 
   // Detect active players on mount and when DOM changes
   useEffect(() => {
@@ -167,15 +197,12 @@ export function SmartRemote({ className, onClose }: SmartRemoteProps) {
 
       {/* Smart Remote Panel */}
       {isOpen && (
-        <div className="absolute bottom-full right-0 mb-2 w-80 bg-slate-950 border border-slate-800 rounded-lg shadow-2xl z-50">
+        <div className="absolute bottom-full right-0 mb-2 w-96 bg-slate-950 border border-slate-800 rounded-lg shadow-2xl z-50 max-h-[600px] overflow-hidden flex flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b border-slate-800">
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4 text-yellow-500" />
-              <h3 className="text-sm font-semibold">Akıllı Kumanda</h3>
-              <span className="text-xs text-slate-400 ml-2">
-                {players.length} oynatıcı
-              </span>
+              <h3 className="text-sm font-semibold">Akıllı Kumanda & Kontroller</h3>
             </div>
             <Button
               variant="ghost"
@@ -187,8 +214,32 @@ export function SmartRemote({ className, onClose }: SmartRemoteProps) {
             </Button>
           </div>
 
-          {/* Content */}
-          <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="w-full justify-start rounded-none border-b border-slate-800 bg-transparent p-0">
+              <TabsTrigger value="player" className="rounded-none data-[state=active]:bg-slate-900 data-[state=active]:border-b-2 data-[state=active]:border-yellow-500">
+                <Play className="h-3 w-3 mr-1" />
+                Oynatıcı
+              </TabsTrigger>
+              <TabsTrigger value="media" className="rounded-none data-[state=active]:bg-slate-900 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
+                <Radio className="h-3 w-3 mr-1" />
+                Ortam
+              </TabsTrigger>
+              <TabsTrigger value="display" className="rounded-none data-[state=active]:bg-slate-900 data-[state=active]:border-b-2 data-[state=active]:border-purple-500">
+                <Eye className="h-3 w-3 mr-1" />
+                Görünüm
+              </TabsTrigger>
+              <TabsTrigger value="layout" className="rounded-none data-[state=active]:bg-slate-900 data-[state=active]:border-b-2 data-[state=active]:border-emerald-500">
+                <LayoutGrid className="h-3 w-3 mr-1" />
+                Düzen
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Player Tab Content */}
+            <TabsContent value="player" className="flex-1 overflow-y-auto p-4 space-y-4 m-0">
+              <span className="text-xs text-slate-400">
+                {players.length} oynatıcı tespit edildi
+              </span>
             {players.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-4">
                 Aktif oynatıcı bulunamadı
@@ -343,7 +394,153 @@ export function SmartRemote({ className, onClose }: SmartRemoteProps) {
                 )}
               </>
             )}
-          </div>
+            </TabsContent>
+
+            {/* Media Tab Content */}
+            <TabsContent value="media" className="flex-1 overflow-y-auto p-4 space-y-4 m-0">
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold text-slate-300 uppercase">Ortam Kontrolleri</h4>
+                
+                <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                  <span className="text-xs text-slate-300">Sesli Çerçeve</span>
+                  <Switch
+                    checked={audioTrackerEnabled}
+                    onCheckedChange={setAudioTrackerEnabled}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                  <span className="text-xs text-slate-300">Fare İzleyici</span>
+                  <Switch
+                    checked={mouseTrackerEnabled}
+                    onCheckedChange={setMouseTrackerEnabled}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                  <span className="text-xs text-slate-300">Gösterge</span>
+                  <Switch
+                    checked={virtualizerMode}
+                    onCheckedChange={setVirtualizerMode}
+                  />
+                </div>
+
+                <Separator className="bg-slate-700/30" />
+
+                <div className="space-y-2">
+                  <span className="text-xs text-slate-300 block">Görselleştirme Modu</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['off', 'bars', 'wave', 'circular', 'particles'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => setVisualizerMode(mode)}
+                        className={cn(
+                          "px-3 py-2 text-xs rounded transition-all",
+                          visualizerMode === mode
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                        )}
+                      >
+                        {mode === 'off' ? 'Kapalı' : mode}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Display Tab Content */}
+            <TabsContent value="display" className="flex-1 overflow-y-auto p-4 space-y-4 m-0">
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold text-slate-300 uppercase">Görünüm Kontrolleri</h4>
+                
+                <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                  <span className="text-xs text-slate-300">UI Gizle</span>
+                  <Switch
+                    checked={isUiHidden}
+                    onCheckedChange={setIsUiHidden}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                  <span className="text-xs text-slate-300">Gösterge Paneli</span>
+                  <Switch
+                    checked={pointerFrameEnabled}
+                    onCheckedChange={setPointerFrameEnabled}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                  <span className="text-xs text-slate-300">Kenar Çubuğu</span>
+                  <Switch
+                    checked={isSecondLeftSidebarOpen}
+                    onCheckedChange={() => togglePanel('isSecondLeftSidebarOpen')}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Layout Tab Content */}
+            <TabsContent value="layout" className="flex-1 overflow-y-auto p-4 space-y-4 m-0">
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold text-slate-300 uppercase">Düzen Kontrolleri</h4>
+                
+                <div className="space-y-2">
+                  <span className="text-xs text-slate-300 block">Düzen Modu</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['grid', 'canvas'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => setLayoutMode(mode)}
+                        className={cn(
+                          "px-3 py-2 text-xs rounded transition-all",
+                          layoutMode === mode
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                        )}
+                      >
+                        {mode === 'grid' ? 'İzgara' : 'Kanvas'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {gridModeState.enabled && (
+                  <>
+                    <Separator className="bg-slate-700/30" />
+                    
+                    <div className="space-y-2">
+                      <span className="text-xs text-slate-300 block">Sütun Sayısı</span>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[2, 3, 4, 5].map((col) => (
+                          <button
+                            key={col}
+                            onClick={() => setGridColumns(col)}
+                            className={cn(
+                              "px-3 py-2 text-xs rounded transition-all",
+                              gridModeState.columns === col
+                                ? 'bg-purple-500 text-white'
+                                : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700/50'
+                            )}
+                          >
+                            {col}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg">
+                      <span className="text-xs text-slate-300">İzgara Modu</span>
+                      <Switch
+                        checked={gridModeState.enabled}
+                        onCheckedChange={setGridModeEnabled}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       )}
     </div>

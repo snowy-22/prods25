@@ -38,7 +38,6 @@ import { cn } from '@/lib/utils';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
-import { ControlCenter } from './control-center';
 import { useAuth } from '@/providers/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -104,7 +103,6 @@ export default function HeaderControls({
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const [isControlCenterOpen, setIsControlCenterOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -217,10 +215,6 @@ export default function HeaderControls({
                   <span>Viewport Editörü</span>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={() => setIsControlCenterOpen(true)}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Kontrol Merkezi</span>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push('/settings')}>
                 <Shield className="mr-2 h-4 w-4" />
@@ -291,12 +285,6 @@ export default function HeaderControls({
         </TooltipProvider>
 
         <PlayerModeDialog />
-
-        {/* Control Center Modal */}
-        <ControlCenter 
-          isOpen={isControlCenterOpen} 
-          onClose={() => setIsControlCenterOpen(false)} 
-        />
       </div>
     </div>
   );
