@@ -392,6 +392,8 @@ const PlayerFrameComponent = ({
 
   // Keyboard shortcuts handler
   useEffect(() => {
+    const isContainer = ['folder', 'list', 'player', 'inventory', 'space', 'devices', 'calendar', 'saved-items', 'awards-folder', 'spaces-folder', 'devices-folder', 'root', 'trash-folder'].includes(item.type);
+    
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle if this player is selected or focused
       if (!isSelected && !ref.current?.contains(document.activeElement)) return;
@@ -474,7 +476,7 @@ const PlayerFrameComponent = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSelected, item, isContainer, onSetView, onDeleteItem, onItemClick, handlePlayerNav, setItemToShare, setItemToMessage]);
+  }, [isSelected, item, onSetView, onDeleteItem, onItemClick, handlePlayerNav, setItemToShare, setItemToMessage]);
 
   const handlePlayerNav = (direction: 'next' | 'prev') => {
       if (!item.children || item.children.length === 0) return;
