@@ -117,8 +117,7 @@ export function MiniMapOverlay({
   const [dropToken, setDropToken] = useState<DropToken | null>(null);
   
   const { isMobile, isTablet } = useResponsiveLayout();
-  // Note: Removed refs from motion.div to prevent Framer Motion/Radix UI compatibility issues
-  // that cause "Expected static flag was missing" and "Maximum update depth exceeded" errors
+  const mapRef = useRef<HTMLDivElement>(null);
   const dragManager = CrossDragManager.getInstance();
 
   // Responsive dimensions
@@ -313,17 +312,18 @@ export function MiniMapOverlay({
             </div>
           </div>
 
-          {/* Map Area */}
-          <motion.div 
-            className="relative overflow-hidden cursor-crosshair"
-            style={{ 
-              width: baseWidth, 
-              height: baseHeight,
-              background: 'linear-gradient(145deg, hsl(var(--muted)/0.4) 0%, hsl(var(--muted)/0.15) 100%)'
-            }}
-            animate={{ width: baseWidth, height: baseHeight }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            onClick={handleMapClick}
+          {/* Map Area - wrapped with ref on regular div to avoid Framer Motion ref issues */}
+          <div ref={mapRef} style={{ position: 'relative' }}>
+            <motion.div 
+              className="relative overflow-hidden cursor-crosshair"
+              style={{ 
+                width: baseWidth, 
+                height: baseHeight,
+                background: 'linear-gradient(145deg, hsl(var(--muted)/0.4) 0%, hsl(var(--muted)/0.15) 100%)'
+              }}
+              animate={{ width: baseWidth, height: baseHeight }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              onClick={handleMapClick}
           >
             {/* Grid Background */}
             <div 
@@ -526,6 +526,7 @@ export function MiniMapOverlay({
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         </div>
       </motion.div>
     </TooltipProvider>
