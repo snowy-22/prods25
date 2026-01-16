@@ -25,7 +25,8 @@ export type ContentAnalysisOutput = z.infer<typeof ContentAnalysisOutputSchema>;
 
 // Define the main function that clients will call
 export async function analyzeContent(input: ContentAnalysisInput): Promise<ContentAnalysisOutput> {
-  return contentAnalysisFlow(input);
+  initializeFlows();
+  return contentAnalysisFlow!(input);
 }
 
 // Create a text representation of the content for the LLM
@@ -43,12 +44,18 @@ function formatContentForAnalysis(item: ContentItem): string {
     return `Liste Adı: "${item.title}"\nİçerikler:\n${childDescriptions}`;
 }
 
+// Lazy initialization - defer AI flow definitions until needed
+let analysisPrompt: ReturnType<typeof ai.definePrompt> | null = null;
+let contentAnalysisFlow: ReturnType<typeof ai.defineFlow> | null = null;
 
-const analysisPrompt = ai.definePrompt({
-  name: 'contentAnalysisPrompt',
-  input: { schema: ContentAnalysisInputSchema },
-  output: { schema: ContentAnalysisOutputSchema },
-  prompt: `You are a content curator and SEO expert. Analyze the following list of content items.
+function initializeFlows() {
+  if (analysisPrompt && contentAnalysisFlow) return;
+  
+  analysisPrompt = ai.definePrompt({
+    name: 'contentAnalysisPrompt',
+    input: { schema: ContentAnalysisInputSchema },
+    output: { schema: ContentAnalysisOutputSchema },
+    prompt: `You are a content curator and SEO expert. Analyze the following list of content items.
 Based on the titles and URLs, provide a comprehensive analysis.
 
 ${'{{#if item}}'}
@@ -66,20 +73,20 @@ Your analysis must include:
 
 Please provide the output in the specified JSON format.
 `,
-});
+  });
 
-
-const contentAnalysisFlow = ai.defineFlow(
-  {
-    name: 'contentAnalysisFlow',
-    inputSchema: ContentAnalysisInputSchema,
-    outputSchema: ContentAnalysisOutputSchema,
-  },
-  async (input) => {
-    const { output } = await analysisPrompt(input);
-    if (!output) {
-      throw new Error('AI analysis failed to produce a valid output.');
+  contentAnalysisFlow = ai.defineFlow(
+    {
+      name: 'contentAnalysisFlow',
+      inputSchema: ContentAnalysisInputSchema,
+      outputSchema: ContentAnalysisOutputSchema,
+    },
+    async (input) => {
+      const { output } = await analysisPrompt!(input);
+      if (!output) {
+        throw new Error('AI analysis failed to produce a valid output.');
+      }
+      return output;
     }
-    return output;
-  }
-);
+  );
+}
