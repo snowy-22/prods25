@@ -1,19 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { 
   Play, Pause, Volume2, VolumeX, Settings, RotateCcw, 
   Zap, X, ChevronDown, ChevronUp, Eye, LayoutGrid, Radio,
-  Sliders
+  Sliders, Wifi, WifiOff, QrCode, Camera, Smartphone, Monitor
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/lib/store';
+import { useRemoteSync, RemoteCommand } from '@/hooks/use-remote-sync';
+import { SessionSyncDialog } from './session-sync-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface PlayerInfo {
   id: string;
@@ -51,6 +55,9 @@ export function SmartRemote({ className, onClose }: SmartRemoteProps) {
   const [loopInterval, setLoopInterval] = useState(5);
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('player');
+  const [isSyncDialogOpen, setIsSyncDialogOpen] = useState(false);
+  
+  const { toast } = useToast();
 
   // Store selectors for control center features
   const {
@@ -75,6 +82,138 @@ export function SmartRemote({ className, onClose }: SmartRemoteProps) {
     setIsUiHidden,
     togglePanel,
   } = useAppStore();
+
+  // Remote sync hook for cross-device control
+  const {
+    session,
+    sessionCode,
+    connectedDevices,
+    isConnected,
+    isHost,
+    deviceCount,
+    sendCommand,
+    updatePlayerState,
+    markCommandExecuted,
+  } = useRemoteSync({
+    onCommand: useCallback((command: RemoteCommand) => {
+      // Handle incoming commands from remote devices
+      handleRemoteCommand(command);
+    }, []),
+  });
+
+  // Handle remote commands
+  const handleRemoteCommand = useCallback((command: RemoteCommand) => {
+    const { command_type, payload, target_player_id } = command;
+    
+    switch (command_type) {
+      case 'play':
+        handlePlayPauseAll(true);
+        break;
+      case 'pause':
+        handlePlayPauseAll(false);
+        break;
+      case 'play_pause':
+        if (target_player_id) {
+          // Toggle specific player
+          const player = document.querySelector(`[data-player-id="${target_player_id}"]`) as HTMLMediaElement;
+          if (player) {
+            player.paused ? player.play() : player.pause();
+          }
+        } else {
+          // Toggle all
+          const anyPlaying = players.some(p => p.isPlaying);
+          handlePlayPauseAll(!anyPlaying);
+        }
+        break;
+      case 'volume':
+        if (payload.volume !== undefined) {
+          handleVolumeChange([payload.volume]);
+        }
+        break;
+      case 'mute':
+        handleMuteAll(true);
+        break;
+      case 'unmute':
+        handleMuteAll(false);
+        break;
+      case 'seek':
+        if (payload.time !== undefined) {
+          document.querySelectorAll('video, audio').forEach((media: any) => {
+            media.currentTime = payload.time;
+          });
+        }
+        break;
+      case 'quality':
+        if (payload.quality) {
+          handleQualityChange(payload.quality);
+        }
+        break;
+      case 'loop':
+        setLoopEnabled(payload.enabled ?? !loopEnabled);
+        break;
+      case 'fullscreen':
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          document.documentElement.requestFullscreen();
+        }
+        break;
+      case 'layout_change':
+        if (payload.mode) {
+          setLayoutMode(payload.mode);
+        }
+        break;
+      case 'grid_columns':
+        if (payload.columns) {
+          setGridColumns(payload.columns);
+        }
+        break;
+      case 'sidebar_toggle':
+        togglePanel('isSecondLeftSidebarOpen');
+        break;
+      case 'ui_toggle':
+        setIsUiHidden(!isUiHidden);
+        break;
+      case 'navigate':
+        // Handle tab/view navigation
+        if (payload.tabId) {
+          // This would need access to tab navigation functions
+          console.log('Navigate to:', payload.tabId, payload.viewId);
+        }
+        break;
+      case 'request_state':
+        // Send current state to requester
+        syncCurrentState();
+        break;
+    }
+    
+    // Mark command as executed
+    markCommandExecuted(command.id, true);
+    
+    toast({
+      title: 'Uzaktan Komut',
+      description: `${command_type} komutu alındı`,
+      duration: 2000,
+    });
+  }, [players, loopEnabled, isUiHidden, setLayoutMode, setGridColumns, togglePanel, setIsUiHidden, markCommandExecuted, toast]);
+
+  // Sync current state to remote devices
+  const syncCurrentState = useCallback(async () => {
+    if (!isConnected) return;
+    
+    // Sync player states
+    players.forEach(async (player) => {
+      await updatePlayerState({
+        player_id: player.id,
+        player_type: player.source || 'unknown',
+        title: player.title,
+        is_playing: player.isPlaying,
+        is_muted: player.isMuted,
+        volume: player.volume,
+        quality: player.quality || null,
+      });
+    });
+  }, [isConnected, players, updatePlayerState]);
 
   // Detect active players on mount and when DOM changes
   useEffect(() => {
@@ -220,6 +359,13 @@ export function SmartRemote({ className, onClose }: SmartRemoteProps) {
               <TabsTrigger value="player" className="rounded-none data-[state=active]:bg-slate-900 data-[state=active]:border-b-2 data-[state=active]:border-yellow-500">
                 <Play className="h-3 w-3 mr-1" />
                 Oynatıcı
+              </TabsTrigger>
+              <TabsTrigger value="sync" className="rounded-none data-[state=active]:bg-slate-900 data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 relative">
+                <Wifi className="h-3 w-3 mr-1" />
+                Senkron
+                {isConnected && (
+                  <span className="absolute top-1 right-1 h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
+                )}
               </TabsTrigger>
               <TabsTrigger value="media" className="rounded-none data-[state=active]:bg-slate-900 data-[state=active]:border-b-2 data-[state=active]:border-blue-500">
                 <Radio className="h-3 w-3 mr-1" />
@@ -396,6 +542,172 @@ export function SmartRemote({ className, onClose }: SmartRemoteProps) {
             )}
             </TabsContent>
 
+            {/* Sync Tab Content */}
+            <TabsContent value="sync" className="flex-1 overflow-y-auto p-4 space-y-4 m-0">
+              <div className="space-y-4">
+                {/* Connection Status */}
+                <div className={cn(
+                  "p-4 rounded-lg border-2 flex items-center gap-3",
+                  isConnected 
+                    ? "bg-emerald-950/30 border-emerald-500/50" 
+                    : "bg-slate-900/50 border-slate-700"
+                )}>
+                  {isConnected ? (
+                    <Wifi className="h-5 w-5 text-emerald-500" />
+                  ) : (
+                    <WifiOff className="h-5 w-5 text-slate-400" />
+                  )}
+                  <div className="flex-1">
+                    <p className={cn(
+                      "text-sm font-medium",
+                      isConnected ? "text-emerald-400" : "text-slate-300"
+                    )}>
+                      {isConnected 
+                        ? isHost ? 'Oturum Aktif (Host)' : 'Bağlandı (İzleyici)'
+                        : 'Bağlı Değil'}
+                    </p>
+                    {session && (
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Kod: <span className="font-mono text-cyan-400">{session.session_code}</span>
+                        {' • '}{connectedDevices.length} cihaz
+                      </p>
+                    )}
+                  </div>
+                  {isConnected && (
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                      Canlı
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    size="sm"
+                    variant={isConnected ? "outline" : "default"}
+                    className="h-10"
+                    onClick={() => setIsSyncDialogOpen(true)}
+                  >
+                    <QrCode className="h-4 w-4 mr-2" />
+                    {isConnected ? 'Oturumu Yönet' : 'Oturumu Senkronize Et'}
+                  </Button>
+                  {isConnected && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-10"
+                      onClick={syncCurrentState}
+                    >
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Durumu Senkronize Et
+                    </Button>
+                  )}
+                </div>
+
+                {/* Connected Devices */}
+                {isConnected && connectedDevices.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-slate-300 uppercase">
+                      Bağlı Cihazlar ({connectedDevices.length})
+                    </h4>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {connectedDevices.map((device) => (
+                        <div
+                          key={device.session_id}
+                          className="flex items-center gap-3 p-2 bg-slate-900/50 rounded-lg border border-slate-800"
+                        >
+                          {device.device_type === 'mobile' ? (
+                            <Smartphone className="h-4 w-4 text-blue-400" />
+                          ) : (
+                            <Monitor className="h-4 w-4 text-purple-400" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-slate-300 truncate">
+                              {device.device_name || 'Bilinmeyen Cihaz'}
+                            </p>
+                            <p className="text-[10px] text-slate-500">
+                              {device.device_type} • {device.is_host ? 'Host' : 'İzleyici'}
+                            </p>
+                          </div>
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-[10px]",
+                              device.is_host 
+                                ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/30"
+                                : "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                            )}
+                          >
+                            {device.is_host ? 'Host' : 'Bağlı'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Actions when Connected */}
+                {isConnected && isHost && (
+                  <div className="space-y-2 pt-2 border-t border-slate-800">
+                    <h4 className="text-xs font-semibold text-slate-300 uppercase">
+                      Hızlı Komutlar
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={() => sendCommand({ command_type: 'play', payload: {} })}
+                      >
+                        <Play className="h-3 w-3 mr-1" />
+                        Tümünü Oynat
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={() => sendCommand({ command_type: 'pause', payload: {} })}
+                      >
+                        <Pause className="h-3 w-3 mr-1" />
+                        Tümünü Durdur
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={() => sendCommand({ command_type: 'mute', payload: { muted: true } })}
+                      >
+                        <VolumeX className="h-3 w-3 mr-1" />
+                        Sesi Kapat
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={() => sendCommand({ command_type: 'mute', payload: { muted: false } })}
+                      >
+                        <Volume2 className="h-3 w-3 mr-1" />
+                        Sesi Aç
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Disconnect Button */}
+                {isConnected && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="w-full h-9"
+                    onClick={disconnect}
+                  >
+                    <WifiOff className="h-4 w-4 mr-2" />
+                    Bağlantıyı Kes
+                  </Button>
+                )}
+              </div>
+            </TabsContent>
+
             {/* Media Tab Content */}
             <TabsContent value="media" className="flex-1 overflow-y-auto p-4 space-y-4 m-0">
               <div className="space-y-3">
@@ -543,6 +855,12 @@ export function SmartRemote({ className, onClose }: SmartRemoteProps) {
           </Tabs>
         </div>
       )}
+
+      {/* Session Sync Dialog */}
+      <SessionSyncDialog 
+        open={isSyncDialogOpen} 
+        onOpenChange={setIsSyncDialogOpen}
+      />
     </div>
   );
 }

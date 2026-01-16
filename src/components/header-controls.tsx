@@ -173,14 +173,11 @@ export default function HeaderControls({
                 {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
               </Button>
             </TooltipTrigger>
-                        {/* Smart Remote */}
-                        <SmartRemote />
-
-                        <div className="w-px h-4 bg-border mx-1" />
             <TooltipContent>{isFullscreen ? 'Tam Ekrandan Çık' : 'Tam Ekran'}</TooltipContent>
           </Tooltip>
 
-          {/* Pop-out Window removed per request */}
+          {/* Smart Remote */}
+          <SmartRemote />
 
           <div className="w-px h-4 bg-border mx-1" />
 
