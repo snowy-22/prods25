@@ -38,6 +38,7 @@ import StyleSettingsPanel from '../../components/style-settings-panel';
 import { ViewportEditor } from '../../components/viewport-editor';
 import TabGridViewportEditor from '../../components/tab-grid-viewport-editor';
 import { cn } from '@/lib/utils';
+import { canvasLogger } from '@/lib/logger';
 import { AppLogo } from '../../components/icons/app-logo';
 import { AiChatDialog } from '../../components/ai-chat-dialog';
 import { Message } from '@/ai/flows/assistant-schema';
@@ -317,7 +318,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             // Fallback to initialContent if root not found in currentItems
             if (!rootItem) {
               rootItem = initialContent.find(i => i.id === 'root');
-              console.log('[Canvas] Root not found in currentItems, using initialContent root');
+              canvasLogger.debug('Root not found in currentItems, using initialContent root');
             }
             
             if (rootItem) {
@@ -327,7 +328,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 : [...currentItems, rootItem, ...initialContent.filter(i => i.parentId === 'root')];
               
               state.openInNewTab(rootItem, allItemsForTab);
-              console.log('[Canvas] Opened root library tab with', allItemsForTab.length, 'items');
+              canvasLogger.info('Opened root library tab', { itemCount: allItemsForTab.length });
             }
           }
         }
@@ -357,7 +358,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             
             // If still not found, return null
             if (!view) {
-                console.warn(`[Canvas] View not found: ${viewId}`);
+                canvasLogger.warn('View not found', { viewId });
                 return null;
             }
 
@@ -370,14 +371,14 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                     // Try initialContent as fallback
                     const initialChildren = initialContent.filter(i => i.parentId === 'root');
                     if (initialChildren.length > 0) {
-                        console.log('[Canvas] Using initialContent children for root:', initialChildren.length);
+                        canvasLogger.debug('Using initialContent children for root', { count: initialChildren.length });
                         children = initialChildren;
                     }
                 }
                 
                 // If still no children, create default structure
                 if (children.length === 0) {
-                    console.warn('[Canvas] Root has no children, this should not happen');
+                    canvasLogger.warn('Root has no children, this should not happen');
                     children = [];
                 }
             }
@@ -429,7 +430,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             // Return view with children
             const result = { ...view, children } as ContentItem;
             if (process.env.NODE_ENV === 'development' && viewId === 'root') {
-                console.log('[Canvas] Root view built:', {
+                canvasLogger.debug('Root view built', {
                     viewId: result.id,
                     childrenCount: result.children?.length || 0,
                     childrenIds: result.children?.map(c => c.id) || []
@@ -444,7 +445,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const activeViewChildren = useMemo(() => {
         const children = activeView?.children || [];
         if (process.env.NODE_ENV === 'development') {
-            console.log('[Canvas] activeViewChildren:', {
+            canvasLogger.debug('activeViewChildren', {
                 activeViewId,
                 hasActiveView: !!activeView,
                 childrenCount: children.length,
@@ -500,7 +501,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             
             if (error) {
                 // Silently fail if items table doesn't exist yet
-                console.log("Cloud sync skipped (items table not configured):", error.message);
+                canvasLogger.debug("Cloud sync skipped (items table not configured)", { error: error.message });
                 if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
                     toast({ title: "Buluta Kaydetme", description: "Değişiklikler yerel olarak kaydedildi ancak buluta gönderilemedi.", variant: "default" });
                 }
@@ -525,7 +526,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
             
             if (error) {
                 // Silently fail if items table doesn't exist yet
-                console.log("Cloud sync skipped (items table not configured):", error.message);
+                canvasLogger.debug("Cloud sync skipped (items table not configured)", { error: error.message });
                 if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
                     toast({ title: "Buluta Kaydetme", description: "Değişiklikler yerel olarak kaydedildi ancak buluta gönderilemedi.", variant: "default" });
                 }
@@ -565,7 +566,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
             if (error) {
                 // Silently fail if items table doesn't exist yet
-                console.log("Cloud sync skipped (items table not configured):", error.message);
+                canvasLogger.debug("Cloud sync skipped (items table not configured)", { error: error.message });
                 // Only show error if it's not a "relation does not exist" error
                 if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
                     toast({ title: "Buluta Kaydetme", description: "Öğe yerel olarak eklendi ancak buluta kaydedilemedi.", variant: "default" });
@@ -604,7 +605,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
             if (error) {
                 // Silently fail if items table doesn't exist yet
-                console.log("Cloud sync skipped (items table not configured):", error.message);
+                canvasLogger.debug("Cloud sync skipped (items table not configured)", { error: error.message });
                 if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
                     toast({ title: "Buluttan Silme", description: "Öğeler yerel olarak silindi ancak buluttan kaldırılamadı.", variant: "default" });
                 }
@@ -686,7 +687,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                     };
                  }
              } catch (e) {
-                 console.error("Failed to fetch metadata", e);
+                 canvasLogger.error("Failed to fetch metadata", e);
              }
         }
         
@@ -779,7 +780,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
             if (error) {
                 // Silently fail if items table doesn't exist yet
-                console.log("Cloud sync skipped (items table not configured):", error.message);
+                canvasLogger.debug("Cloud sync skipped (items table not configured)", { error: error.message });
                 // Only show error if it's not a "relation does not exist" error
                 if (!error.message?.includes('relation') && !error.message?.includes('does not exist')) {
                     toast({ title: "Buluta Kaydetme", description: "Öğe yerel olarak eklendi ancak buluta kaydedilemedi.", variant: "default" });
@@ -794,16 +795,16 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     }, [updateItems, state.selectedItemIds, state.user, supabase, toast]);
     
     const addFolderWithItems = useCallback(async (folderName: string, itemsToAdd: { type: ItemType; url: string }[], parentId: string | null) => {
-        console.log(`Creating folder "${folderName}" with ${itemsToAdd.length} items`);
+        canvasLogger.info(`Creating folder`, { folderName, itemCount: itemsToAdd.length });
         const folder = await addItemToView({ type: 'folder', title: folderName }, parentId);
-        console.log(`Folder created with ID: ${folder.id}`);
+        canvasLogger.debug(`Folder created`, { folderId: folder.id });
         
         for (let i = 0; i < itemsToAdd.length; i++) {
             const itemData = itemsToAdd[i];
-            console.log(`Adding item ${i + 1}/${itemsToAdd.length} to folder:`, itemData.url);
+            canvasLogger.debug(`Adding item to folder`, { index: i + 1, total: itemsToAdd.length, url: itemData.url });
             await addItemToView({ ...itemData, url: itemData.url }, folder.id);
         }
-        console.log(`Finished adding ${itemsToAdd.length} items to folder`);
+        canvasLogger.info(`Finished adding items to folder`, { itemCount: itemsToAdd.length });
 
     }, [addItemToView]);
     
@@ -1267,7 +1268,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     }, [state]);
 
     const handleToolCall = useCallback(async (toolName: string, args: any) => {
-        console.log(`Tool call: ${toolName}`, args);
+        canvasLogger.debug(`Tool call`, { toolName, args });
         
         switch (toolName) {
             case 'highlightElement':
@@ -1303,7 +1304,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 break;
                 
             default:
-                console.warn(`Unhandled tool call: ${toolName}`);
+                canvasLogger.warn(`Unhandled tool call`, { toolName });
         }
     }, [activeViewId, addItemToView, toast]);
     const [isLeftSidebarHovered, setIsLeftSidebarHovered] = useState(false);
