@@ -5,7 +5,7 @@
 import { ContentItem } from '@/lib/initial-content';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
-import { Palette, X, ImageUp, SlidersHorizontal, Sun, Moon, Monitor, Minus, Plus, Wand2, ChevronsDown, ChevronsUp, Save, Trash2, StretchHorizontal, StretchVertical, Minimize, Maximize, ZoomIn, ZoomOut, Ban, Square, Info } from 'lucide-react';
+import { Palette, X, ImageUp, SlidersHorizontal, Sun, Moon, Monitor, Minus, Plus, Wand2, ChevronsDown, ChevronsUp, Save, Trash2, StretchHorizontal, StretchVertical, Minimize, Maximize, ZoomIn, ZoomOut, Ban, Square } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Label } from './ui/label';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -73,7 +73,7 @@ export default function StyleSettingsPanel({
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [customThemes, setCustomThemes] = useState<ThemePreset[]>([]);
-  const accordionItems = useMemo(() => ['view', 'theme', 'frame', 'infobar', 'player-bars', 'background', 'pattern', 'webgl'], []);
+    const accordionItems = useMemo(() => ['view', 'theme', 'frame', 'background', 'pattern', 'webgl'], []);
   const [openAccordions, setOpenAccordions] = useState<string[]>(accordionItems);
   const scale = activeView.scale || 100;
   const setScale = (newScale: number) => onUpdate({ scale: newScale });
@@ -396,120 +396,8 @@ export default function StyleSettingsPanel({
                             </ToggleGroup>
                         </div>
                     </AccordionContent>
-                </AccordionItem>                <AccordionItem value="infobar" className='px-4'>
-                    <AccordionTrigger className="py-3 text-sm font-medium"><div className='flex items-center gap-2'><Info className='h-4 w-4'/> <span>Bilgi Çubuğu</span></div></AccordionTrigger>
-                    <AccordionContent className="pb-4 space-y-4">
-                        <div className="space-y-2">
-                            <Label className="text-xs">Görünüm Modu</Label>
-                            <ToggleGroup 
-                                type="single" 
-                                value={activeView.infoBarSettings?.displayMode || 'visible'} 
-                                onValueChange={(value) => onUpdate({ 
-                                    infoBarSettings: { ...activeView.infoBarSettings, displayMode: value as any } 
-                                })} 
-                                className="grid grid-cols-3 gap-2"
-                            >
-                                <ToggleGroupItem value="hidden" className="text-xs">Gizli</ToggleGroupItem>
-                                <ToggleGroupItem value="visible" className="text-xs">Görünür</ToggleGroupItem>
-                                <ToggleGroupItem value="on-hover" className="text-xs">Hover</ToggleGroupItem>
-                            </ToggleGroup>
-                        </div>
-                        <Separator />
-                        <div className="space-y-3">
-                            <h4 className="text-xs font-semibold text-muted-foreground uppercase">Gösterilecek Tuşlar</h4>
-                            <div className="space-y-2">
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox 
-                                        id="show-rating"
-                                        checked={(activeView.infoBarSettings?.visibleButtons || []).includes('rating')}
-                                        onCheckedChange={(checked) => {
-                                            let buttons = [...(activeView.infoBarSettings?.visibleButtons || [])];
-                                            if (checked) buttons.push('rating');
-                                            else buttons = buttons.filter(b => b !== 'rating');
-                                            onUpdate({ infoBarSettings: { ...activeView.infoBarSettings, visibleButtons: buttons } });
-                                        }}
-                                    />
-                                    <Label htmlFor="show-rating" className="text-xs font-normal cursor-pointer">Puan</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox 
-                                        id="show-priority"
-                                        checked={(activeView.infoBarSettings?.visibleButtons || []).includes('priority')}
-                                        onCheckedChange={(checked) => {
-                                            let buttons = [...(activeView.infoBarSettings?.visibleButtons || [])];
-                                            if (checked) buttons.push('priority');
-                                            else buttons = buttons.filter(b => b !== 'priority');
-                                            onUpdate({ infoBarSettings: { ...activeView.infoBarSettings, visibleButtons: buttons } });
-                                        }}
-                                    />
-                                    <Label htmlFor="show-priority" className="text-xs font-normal cursor-pointer">Öncelik</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox 
-                                        id="show-metrics"
-                                        checked={(activeView.infoBarSettings?.visibleButtons || []).includes('metrics')}
-                                        onCheckedChange={(checked) => {
-                                            let buttons = [...(activeView.infoBarSettings?.visibleButtons || [])];
-                                            if (checked) buttons.push('metrics');
-                                            else buttons = buttons.filter(b => b !== 'metrics');
-                                            onUpdate({ infoBarSettings: { ...activeView.infoBarSettings, visibleButtons: buttons } });
-                                        }}
-                                    />
-                                    <Label htmlFor="show-metrics" className="text-xs font-normal cursor-pointer">Metrikler</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Checkbox 
-                                        id="show-grade"
-                                        checked={(activeView.infoBarSettings?.visibleButtons || []).includes('grade')}
-                                        onCheckedChange={(checked) => {
-                                            let buttons = [...(activeView.infoBarSettings?.visibleButtons || [])];
-                                            if (checked) buttons.push('grade');
-                                            else buttons = buttons.filter(b => b !== 'grade');
-                                            onUpdate({ infoBarSettings: { ...activeView.infoBarSettings, visibleButtons: buttons } });
-                                        }}
-                                    />
-                                    <Label htmlFor="show-grade" className="text-xs font-normal cursor-pointer">Harf Notu</Label>
-                                </div>
-                            </div>
-                        </div>
-                    </AccordionContent>
-                </AccordionItem>                <AccordionItem value="player-bars" className='px-4'>
-                    <AccordionTrigger className="py-3 text-sm font-medium">
-                        <div className='flex items-center gap-2'><StretchVertical className='h-4 w-4'/> <span>Oynatıcı Barları</span></div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-4 space-y-4">
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                    <Label className="text-xs font-medium">Dikey Siyah Barlar (16:9 Optimizasyonu)</Label>
-                                    <p className="text-xs text-muted-foreground">
-                                        Video oynatıcısının yanlarına dikey siyah barlar ekler. 
-                                        Maksimum 16:9 en-boy oranı sağlar ve ekran genişliğini daha iyi kullanır.
-                                    </p>
-                                </div>
-                                <Switch 
-                                    checked={activeView.hideBlackBars || false}
-                                    onCheckedChange={(checked) => onUpdate({ hideBlackBars: checked })}
-                                />
-                            </div>
-                        </div>
-                        <Separator />
-                        <div className="space-y-2">
-                            <Label className="text-xs font-semibold text-muted-foreground uppercase">Bilgi</Label>
-                            <div className="rounded-md bg-muted/50 p-3 space-y-1">
-                                <p className="text-xs text-muted-foreground">
-                                    🎬 Dikey barlar etkinleştirildiğinde:
-                                </p>
-                                <ul className="text-xs text-muted-foreground list-disc list-inside space-y-0.5 ml-2">
-                                    <li>Videoların iki yanına dikey siyah barlar eklenir</li>
-                                    <li>16:9 en-boy oranı korunur</li>
-                                    <li>Ekran genişliğinden maksimum yararlanılır</li>
-                                    <li>Film görünümü elde edilir</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </AccordionContent>
-                </AccordionItem>                <AccordionItem value="theme" className='px-4'>
+                </AccordionItem>
+                <AccordionItem value="theme" className='px-4'>
                     <AccordionTrigger className="py-3 text-sm font-medium"><div className='flex items-center gap-2'><Palette className='h-4 w-4'/> <span>Tema</span></div></AccordionTrigger>
                     <AccordionContent className="pb-4 space-y-4">
                         <div className="space-y-3">
@@ -551,6 +439,27 @@ export default function StyleSettingsPanel({
                  <AccordionItem value="background" className='px-4'>
                     <AccordionTrigger className="py-3 text-sm font-medium"><div className='flex items-center gap-2'><ImageUp className='h-4 w-4'/> <span>Arka Plan</span></div></AccordionTrigger>
                     <AccordionContent className="pb-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label>Öğe Arka Plan Rengi</Label>
+                            <div className="flex gap-2 items-center">
+                                <div 
+                                    className="w-8 h-8 rounded border cursor-pointer flex-shrink-0" 
+                                    style={{ backgroundColor: activeView.backgroundColor || 'hsl(var(--background))' }}
+                                    onClick={() => document.getElementById('item-bg-color-input')?.click()}
+                                />
+                                <Input 
+                                    id="item-bg-color-input"
+                                    type="color" 
+                                    value={activeView.backgroundColor || '#ffffff'} 
+                                    onChange={(e) => onUpdate({ backgroundColor: e.target.value })}
+                                    className="h-8"
+                                />
+                                <span className="text-xs text-muted-foreground flex-1">
+                                  {activeView.backgroundColor || 'varsayılan'}
+                                </span>
+                            </div>
+                        </div>
+                        <Separator />
                         <div className="space-y-2">
                             <Label>Arka Plan Sığdırma</Label>
                              <ToggleGroup type="single" value={getCurrentBackgroundFit()} onValueChange={(value: 'cover' | 'contain' | 'repeat') => value && handleBackgroundFitChange(value)} className="grid grid-cols-3 gap-1">

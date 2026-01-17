@@ -17,6 +17,8 @@ import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { RatingPopoverContent } from './secondary-sidebar';
 import { useAppStore } from '@/lib/store';
+import { AudioTrackerFrame, AudioVisualizer } from './tracker-overlay';
+import { framePresets, animationPresets } from '@/lib/presets';
 
 
 declare global {
@@ -214,6 +216,42 @@ const ItemStyleSettings = ({ item, onUpdateItem }: { item: ContentItem, onUpdate
                         </div>
                     </div>
 
+                    <div className="space-y-2">
+                        <Label className="text-xs font-bold">Hazır Çerçeve Stilleri</Label>
+                        <div className="grid grid-cols-3 gap-1">
+                            {Object.keys(framePresets).map((key) => (
+                                <Button
+                                    key={key}
+                                    variant="outline"
+                                    size="sm"
+                                    className={cn("h-7 text-[9px] px-1", item.styles?.__preset === key && "bg-primary text-primary-foreground")}
+                                    onClick={() => onUpdateItem(item.id, { styles: { ...(item.styles || {}), ...framePresets[key], __preset: key } as any })}
+                                    title={`Preset: ${key}`}
+                                >
+                                    {key}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label className="text-xs font-bold">Animasyon</Label>
+                        <div className="grid grid-cols-3 gap-1">
+                            {Object.keys(animationPresets).map((key) => (
+                                <Button
+                                    key={key}
+                                    variant="outline"
+                                    size="sm"
+                                    className={cn("h-7 text-[9px] px-1", item.animation === key && "bg-primary text-primary-foreground")}
+                                    onClick={() => onUpdateItem(item.id, { animation: key as any })}
+                                    title={`Animasyon: ${key}`}
+                                >
+                                    {key}
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="pt-2 border-t">
                         <Button 
                             variant="ghost" 
@@ -288,7 +326,8 @@ type PlayerFrameProps = {
   activeAnimation?: string | null;
   allItems?: ContentItem[];
   onMouseDown?: (e: React.MouseEvent) => void;
-    isInteractive?: boolean;
+  isInteractive?: boolean;
+  playingItems?: string[];
 };
 
 const PlayerFrameComponent = ({ 
@@ -320,6 +359,7 @@ const PlayerFrameComponent = ({
     activeAnimation,
     allItems = [],
     isInteractive = true,
+    playingItems = [],
 }: PlayerFrameProps) => {
     const ref = useRef<HTMLDivElement>(null);
     const resizeOverlayRef = useRef<HTMLDivElement>(null);
@@ -685,6 +725,14 @@ const PlayerFrameComponent = ({
                         aspectRatio: item.playerAspectRatio === '16:9' ? '16 / 9' : item.playerAspectRatio === '1:1' ? '1 / 1' : undefined,
                     }}
                 >
+                    {/* Ses takipçi çerçevesi */}
+                    <AudioTrackerFrame
+                        enabled={audioTrackerEnabled}
+                        isActive={(item.type === 'audio' || item.type === 'video') && playingItems?.includes(item.id)}
+                        color="#ec4899"
+                        intensity={0.6}
+                    />
+                    
                                         {isPlayerHeaderVisible && (
                                             <div 
                                                 className={cn(
@@ -704,6 +752,24 @@ const PlayerFrameComponent = ({
                                                 onClick={handleHeaderClick}
                                                 onDoubleClick={handleHeaderDoubleClick}
                                             >
+                          {pointerFrameEnabled && (
+                            <div
+                              className="absolute inset-0 pointer-events-none"
+                              style={{
+                                borderRadius: globalStyles?.borderRadius,
+                                boxShadow: `0 0 0 calc(var(--interaction-width, 2px)) ${interactionColor}55, 0 0 ${glowDistance}px ${interactionColor}33`,
+                                border: `var(--interaction-width, 2px) solid ${interactionColor}aa`,
+                                opacity: interactionOpacity,
+                                mixBlendMode: 'screen',
+                                transition: 'opacity 150ms ease, background 200ms ease',
+                                ...(pointerFrameEnabled ? {
+                                  '--pointer-x': `${pointerPos.x * 100}%`,
+                                  '--pointer-y': `${pointerPos.y * 100}%`,
+                                  background: `radial-gradient(circle at var(--pointer-x) var(--pointer-y), ${interactionColor}40, transparent 60%)`,
+                                } : {}),
+                              }}
+                            />
+                          )}
                           <div className='flex items-center gap-0.5 truncate min-w-0'>
                             <div className='flex items-center justify-center h-3 w-3 text-muted-foreground/70 font-mono text-[8px] flex-shrink-0 hover:text-muted-foreground transition-colors'>{item.hierarchyId}</div>
                             <div className={cn('flex items-center justify-center h-3 w-3 text-muted-foreground/80 flex-shrink-0 transition-colors hover:scale-110', item.isInvalid && 'text-destructive' )}>

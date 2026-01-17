@@ -32,7 +32,7 @@ export default function CorporatePage() {
 			<header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border/50">
 				<nav className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
 					<Link href="/" className="font-bold text-lg hover:text-primary transition-colors">
-						CanvasFlow
+					tv25.app
 					</Link>
 					<Button asChild variant="outline" size="sm">
 						<Link href="/auth">Giriş Yap</Link>
@@ -47,7 +47,7 @@ export default function CorporatePage() {
 						Kurumsal Çözümler
 					</h1>
 					<p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-						Fortune 500'den startuplara kadar binlerce kuruluş CanvasFlow'u güveniyor.
+					Fortune 500'den startuplara kadar binlerce kuruluş tv25.app'u güveniyor.
 						Sınırsız ölçeklenebilirlik, güvenlik ve destek.
 					</p>
 				</div>
@@ -102,13 +102,13 @@ export default function CorporatePage() {
 							{
 								company: 'TechCorp Global',
 								industry: 'Yazılım & Teknoloji',
-								quote: 'CanvasFlow, 5000+ çalışanımızın işbirliğini tamamen dönüştürdü. Verimlilikte %40 artış sağladık.',
+								quote: 'tv25.app, 5000+ çalışanımızın işbirliğini tamamen dönüştürdü. Verimlilikte %40 artış sağladık.',
 								contact: 'CEO - John Smith'
 							},
 							{
 								company: 'EduHub International',
 								industry: 'Eğitim',
-								quote: '30+ ülkedeki eğitim kurumları ile CanvasFlow kullanıyoruz. Öğrenme deneyimi harika.',
+								quote: '30+ ülkedeki eğitim kurumları ile tv25.app kullanıyoruz. Öğrenme deneyimi harika.',
 								contact: 'Operasyon Direktörü - Sarah Johnson'
 							},
 							{
@@ -136,7 +136,7 @@ export default function CorporatePage() {
 				<div className="bg-card/30 border border-border/50 rounded-lg p-12 mb-20">
 					<h2 className="text-2xl font-bold mb-4">Entegrasyon & API</h2>
 					<p className="text-muted-foreground mb-8 max-w-2xl">
-						CanvasFlow, mevcut araçlarınız ile sorunsuz entegrasyon sağlar. REST API, Webhooks ve özel entegrasyon seçenekleri.
+						tv25.app, mevcut araçlarınız ile sorunsuz entegrasyon sağlar. REST API, Webhooks ve özel entegrasyon seçenekleri.
 					</p>
 					<div className="grid md:grid-cols-4 gap-4 mb-8">
 						{['Slack', 'Microsoft Teams', 'Salesforce', 'HubSpot', 'Zapier', 'Make.com', 'Jira', 'Asana'].map((tool, idx) => (

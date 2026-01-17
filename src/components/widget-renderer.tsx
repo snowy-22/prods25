@@ -10,6 +10,7 @@ import { toWidgetSize, WidgetSize } from '@/lib/widget-sizes';
 const DigitalClockWidget = dynamic(() => import('./widgets/clock-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const NotesWidget = dynamic(() => import('./widgets/notes-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const CalendarWidget = dynamic(() => import('./widgets/calendar-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const AdvancedCalendarWidget = dynamic(() => import('./widgets/advanced-calendar-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const GradientClockWidget = dynamic(() => import('./widgets/gradient-clock-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const AstronomicalClockWidget = dynamic(() => import('./widgets/astronomical-clock-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const ToDoListWidget = dynamic(() => import('./widgets/todo-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
@@ -137,6 +138,7 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   pomodoro: PomodoroWidget,
   todo: ToDoListWidget,
   calendar: CalendarWidget,
+  'advanced-calendar': AdvancedCalendarWidget,
   'social-feed': SocialFeedWidget,
   'user-list': UserListWidget,
   kanban: KanbanWidget,

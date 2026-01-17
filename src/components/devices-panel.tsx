@@ -82,6 +82,33 @@ export default function DevicesPanel({
     onShowInfo: (item: ContentItem) => void;
     sessionId: string;
 }) {
+  const [isDropZoneActive, setIsDropZoneActive] = React.useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDropZoneActive(true);
+  };
+
+  const handleDragLeave = () => {
+      setIsDropZoneActive(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDropZoneActive(false);
+      const data = e.dataTransfer.getData('application/json');
+      if (data) {
+          try {
+              const droppedItem = JSON.parse(data);
+              console.log(`Item "${droppedItem.title}" linked to devices panel`);
+          } catch (err) {
+              if (process.env.NODE_ENV === 'development') {
+                  console.error('Drop failed:', err);
+              }
+          }
+      }
+  };
+
   return (
     <div className="w-[350px] border-l bg-card flex-shrink-0 flex flex-col">
         <div className="p-4 border-b flex items-center justify-between">
@@ -99,8 +126,13 @@ export default function DevicesPanel({
                 <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4"/></Button>
             </div>
         </div>
-        <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
+        <ScrollArea className={`flex-1 transition-colors ${isDropZoneActive ? 'bg-primary/5' : ''}`}>
+            <div 
+                className="p-2 space-y-1"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+            >
                 {devices.map(device => {
                     const Icon = getIconByName(device.icon as IconName | undefined) || MonitorSmartphone;
                     const isActive = device.id === activeDeviceId;

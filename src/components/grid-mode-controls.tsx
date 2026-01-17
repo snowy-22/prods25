@@ -38,6 +38,7 @@ type GridModeControlsProps = {
   onChangeColumns: (columns: number) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
+  onChangePaginationMode?: (mode: 'pagination' | 'infinite') => void;
   totalItems: number;
   hasVideoItems?: boolean;
   onPlayAll?: () => void;
@@ -65,6 +66,7 @@ const GridModeControls = memo(function GridModeControls({
   onChangeColumns,
   onPreviousPage,
   onNextPage,
+  onChangePaginationMode,
   totalItems,
   hasVideoItems = false,
   onPlayAll,
@@ -141,7 +143,7 @@ const GridModeControls = memo(function GridModeControls({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-slate-900/50 to-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700/40 min-w-0 max-w-full overflow-x-auto shadow-lg">
+    <div className="flex flex-wrap items-center gap-2 px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 min-w-0 max-w-full overflow-x-auto">
       {/* Mode Switcher ve Column Selector artık sadece Viewport Editor'da.
           Bu bileşen sadece pagination dots ve video kontrollerini içerir. */}
 
@@ -220,6 +222,40 @@ const GridModeControls = memo(function GridModeControls({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Pagination Mode Toggle - Switch between pagination and infinite scroll */}
+      {gridState.enabled && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.2 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            const newMode = gridState.paginationMode === 'pagination' ? 'infinite' : 'pagination';
+            onChangePaginationMode?.(newMode);
+          }}
+          className={cn(
+            "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all border text-[11px] font-semibold",
+            gridState.paginationMode === 'pagination'
+              ? "bg-gradient-to-r from-blue-500/80 to-cyan-500/80 text-white shadow-lg shadow-blue-500/30 border-blue-400/40"
+              : "bg-gradient-to-r from-amber-500/80 to-orange-500/80 text-white shadow-lg shadow-amber-500/30 border-amber-400/40"
+          )}
+          title={`Sayfalama: ${gridState.paginationMode === 'pagination' ? 'Sayfa tabanlı' : 'Sonsuz kaydırma'}`}
+        >
+          {gridState.paginationMode === 'pagination' ? (
+            <>
+              <SquareStack className="w-4 h-4" />
+              <span className="hidden sm:inline">Sayfalama</span>
+            </>
+          ) : (
+            <>
+              <Columns3 className="w-4 h-4" />
+              <span className="hidden sm:inline">Sonsuz</span>
+            </>
+          )}
+        </motion.button>
+      )}
 
       {/* Spacer */}
       <div className="flex-1" />

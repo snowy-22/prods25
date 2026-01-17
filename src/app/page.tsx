@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, ButtonProps } from '@/components/ui/button';
 import { useAuth } from '@/providers/auth-provider';
 
@@ -15,6 +15,7 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/comp
 import { QRCodeCanvas } from 'qrcode.react';
 import { AnimatedBorderButton } from '@/components/animated-border-button';
 import SiteFooter from '@/components/site-footer';
+import { Suspense } from 'react';
 
 const Logo = () => {
 	const [pageUrl, setPageUrl] = useState('');
@@ -142,6 +143,22 @@ const heroWords = [
 	'Dijital Sanat Galerini',
 ];
 
+// OAuth code handler component
+function OAuthCodeHandler() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    const code = searchParams.get('code');
+    if (code) {
+      // Redirect to auth callback with the code
+      router.replace(`/auth/callback?code=${code}`);
+    }
+  }, [router, searchParams]);
+  
+  return null;
+}
+
 export default function LandingPage() {
   const [heroWordIndex, setHeroWordIndex] = useState(0);
   const heroWord = heroWords[heroWordIndex];
@@ -191,6 +208,10 @@ export default function LandingPage() {
 
 	return (
 		<div className="bg-black text-foreground font-body antialiased min-h-screen flex flex-col">
+			{/* Handle OAuth code if present in URL */}
+			<Suspense fallback={null}>
+				<OAuthCodeHandler />
+			</Suspense>
 			{isHeaderVisible && <MainHeader />}
 			<main className="flex-1 flex flex-col items-center justify-center px-2 sm:px-0 w-full">
 				<section className="w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-center gap-12 py-12 md:py-24 px-4">
@@ -199,7 +220,7 @@ export default function LandingPage() {
 						<h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-headline font-bold leading-tight">
 							<span className="block mb-2">Hayalindeki</span>
 							<span className={getWordStyle(heroWord)}>{heroWord}</span>
-							<span className="block mt-2">CanvasFlow ile oluştur!</span>
+							<span className="block mt-2">tv25.app ile oluştur!</span>
 						</h1>
 						<p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-md md:max-w-lg">
 							Web içeriklerini, videoları, widget'ları ve daha fazlasını tek bir dijital kanvasta organize et. Sürükle-bırak, AI entegrasyonu ve çoklu görünüm modları ile üretkenliğini artır.
@@ -229,7 +250,7 @@ export default function LandingPage() {
 				<section className="w-full bg-gradient-to-b from-background to-accent/5 py-20">
 					<div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
 						<div className="text-center mb-16">
-							<h2 className="text-3xl md:text-4xl font-bold mb-4">Neden CanvasFlow?</h2>
+							<h2 className="text-3xl md:text-4xl font-bold mb-4">Neden tv25.app?</h2>
 							<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
 								Tüm dijital içeriklerinizi organize etmek ve yönetmek için gereken güçlü araçlar
 							</p>
@@ -345,7 +366,7 @@ export default function LandingPage() {
 						<div className="text-center mb-12">
 							<h2 className="text-3xl md:text-4xl font-bold mb-4">Kurumsal Çözümler</h2>
 							<p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-								Büyük takımlar ve kuruluşlar için özelleştirilmiş CanvasFlow deneyimi
+							Büyük takımlar ve kuruluşlar için özelleştirilmiş tv25.app deneyimi
 							</p>
 						</div>
 

@@ -308,6 +308,8 @@ interface AppStore {
   customNewTabContent?: ContentItem;
   customStartupContent?: ContentItem;
   isSecondLeftSidebarOpen: boolean;
+  secondarySidebarOverlayMode: boolean; // Desktop overlay mode for secondary sidebar
+  secondarySidebarWidth: number; // Width in pixels (min: 280, max: 600, default: 320)
   activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | null;
   isStyleSettingsOpen: boolean;
   isViewportEditorOpen: boolean;
@@ -481,6 +483,7 @@ interface AppStore {
   setGridModeType: (type: 'vertical' | 'square') => void;
   setGridColumns: (columns: number) => void;
   setGridCurrentPage: (page: number) => void;
+  setGridPaginationMode: (mode: 'pagination' | 'infinite') => void;
   
   openInNewTab: (item: ContentItem, allItems: ContentItem[], isTemporary?: boolean) => void;
   createNewTab: () => void;
@@ -488,6 +491,8 @@ interface AppStore {
   closeTab: (tabId: string) => void;
   togglePanel: (panel: 'isSecondLeftSidebarOpen' | 'isStyleSettingsOpen' | 'isSpacesPanelOpen' | 'isDevicesPanelOpen' | 'isViewportEditorOpen', open?: boolean) => void;
   setActiveSecondaryPanel: (panel: AppStore['activeSecondaryPanel']) => void;
+  toggleSecondarySidebarOverlayMode: () => void;
+  setSecondarySidebarWidth: (width: number) => void;
   setEcommerceView: (view: EcommerceView) => void;
   updateSearchPanel: (update: Partial<SearchPanelState>) => void;
   setItemToShare: (item: ContentItem | null) => void;
@@ -848,6 +853,8 @@ export const useAppStore = create<AppStore>()(
       newTabBehavior: 'chrome-style',
       startupBehavior: 'last-session',
       isSecondLeftSidebarOpen: true,
+      secondarySidebarOverlayMode: false,
+      secondarySidebarWidth: 320, // Default width in pixels
       activeSecondaryPanel: 'library',
       isStyleSettingsOpen: false,
       isViewportEditorOpen: false,
@@ -885,7 +892,8 @@ export const useAppStore = create<AppStore>()(
         currentPage: 1, // Her zaman 1. sayfadan başla
         totalPages: 1,
         itemsPerPage: 3,
-        totalItems: 0
+        totalItems: 0,
+        paginationMode: 'pagination'
       },
 
       // Messaging defaults
@@ -1501,6 +1509,7 @@ export const useAppStore = create<AppStore>()(
       setGridModeType: (type) => set({ gridModeState: { ...get().gridModeState, type, currentPage: 1 } }),
       setGridColumns: (columns) => set({ gridModeState: { ...get().gridModeState, columns, currentPage: 1 } }),
       setGridCurrentPage: (page) => set({ gridModeState: { ...get().gridModeState, currentPage: page } }),
+      setGridPaginationMode: (mode) => set({ gridModeState: { ...get().gridModeState, paginationMode: mode } }),
       
       setLayoutMode: (layoutMode) => {
         const normalized = layoutMode === 'canvas' ? 'canvas' : 'grid';
@@ -1736,6 +1745,11 @@ export const useAppStore = create<AppStore>()(
       togglePanel: (panel, open) => set((state) => ({ [panel]: open !== undefined ? open : !state[panel] })),
       setEcommerceView: (view) => set({ ecommerceView: view }),
       setActiveSecondaryPanel: (panel) => set({ activeSecondaryPanel: panel, isSecondLeftSidebarOpen: !!panel }),
+      toggleSecondarySidebarOverlayMode: () => set((state) => ({ secondarySidebarOverlayMode: !state.secondarySidebarOverlayMode })),
+      setSecondarySidebarWidth: (width) => {
+        const clampedWidth = Math.max(280, Math.min(600, width));
+        set({ secondarySidebarWidth: clampedWidth });
+      },
       updateSearchPanel: (update) => set((state) => ({ searchPanelState: { ...state.searchPanelState, ...update } })),
       setItemToShare: (item) => set({ itemToShare: item }),
       setItemToSave: (item) => set({ itemToSave: item }),
@@ -1764,7 +1778,7 @@ export const useAppStore = create<AppStore>()(
           if (startIndex !== -1 && endIndex !== -1) {
             const [from, to] = startIndex <= endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
             const rangeIds = orderedIds.slice(from, to + 1);
-            newSelected = Array.from(new Set([...state.selectedItemIds, ...rangeIds]));
+            newSelected = [...new Set([...state.selectedItemIds, ...rangeIds])];
             return { selectedItemIds: newSelected };
           }
         }
@@ -1888,7 +1902,7 @@ export const useAppStore = create<AppStore>()(
         return {
           tabGroups: state.tabGroups.map(g => 
             g.id === groupId 
-              ? { ...g, tabIds: Array.from(new Set([...g.tabIds, tabId])) }
+              ? { ...g, tabIds: [...new Set([...g.tabIds, tabId])] }
               : g
           ),
           tabs: state.tabs.map(tab => 
@@ -2019,7 +2033,7 @@ export const useAppStore = create<AppStore>()(
             ...state.privateAccounts,
             [currentUser]: {
               ...account,
-              blockedUsers: Array.from(new Set([...account.blockedUsers, userId]))
+              blockedUsers: [...new Set([...account.blockedUsers, userId])]
             }
           }
         };
@@ -4288,6 +4302,7 @@ export const useAppStore = create<AppStore>()(
         customStartupContent: state.customStartupContent,
         isSecondLeftSidebarOpen: state.isSecondLeftSidebarOpen,
         activeSecondaryPanel: state.activeSecondaryPanel,
+        secondarySidebarWidth: state.secondarySidebarWidth,
         gridModeState: state.gridModeState,
         expandedItems: state.expandedItems,
         // API Keys (persisted for user convenience and privacy)

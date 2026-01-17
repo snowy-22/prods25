@@ -1781,3 +1781,178 @@ export async function getSharingLinks(sharedItemId: string) {
   if (error) throw error;
   return data;
 }
+/**
+ * Comments & Analyses Sync
+ */
+export async function saveComment(itemId: string, comment: any) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('item_comments')
+    .insert({
+      item_id: itemId,
+      user_id: user.id,
+      user_name: comment.userName,
+      content: comment.content,
+      created_at: comment.createdAt,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function saveAnalysis(itemId: string, analysis: any) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('item_analyses')
+    .insert({
+      item_id: itemId,
+      user_id: user.id,
+      user_name: analysis.userName,
+      type: analysis.type,
+      title: analysis.title,
+      content: analysis.content,
+      created_at: analysis.createdAt,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function loadComments(itemId: string) {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('item_comments')
+    .select('*')
+    .eq('item_id', itemId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function loadAnalyses(itemId: string) {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('item_analyses')
+    .select('*')
+    .eq('item_id', itemId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function subscribeFolderComments(folderId: string, callback: (comments: any[]) => void) {
+  const supabase = createClient();
+
+  const channel = supabase
+    .channel(`folder_comments:${folderId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'item_comments', filter: `item_id=eq.${folderId}` },
+      async () => {
+        const comments = await loadComments(folderId);
+        callback(comments);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
+export async function saveLike(itemId: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  // Check if already liked
+  const { data: existing } = await supabase
+    .from('item_likes')
+    .select('id')
+    .eq('item_id', itemId)
+    .eq('user_id', user.id)
+    .single();
+
+  if (existing) {
+    // Unlike
+    const { error } = await supabase
+      .from('item_likes')
+      .delete()
+      .eq('id', existing.id);
+    if (error) throw error;
+    return false; // unliked
+  } else {
+    // Like
+    const { error } = await supabase
+      .from('item_likes')
+      .insert({
+        item_id: itemId,
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+      });
+    if (error) throw error;
+    return true; // liked
+  }
+}
+
+export async function getLikesCount(itemId: string) {
+  const supabase = createClient();
+
+  const { count, error } = await supabase
+    .from('item_likes')
+    .select('*', { count: 'exact', head: true })
+    .eq('item_id', itemId);
+
+  if (error) throw error;
+  return count || 0;
+}
+
+// Comment Management Functions
+export async function updateComment(commentId: string, content: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('item_comments')
+    .update({
+      content,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', commentId)
+    .eq('user_id', user.id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteComment(commentId: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('item_comments')
+    .delete()
+    .eq('id', commentId)
+    .eq('user_id', user.id);
+
+  if (error) throw error;
+  return true;
+}

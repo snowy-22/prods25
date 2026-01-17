@@ -1,0 +1,49 @@
+    // Handle drag events
+    useEffect(() => {
+        if (!isResizing) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const containerLeft = 56; // Left sidebar width (w-12 = 48px + some margin)
+            const newWidth = e.clientX - containerLeft;
+            setSecondarySidebarWidth(newWidth); // Already clamped in store action
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const containerLeft = 56;
+            const newWidth = touch.clientX - containerLeft;
+            setSecondarySidebarWidth(newWidth);
+        };
+
+        const handleEnd = () => {
+            setIsResizing(false);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('mouseup', handleEnd);
+        document.addEventListener('touchend', handleEnd);
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('mouseup', handleEnd);
+            document.removeEventListener('touchend', handleEnd);
+        };
+    }, [isResizing, setSecondarySidebarWidth]);
+
+    // Cursor feedback during resize
+    useEffect(() => {
+        if (isResizing) {
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        } else {
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+        return () => {
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+    }, [isResizing]);

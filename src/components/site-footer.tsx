@@ -43,7 +43,7 @@ export default function SiteFooter() {
 						<Link href="/privacy" className="hover:text-primary">Aydınlatma Metni</Link>
 						<Link href="/kvkk" className="hover:text-primary">KVKK</Link>
 					</div>
-					<p>© {new Date().getFullYear()} tv25.app | CanvasFlow</p>
+					<p>© {new Date().getFullYear()} tv25.app</p>
 				</div>
 			</div>
 		</footer>

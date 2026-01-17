@@ -469,10 +469,10 @@ function GlobalSearch({
                         </div>
                         <div>
                             <h3 className="text-xs font-semibold text-muted-foreground mb-2">Hızlı Erişim Widget'ları</h3>
-                            {suggestedWidgets.map((widget) => {
-                                const Icon = getIconByName(widget.icon as any);
+                            {suggestedWidgets.map((widget, idx) => {
+                                const Icon = getIconByName(widget.icon);
                                 return (
-                                <Button key={widget.title} variant="ghost" className="w-full justify-start" onClick={() => { onAddWidget(widget); handleOpenChange(false); }}>
+                                <Button key={`widget-${idx}`} variant="ghost" className="w-full justify-start" onClick={() => { onAddWidget(widget); handleOpenChange(false); }}>
                                     {Icon && <Icon className="mr-2 h-4 w-4"/>} {widget.title}
                                 </Button>
                             )})}
@@ -480,8 +480,8 @@ function GlobalSearch({
                         <div className="pt-4">
                             <h3 className="text-sm font-semibold text-muted-foreground mb-4">Size Özel Öneriler</h3>
                             <div className="space-y-4">
-                                {suggestionSets.map(set => (
-                                    <Card key={set.title}>
+                                {suggestionSets.map((set, idx) => (
+                                    <Card key={`set-${idx}`}>
                                         <CardHeader>
                                             <CardTitle className="text-base">{set.title}</CardTitle>
                                             <CardDescription>{set.description}</CardDescription>

@@ -1034,6 +1034,89 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     const [viewportRect, setViewportRect] = useState<{ top: number; height: number } | undefined>(undefined);
     const canvasScrollRef = useRef<HTMLDivElement>(null);
     
+    // Stable handlers to prevent infinite rerenders
+    const toggleSecondLeftSidebar = useCallback((open?: boolean) => {
+        state.togglePanel('isSecondLeftSidebarOpen', open);
+    }, [state]);
+    
+    const toggleSearchDialog = useCallback(() => {
+        state.updateSearchPanel({ isOpen: true });
+    }, [state]);
+    
+    const toggleSpacesPanel = useCallback(() => {
+        state.togglePanel('isSpacesPanelOpen');
+    }, [state]);
+    
+    const toggleDevicesPanel = useCallback(() => {
+        state.togglePanel('isDevicesPanelOpen');
+    }, [state]);
+    
+    const toggleStyleSettingsPanel = useCallback(() => {
+        state.togglePanel('isStyleSettingsOpen');
+    }, [state]);
+    
+    const toggleViewportEditor = useCallback(() => {
+        state.togglePanel('isViewportEditorOpen');
+    }, [state]);
+    
+    const toggleFullscreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }, []);
+    
+    const toggleSettingsDialog = useCallback(() => {
+        setIsSettingsOpen(true);
+    }, []);
+    
+    const handleSetViewForSidebar = useCallback((item: ContentItem | null) => {
+        if (item) {
+            state.updateTab(state.activeTabId, { activeViewId: item.id });
+        } else {
+            handleSetView(null);
+        }
+    }, [state, handleSetView]);
+    
+    // Stable mouse event handlers to prevent infinite rerenders
+    const handleLeftSidebarEnter = useCallback(() => {
+        isUiHidden && setIsLeftSidebarHovered(true);
+    }, [isUiHidden]);
+    
+    const handleLeftSidebarLeave = useCallback(() => {
+        isUiHidden && setIsLeftSidebarHovered(false);
+    }, [isUiHidden]);
+    
+    const handleTopBarEnter = useCallback(() => {
+        isUiHidden && setIsTopBarHovered(true);
+    }, [isUiHidden]);
+    
+    const handleTopBarLeave = useCallback(() => {
+        isUiHidden && setIsTopBarHovered(false);
+    }, [isUiHidden]);
+    
+    const handleBottomBarEnter = useCallback(() => {
+        isUiHidden && setIsBottomBarHovered(true);
+    }, [isUiHidden]);
+    
+    const handleBottomBarLeave = useCallback(() => {
+        isUiHidden && setIsBottomBarHovered(false);
+    }, [isUiHidden]);
+    
+    const handleRightSidebarEnter = useCallback(() => {
+        isUiHidden && setIsRightSidebarHovered(true);
+    }, [isUiHidden]);
+    
+    const handleRightSidebarLeave = useCallback(() => {
+        isUiHidden && setIsRightSidebarHovered(false);
+    }, [isUiHidden]);
+    
+    const handleTriggerLeftSidebarEnter = useCallback(() => setIsLeftSidebarHovered(true), []);
+    const handleTriggerTopBarEnter = useCallback(() => setIsTopBarHovered(true), []);
+    const handleTriggerBottomBarEnter = useCallback(() => setIsBottomBarHovered(true), []);
+    const handleTriggerRightSidebarEnter = useCallback(() => setIsRightSidebarHovered(true), []);
+    
     // Dinamik bottom panel height - tab sayısına göre (responsive)
     const bottomPanelHeight = useMemo(() => {
         const baseHeight = 180; // Base content height
@@ -1115,12 +1198,15 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         ? 260 // Slightly wider on tablet to close gap
         : (rightSidebarWidth || 320); // User-adjustable on desktop, fallback 320px
     
-    // Calculate responsive secondary sidebar width (player panel)
-    const responsiveSecondaryPanelWidth = responsive.isMobile
-      ? 0 // Hidden on mobile (drawer mode)
-      : responsive.isTablet
-        ? 280 // Compact on tablet to prevent overflow
-        : Math.min(360, Math.max(280, responsive.windowWidth * 0.18)); // Responsive between 280px-360px
+        // Calculate secondary sidebar width (player panel)
+        // Desktop: use store-driven width (resizable)
+        // Tablet: compact fixed width to prevent overflow
+        // Mobile: hidden (drawer mode)
+        const responsiveSecondaryPanelWidth = responsive.isMobile
+            ? 0
+            : responsive.isTablet
+                ? 280
+                : state.secondarySidebarWidth; // comes from store and is clamped 280–600
     const [isResizing, setIsResizing] = useState(false);
     const [isRightResizing, setIsRightResizing] = useState(false);
 
@@ -1516,39 +1602,47 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                         <>
                             <div 
                                 className="ui-trigger-zone ui-trigger-zone-left"
-                                onMouseEnter={() => setIsLeftSidebarHovered(true)}
+                                onMouseEnter={handleTriggerLeftSidebarEnter}
                             />
                             <div 
                                 className="ui-trigger-zone ui-trigger-zone-top"
-                                onMouseEnter={() => setIsTopBarHovered(true)}
+                                onMouseEnter={handleTriggerTopBarEnter}
                             />
                             <div 
                                 className="ui-trigger-zone ui-trigger-zone-bottom"
-                                onMouseEnter={() => setIsBottomBarHovered(true)}
+                                onMouseEnter={handleTriggerBottomBarEnter}
                             />
                             <div 
                                 className="ui-trigger-zone ui-trigger-zone-right"
-                                onMouseEnter={() => setIsRightSidebarHovered(true)}
+                                onMouseEnter={handleTriggerRightSidebarEnter}
                             />
+                            {/* Show UI Button when hidden */}
+                            <button
+                                onClick={() => setIsUiHidden(false)}
+                                className="fixed bottom-4 right-4 z-[100] px-3 py-2 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:bg-primary/90 transition-colors"
+                                title="UI gizli (Ctrl+H ile aç/kapat)"
+                            >
+                              UI Göster (Ctrl+H)
+                            </button>
                         </>
                     )}
 
                     <div 
                         className={cn(
-                            'flex h-full transition-all duration-300 ease-in-out flex-shrink-0', 
+                            'flex h-full transition-all duration-300 ease-in-out flex-shrink-0 w-auto', 
                             isUiHidden ? 'fixed left-0 top-0 bottom-0 z-50 shadow-2xl' : 'relative',
                             isUiHidden && !isLeftSidebarHovered ? '-translate-x-full' : 'translate-x-0'
                         )}
-                        onMouseEnter={() => isUiHidden && setIsLeftSidebarHovered(true)}
-                        onMouseLeave={() => isUiHidden && setIsLeftSidebarHovered(false)}
+                        onMouseEnter={handleLeftSidebarEnter}
+                        onMouseLeave={handleLeftSidebarLeave}
                     >
                         <PrimarySidebar
                             username={state.username || ''} setUsername={state.setUsername}
                             activeSecondaryPanel={state.activeSecondaryPanel} setActiveSecondaryPanel={state.setActiveSecondaryPanel}
-                            isSecondLeftSidebarOpen={state.isSecondLeftSidebarOpen} toggleSecondLeftSidebar={(open) => state.togglePanel('isSecondLeftSidebarOpen', open)}
-                            toggleSearchDialog={() => state.updateSearchPanel({ isOpen: true })}
-                            toggleSettingsDialog={() => setIsSettingsOpen(true)}
-                            onUpdateItem={updateItem} allItems={allItems} onSetView={(item) => item ? state.updateTab(state.activeTabId, { activeViewId: item.id }) : handleSetView(null) }
+                            isSecondLeftSidebarOpen={state.isSecondLeftSidebarOpen} toggleSecondLeftSidebar={toggleSecondLeftSidebar}
+                            toggleSearchDialog={toggleSearchDialog}
+                            toggleSettingsDialog={toggleSettingsDialog}
+                            onUpdateItem={updateItem} allItems={allItems} onSetView={handleSetViewForSidebar}
                             unreadMessagesCount={0} unreadNotificationsCount={0}
                             onShare={state.setItemToShare}
                             sessionId={"session-123"}
@@ -1557,18 +1651,16 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             onSetBroadcastTarget={setActiveBroadcastTargetId}
                             isSpacesPanelOpen={state.isSpacesPanelOpen}
                             isDevicesPanelOpen={state.isDevicesPanelOpen}
-                            toggleSpacesPanel={() => state.togglePanel('isSpacesPanelOpen')}
-                            toggleDevicesPanel={() => state.togglePanel('isDevicesPanelOpen')}
+                            toggleSpacesPanel={toggleSpacesPanel}
+                            toggleDevicesPanel={toggleDevicesPanel}
                             isFullscreen={isFullscreen}
-                            toggleFullscreen={() => { 
-                                if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); } else { document.exitFullscreen(); }
-                            }}
+                            toggleFullscreen={toggleFullscreen}
                             isUiHidden={isUiHidden}
                             setIsUiHidden={setIsUiHidden}
                             isStyleSettingsOpen={state.isStyleSettingsOpen}
-                            toggleStyleSettingsPanel={() => state.togglePanel('isStyleSettingsOpen')}
+                            toggleStyleSettingsPanel={toggleStyleSettingsPanel}
                             isViewportEditorOpen={state.isViewportEditorOpen}
-                            toggleViewportEditor={() => state.togglePanel('isViewportEditorOpen')}
+                            toggleViewportEditor={toggleViewportEditor}
                             activeViewId={activeView?.id}
                             normalizedLayoutMode={normalizedLayoutMode}
                             gridModeState={state.gridModeState}
@@ -1578,7 +1670,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             setGridCurrentPage={state.setGridCurrentPage}
                         />
                         {/* Backdrop overlay for mobile/tablet */}
-                        {state.isSecondLeftSidebarOpen && (responsive.isMobile || responsive.isTablet) && (
+                        {state.isSecondLeftSidebarOpen && (responsive.isMobile || responsive.isTablet || state.secondarySidebarOverlayMode) && (
                             <div 
                                 className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in duration-300"
                                 onClick={() => state.togglePanel('isSecondLeftSidebarOpen', false)}
@@ -1590,12 +1682,12 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             <div 
                                 className={cn(
                                     "border-r flex-shrink-0 overflow-hidden bg-background shadow-2xl z-50",
-                                    responsive.isMobile || responsive.isTablet
+                                    responsive.isMobile || responsive.isTablet || state.secondarySidebarOverlayMode
                                         ? "fixed left-14 top-0 bottom-0 animate-in slide-in-from-left duration-300" // Overlay mode
                                         : "relative" // Normal flow on desktop
                                 )}
                                 style={{ 
-                                    width: responsive.isMobile || responsive.isTablet 
+                                    width: responsive.isMobile || responsive.isTablet || state.secondarySidebarOverlayMode
                                         ? '280px' 
                                         : `${responsiveSecondaryPanelWidth}px`, 
                                     minWidth: '200px', 
@@ -1654,8 +1746,8 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                  isUiHidden ? "fixed top-0 left-0 right-0 shadow-lg" : "relative",
                                  isUiHidden && !isTopBarHovered ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
                              )}
-                             onMouseEnter={() => isUiHidden && setIsTopBarHovered(true)}
-                             onMouseLeave={() => isUiHidden && setIsTopBarHovered(false)}
+                             onMouseEnter={handleTopBarEnter}
+                             onMouseLeave={handleTopBarLeave}
                           >
                               <div className="p-2 flex items-center justify-between gap-4">
                                 <HeaderInfo
@@ -1849,6 +1941,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                                 onChangeColumns={state.setGridColumns}
                                                 onPreviousPage={() => state.setGridCurrentPage(Math.max(1, state.gridModeState.currentPage - 1))}
                                                 onNextPage={() => state.setGridCurrentPage(state.gridModeState.currentPage + 1)}
+                                                onChangePaginationMode={state.setGridPaginationMode}
                                                 totalItems={activeViewChildren.length}
                                             />
                                         </div>
@@ -1913,10 +2006,11 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                 isUiHidden ? "fixed bottom-0 left-0 right-0 z-[60] shadow-[0_-10px_20px_rgba(0,0,0,0.1)]" : "relative",
                                 isUiHidden && !isBottomBarHovered ? "translate-y-full" : "translate-y-0"
                             )}
-                            onMouseEnter={() => isUiHidden && setIsBottomBarHovered(true)}
-                            onMouseLeave={() => isUiHidden && setIsBottomBarHovered(false)}
+                            onMouseEnter={handleBottomBarEnter}
+                            onMouseLeave={handleBottomBarLeave}
                          >
                             <MiniMapOverlay
+                                key={`minimap-${activeView?.id || 'root'}`}
                                 items={activeViewChildren}
                                 playerControlGroups={state.playerControlGroups}
                                 isOpen={isMiniMapOpen}
@@ -1990,17 +2084,17 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                             </Tabs>
                         </div>
                     </div>
+                    {state.isStyleSettingsOpen && (
                     <div 
                         className={cn(
                             'relative z-40 transition-all duration-300 ease-in-out', 
                             isUiHidden ? 'fixed right-0 top-0 bottom-0 z-50 shadow-2xl' : 'relative',
                             isUiHidden && !isRightSidebarHovered ? 'translate-x-full' : 'translate-x-0'
                         )}
-                        style={{ width: state.isStyleSettingsOpen ? `${rightSidebarWidth}px` : '0px' }}
-                        onMouseEnter={() => isUiHidden && setIsRightSidebarHovered(true)}
-                        onMouseLeave={() => isUiHidden && setIsRightSidebarHovered(false)}
+                        style={{ width: `${rightSidebarWidth}px` }}
+                        onMouseEnter={handleRightSidebarEnter}
+                        onMouseLeave={handleRightSidebarLeave}
                     >
-                        {state.isStyleSettingsOpen && (
                             <StyleSettingsPanel
                                     activeView={activeView} onClose={() => state.togglePanel('isStyleSettingsOpen')}
                                     onUpdate={(updates) => updateItem(activeView.id, updates)}
@@ -2016,33 +2110,33 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                         toast({ title: 'Tüm hücreler eşitlendi', description: 'Özel stiller temizlendi.' });
                                     }}
                                 />
-                        )}
                     </div>
+                    )}
                     
+                    {state.isViewportEditorOpen && (
                     <div 
                         className={cn(
                             'relative z-40 transition-all duration-300 ease-in-out', 
                             isUiHidden ? 'fixed right-0 top-0 bottom-0 z-50 shadow-2xl' : 'relative',
                             isUiHidden && !isRightSidebarHovered ? 'translate-x-full' : 'translate-x-0'
                         )}
-                        style={{ width: state.isViewportEditorOpen ? `${rightSidebarWidth}px` : '0px' }}
-                        onMouseEnter={() => isUiHidden && setIsRightSidebarHovered(true)}
-                        onMouseLeave={() => isUiHidden && setIsRightSidebarHovered(false)}
+                        style={{ width: `${rightSidebarWidth}px` }}
+                        onMouseEnter={handleRightSidebarEnter}
+                        onMouseLeave={handleRightSidebarLeave}
                     >
-                        {state.isViewportEditorOpen && (
-                            <ViewportEditor
-                                item={state.selectedItemIds.length > 0 ? allItems.find(i => i.id === state.selectedItemIds[0]) || activeView : activeView}
-                                onUpdateItem={(updates) => {
-                                    const targetItemId = state.selectedItemIds[0];
-                                    const targetItem = targetItemId ? allItems.find(i => i.id === targetItemId) : activeView;
-                                    if (targetItem) {
-                                        updateItem(targetItem.id, updates);
-                                    }
-                                }}
-                                onClose={() => state.togglePanel('isViewportEditorOpen')}
-                            />
-                        )}
+                        <ViewportEditor
+                            item={state.selectedItemIds.length > 0 ? allItems.find(i => i.id === state.selectedItemIds[0]) || activeView : activeView}
+                            onUpdateItem={(updates) => {
+                                const targetItemId = state.selectedItemIds[0];
+                                const targetItem = targetItemId ? allItems.find(i => i.id === targetItemId) : activeView;
+                                if (targetItem) {
+                                    updateItem(targetItem.id, updates);
+                                }
+                            }}
+                            onClose={() => state.togglePanel('isViewportEditorOpen')}
+                        />
                     </div>
+                    )}
                     
                     {state.chatPanels.map(panel => (
                         <AiChatDialog
@@ -2166,8 +2260,8 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                         <div className="fixed top-4 right-4 z-50 group">
                              <div 
                                 className={cn("opacity-20 hover:opacity-100 transition-opacity duration-300 flex items-center gap-2 p-1 bg-background/50 backdrop-blur-md rounded-lg border", isTopBarHovered && "opacity-100")}
-                                onMouseEnter={() => setIsTopBarHovered(true)}
-                                onMouseLeave={() => setIsTopBarHovered(false)}
+                                onMouseEnter={handleTopBarEnter}
+                                onMouseLeave={handleTopBarLeave}
                              >
                                <AppLogo className="h-8 w-8 ml-2"/>
                                 <TooltipProvider>

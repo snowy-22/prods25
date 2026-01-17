@@ -8,7 +8,7 @@ import { motion, PanInfo } from 'framer-motion';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { ContentItem, SortDirection, SortOption, widgetTemplates, RatingEvent, ItemType } from '@/lib/initial-content';
+import { ContentItem, SortDirection, SortOption, widgetTemplates, RatingEvent, ItemType, Comment } from '@/lib/initial-content';
 import { useAppStore } from '@/lib/store';
 import { SocialPanel } from './social-panel';
 import { ProfilePanel } from './profile-panel';
@@ -83,6 +83,7 @@ import {
   Phone,
   Users2,
   Map,
+  TrendingUp,
 } from 'lucide-react';
 import { FaGoogleDrive, FaDropbox } from 'react-icons/fa';
 import { formatDistanceToNow } from 'date-fns';
@@ -143,6 +144,8 @@ import { Textarea } from './ui/textarea';
 import UnifiedGridPreview from './unified-grid-preview';
 import UrlInputWidget from './widgets/url-input-widget';
 import { WidgetRenderer } from './widget-renderer';
+import { Message as StoreMessage } from '@/lib/store';
+import { Message as MessagingMessage, MessageType as MessagingMessageType } from '@/lib/messaging-types';
 
 function formatCompactNumber(number: number) {
   if (number < 1000) return number.toString();
@@ -519,7 +522,7 @@ const WidgetCard = memo(function WidgetCard({
 
 
 type SecondarySidebarProps = {
-  type: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups';
+  type: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards';
   // Library props
   allItems?: ContentItem[];
   onSetView?: (item: ContentItem | null, event?: React.MouseEvent | React.TouchEvent) => void;
@@ -569,6 +572,63 @@ type SecondarySidebarProps = {
 
 export const RatingPopoverContent = ({ item, onUpdateItem }: { item: ContentItem, onUpdateItem: (id: string, updates: Partial<ContentItem>) => void }) => {
     const { toast } = useToast();
+    const [commentText, setCommentText] = useState('');
+    const [likesCount, setLikesCount] = useState(0);
+    const [isLiked, setIsLiked] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    // Load like status on mount
+    useEffect(() => {
+      const loadLikeStatus = async () => {
+        try {
+          const { getLikesCount } = await import('@/lib/supabase-sync');
+          const supabase = await import('@/lib/supabase/client').then(m => m.createClient());
+          
+          const count = await getLikesCount(item.id);
+          setLikesCount(count);
+          
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: likeData } = await supabase
+              .from('item_likes')
+              .select('id')
+              .eq('item_id', item.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
+            setIsLiked(!!likeData);
+          }
+        } catch (error) {
+          console.warn('Failed to load like status:', error);
+        }
+      };
+      loadLikeStatus();
+    }, [item.id]);
+
+    const handleToggleLike = useCallback(async () => {
+      if (!item) return;
+      try {
+        setIsSyncing(true);
+        const { saveLike, getLikesCount } = await import('@/lib/supabase-sync');
+        
+        const liked = await saveLike(item.id);
+        const count = await getLikesCount(item.id);
+        
+        setIsLiked(liked);
+        setLikesCount(count);
+        
+        toast({
+          title: liked ? '❤️ Beğendim' : '💔 Beğeni Kaldırıldı',
+          description: `Toplam beğeni: ${count}`
+        });
+      } catch (error) {
+        console.warn('Like toggle failed:', error);
+        setIsLiked(!isLiked);
+        setLikesCount(l => isLiked ? l - 1 : l + 1);
+      } finally {
+        setIsSyncing(false);
+      }
+    }, [item, toast]);
+
     const handleRating = (newRating: number) => {
         const newRatingEvent: RatingEvent = {
             userId: 'guest', // Replace with actual user ID
@@ -583,7 +643,29 @@ export const RatingPopoverContent = ({ item, onUpdateItem }: { item: ContentItem
         } else {
             updatedRatings.push(newRatingEvent);
         }
-        onUpdateItem(item.id, { ratings: updatedRatings, myRating: newRating });
+        const averageRating = updatedRatings.length > 0
+          ? updatedRatings.reduce((sum, r) => sum + r.rating, 0) / updatedRatings.length
+          : 0;
+        onUpdateItem(item.id, { ratings: updatedRatings, myRating: newRating, averageRating });
+    };
+
+    const handleSubmitComment = () => {
+        if (!commentText.trim()) return;
+        const newComment: Comment = {
+            id: `c-${Date.now()}`,
+            userId: 'guest',
+            userName: 'Misafir',
+            content: commentText.trim(),
+            createdAt: new Date().toISOString(),
+            likes: 0,
+        };
+        const updatedComments = [...(item.comments || []), newComment];
+        onUpdateItem(item.id, { 
+            comments: updatedComments, 
+            commentCount: (item.commentCount || 0) + 1
+        });
+        setCommentText('');
+        toast({ title: 'Yorum eklendi' });
     };
 
     const renderStars = (currentRating: number | undefined) => {
@@ -609,6 +691,25 @@ export const RatingPopoverContent = ({ item, onUpdateItem }: { item: ContentItem
                         Bu öğeyi değerlendirin ve düşüncelerinizi paylaşın.
                     </p>
                 </div>
+
+                {/* Like Button Section */}
+                <div className="flex items-center justify-between p-2 bg-accent/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <ThumbsUp className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">{likesCount} {likesCount === 1 ? 'beğeni' : 'beğeni'}</span>
+                    </div>
+                    <Button 
+                        variant={isLiked ? "default" : "ghost"}
+                        size="sm"
+                        className={cn(isLiked && "bg-red-500 hover:bg-red-600")}
+                        onClick={handleToggleLike}
+                        disabled={isSyncing}
+                    >
+                        <ThumbsUp className={cn("h-4 w-4", isLiked && "fill-current")} />
+                        {isLiked ? 'Beğendim' : 'Beğen'}
+                    </Button>
+                </div>
+
                 {item.sharing?.canRate !== false && (
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Puanınız</label>
@@ -620,8 +721,17 @@ export const RatingPopoverContent = ({ item, onUpdateItem }: { item: ContentItem
                  {item.sharing?.canComment !== false && (
                      <div className="space-y-2">
                         <label className="text-sm font-medium">Yorum</label>
-                        <Textarea placeholder="Yorumunuzu buraya yazın..."/>
-                        <Button size="sm" className="w-full mt-2" onClick={() => toast({ title: 'Yorum ve Puan Gönderildi!' })}>
+                        <Textarea 
+                            placeholder="Yorumunuzu buraya yazın..."
+                            value={commentText}
+                            onChange={(e) => setCommentText(e.target.value)}
+                        />
+                        <Button 
+                            size="sm" 
+                            className="w-full mt-2" 
+                            disabled={!commentText.trim()}
+                            onClick={handleSubmitComment}
+                        >
                             Yorumu ve Puanı Paylaş
                         </Button>
                     </div>
@@ -638,7 +748,8 @@ const LibraryGridCard = memo(function LibraryGridCard({
     onItemClick,
     onDeleteItem,
     onTogglePinItem,
-    onRenameItem
+    onRenameItem,
+    onDragStart: onDragStartProp
 }: { 
     item: ContentItem; 
     onShowInfo: (item: ContentItem) => void;
@@ -646,15 +757,30 @@ const LibraryGridCard = memo(function LibraryGridCard({
     onDeleteItem: (id: string) => void;
     onTogglePinItem: (id: string) => void;
     onRenameItem: (id: string, name: string) => void;
+    onDragStart?: (e: React.DragEvent) => void;
 }) {
+    const [isDragging, setIsDragging] = useState(false);
     const ItemIcon = (getIconByName(item.icon as IconName) || (item.type === 'video' ? Play : item.type === 'website' ? Globe : item.type === 'image' ? ImageIcon : FileIcon)) as React.ElementType;
     
     return (
         <ContextMenu>
             <ContextMenuTrigger>
                 <Card 
-                    className="group relative overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all aspect-square flex flex-col items-center justify-center p-4 text-center bg-muted/30"
+                    className={cn(
+                        "group relative overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all aspect-square flex flex-col items-center justify-center p-4 text-center bg-muted/30",
+                        isDragging && "opacity-60 bg-primary/20 ring-2 ring-primary ring-opacity-75"
+                    )}
                     onClick={() => onItemClick?.(item)}
+                    draggable
+                    onDragStart={(e: React.DragEvent) => {
+                        setIsDragging(true);
+                        if (onDragStartProp) {
+                            onDragStartProp(e);
+                        } else {
+                            e.dataTransfer.setData('application/json', JSON.stringify({ ...item, isNew: true }));
+                        }
+                    }}
+                    onDragEnd={() => setIsDragging(false)}
                 >
                     <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button 
@@ -736,6 +862,8 @@ const LibraryItem = memo(function LibraryItem({
   const [newName, setNewName] = useState(item.title);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isFlashing, setIsFlashing] = useState(false);
+  const [isDragging, setIsDragging] = useState(false); // Drag state for visual feedback
+  const [dropZonePosition, setDropZonePosition] = useState<'before' | 'after' | null>(null); // Drop zone indicator position for reordering
   const { toast } = useToast();
   
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
@@ -856,7 +984,10 @@ const LibraryItem = memo(function LibraryItem({
                 'relative flex items-center gap-2 p-2 rounded-md cursor-pointer group w-full text-sm transition-all duration-200',
                 isActive ? 'bg-accent font-semibold' : 'hover:bg-accent',
                 isFlashing && 'ring-2 ring-primary ring-opacity-50 animate-pulse',
-                isSelected && 'ring-2 ring-primary/60 ring-offset-1 ring-offset-background'
+                isSelected && 'ring-2 ring-primary/60 ring-offset-1 ring-offset-background',
+                isDragging && 'opacity-60 bg-primary/20 ring-2 ring-primary ring-opacity-75',
+                dropZonePosition === 'before' && 'border-t-2 border-primary/50 animate-pulse',
+                dropZonePosition === 'after' && 'border-b-2 border-primary/50 animate-pulse'
                 )}
                 style={{ paddingLeft: `${0.5 + (item.level || 0) * 0.75}rem` }}
                 onClick={handleClick}
@@ -866,32 +997,77 @@ const LibraryItem = memo(function LibraryItem({
                     e.preventDefault();
                   }
                 }}
-                onDragStart={onDragStartProp}
+                onDragStart={(e) => {
+                  setIsDragging(true);
+                  if (onDragStartProp) {
+                    onDragStartProp(e);
+                  }
+                }}
+                onDragEnd={() => setIsDragging(false)}
                 draggable
                 onDragOver={(e) => {
+                    e.preventDefault();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const midpoint = rect.height / 2;
+                    const offsetY = e.clientY - rect.top;
+                    
+                    // Detect drop position for internal reordering
+                    if (offsetY < midpoint) {
+                        setDropZonePosition('before');
+                    } else {
+                        setDropZonePosition('after');
+                    }
+                    
+                    // Also support folder drops
                     if (isContainer) {
-                        e.preventDefault();
                         e.currentTarget.classList.add('bg-primary/10');
                     }
                 }}
                 onDragLeave={(e) => {
+                    setDropZonePosition(null);
                     if (isContainer) {
                         e.currentTarget.classList.remove('bg-primary/10');
                     }
                 }}
                 onDrop={(e) => {
+                    e.preventDefault();
+                    setDropZonePosition(null);
+                    
+                    // Handle folder drops
                     if (isContainer) {
-                        e.preventDefault();
                         e.currentTarget.classList.remove('bg-primary/10');
-                        const data = e.dataTransfer.getData('application/json');
-                        if (data) {
-                            try {
-                                const droppedItem = JSON.parse(data);
-                                onAddItem(droppedItem, item.id);
-                            } catch (err) {
-                                if (process.env.NODE_ENV === 'development') {
-                                  console.error("Drop failed", err);
+                    }
+                    
+                    const data = e.dataTransfer.getData('application/json');
+                    if (data) {
+                        try {
+                            const droppedItem = JSON.parse(data);
+                            
+                            // Check if this is a library item reorder (same parent)
+                            if (!droppedItem.isNew && droppedItem.parentId === item.parentId && droppedItem.id !== item.id) {
+                                // Internal reordering - update order property
+                                const siblings = allItems.filter((i: ContentItem) => i.parentId === item.parentId);
+                                const droppedIndex = siblings.findIndex((i: ContentItem) => i.id === droppedItem.id);
+                                const currentIndex = siblings.findIndex((i: ContentItem) => i.id === item.id);
+                                
+                                let newOrder = item.order ?? 0;
+                                if (dropZonePosition === 'before') {
+                                    newOrder = (currentIndex > 0 ? siblings[currentIndex - 1].order ?? 0 : 0) + ((item.order ?? 0) - (siblings[currentIndex - 1]?.order ?? 0)) / 2;
+                                } else {
+                                    newOrder = (item.order ?? 0) + 1;
                                 }
+                                
+                                // Update dropped item's order
+                                if (onUpdateItem) {
+                                    onUpdateItem(droppedItem.id, { ...droppedItem, order: newOrder });
+                                }
+                            } else if (isContainer) {
+                                // Folder drop - add item to folder
+                                onAddItem(droppedItem, item.id);
+                            }
+                        } catch (err) {
+                            if (process.env.NODE_ENV === 'development') {
+                              console.error("Drop failed", err);
                             }
                         }
                     }
@@ -1057,8 +1233,15 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
     // Library panel controls - must be at top level for Rules of Hooks
     const [isLibraryExpanded, setIsLibraryExpanded] = useState(false);
     const [showLibraryDetails, setShowLibraryDetails] = useState(true);
+    
+    // Resize state for sidebar
+    const [isResizing, setIsResizing] = useState(false);
 
-
+    // Resize handlers for dragging the sidebar edge
+    const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
+        setIsResizing(true);
+    }, []);
     const {
         type,
         allItems = [],
@@ -1079,6 +1262,60 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
 
     // Zustand selectors - memoized to avoid infinite loops
     const user = useAppStore((state) => state.user);
+    const secondarySidebarOverlayMode = useAppStore((state) => state.secondarySidebarOverlayMode);
+    const toggleSecondarySidebarOverlayMode = useAppStore((state) => state.toggleSecondarySidebarOverlayMode);
+    const secondarySidebarWidth = useAppStore((state) => state.secondarySidebarWidth);
+    const setSecondarySidebarWidth = useAppStore((state) => state.setSecondarySidebarWidth);
+    // Handle drag events
+    useEffect(() => {
+        if (!isResizing) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const containerLeft = 56; // Left sidebar width (w-12 = 48px + some margin)
+            const newWidth = e.clientX - containerLeft;
+            setSecondarySidebarWidth(newWidth); // Already clamped in store action
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const containerLeft = 56;
+            const newWidth = touch.clientX - containerLeft;
+            setSecondarySidebarWidth(newWidth);
+        };
+
+        const handleEnd = () => {
+            setIsResizing(false);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('mouseup', handleEnd);
+        document.addEventListener('touchend', handleEnd);
+
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('mouseup', handleEnd);
+            document.removeEventListener('touchend', handleEnd);
+        };
+    }, [isResizing, setSecondarySidebarWidth]);
+
+    // Cursor feedback during resize
+    useEffect(() => {
+        if (isResizing) {
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        } else {
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+        return () => {
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+    }, [isResizing]);
+
     const conversations = useAppStore((state) => state.conversations);
     const groups = useAppStore((state) => state.groups);
     const messages = useAppStore((state) => state.messages);
@@ -1090,10 +1327,16 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
     const addMessage = useAppStore((state) => state.addMessage);
     const searchMessages = useAppStore((state) => state.searchMessages);
     const startCall = useAppStore((state) => state.startCall);
+    const initiateCall = useAppStore((state) => state.initiateCall);
+    const endCallSession = useAppStore((state) => state.endCallSession);
     const setCurrentConversation = useAppStore((state) => state.setCurrentConversation);
     const setCurrentGroup = useAppStore((state) => state.setCurrentGroup);
     const currentConversationId = useAppStore((state) => state.currentConversationId);
     const currentGroupId = useAppStore((state) => state.currentGroupId);
+    const socialGroups = useAppStore((state) => state.socialGroups);
+    const createSocialGroup = useAppStore((state) => state.createSocialGroup);
+    const deleteSocialGroup = useAppStore((state) => state.deleteSocialGroup);
+    const removeSocialGroupMember = useAppStore((state) => state.removeSocialGroupMember);
 
     const currentUserId = user?.id ?? 'guest';
   
@@ -1123,10 +1366,35 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
     const myInventoryItems = useAppStore((state) => state.myInventoryItems);
     const orders = useAppStore((state) => state.orders);
     const router = useRouter(); // For shopping navigation
+    
+    // Responsive layout detection
+    const useResponsiveLayout = () => {
+        const [responsive, setResponsive] = React.useState({
+            isMobile: typeof window !== 'undefined' && window.innerWidth < 768,
+            isTablet: typeof window !== 'undefined' && (window.innerWidth >= 768 && window.innerWidth < 1024),
+            isDesktop: typeof window !== 'undefined' && window.innerWidth >= 1024,
+        });
 
+        React.useEffect(() => {
+            const handleResize = () => {
+                setResponsive({
+                    isMobile: window.innerWidth < 768,
+                    isTablet: window.innerWidth >= 768 && window.innerWidth < 1024,
+                    isDesktop: window.innerWidth >= 1024,
+                });
+            };
+
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }, []);
+
+        return responsive;
+    };
+
+    const responsive = useResponsiveLayout();
+        
     useEffect(() => {
-        // Populate activeNotifications with real notifications when component mounts
-        // This is a safe place to initialize because useState has already been called
+        // Initialize notifications with defaults if empty
         if (activeNotifications.length === 0) {
             const defaultNotifications: Notification[] = [
               { id: '1', type: 'like', user: { name: 'Zeynep Kaya', avatar: 'https://robohash.org/zeynep.png'}, content: `<b>Yaz Koleksiyonu</b> listenizi beğendi.`, time: '5 dakika önce' },
@@ -1348,24 +1616,64 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
     );
 
     // Common panel wrapper with mobile optimizations
-    const PanelWrapper = ({ children, testId }: { children: React.ReactNode; testId?: string }) => (
-        <>
-            <MobileBackdrop />
-            <div 
-                className="h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 left-12 right-0 sm:left-14 sm:right-auto sm:w-80 md:w-96 lg:relative lg:left-auto lg:inset-auto lg:w-80 xl:w-96 transition-all duration-300 z-40 shadow-xl lg:shadow-none" 
-                data-testid={testId}
-            >
-                {children}
-            </div>
-        </>
-    );
+    const PanelWrapper = ({ children, testId }: { children: React.ReactNode; testId?: string }) => {
+        const [isDesktop, setIsDesktop] = useState(false);
 
-    switch (type) {
+        useEffect(() => {
+            const checkDesktop = () => {
+                setIsDesktop(window.innerWidth >= 1024);
+            };
+            checkDesktop();
+            window.addEventListener('resize', checkDesktop);
+            return () => window.removeEventListener('resize', checkDesktop);
+        }, []);
+
+        return (
+            <>
+                <MobileBackdrop />
+                <div 
+                    className={cn(
+                        "h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 z-40 shadow-xl",
+                        "left-12 sm:left-14", // After left sidebar
+                        "lg:relative lg:left-auto lg:shadow-none", // Desktop: relative positioning
+                        isResizing ? "transition-none" : "transition-all duration-300"
+                    )}
+                    style={{
+                        width: isDesktop ? `${secondarySidebarWidth}px` : 'auto',
+                        right: isDesktop ? 'auto' : 0, // Mobile: stretch to right edge
+                    }}
+                    data-testid={testId}
+                >
+                    {children}
+                    {/* Resize handle - only visible on desktop */}
+                    {isDesktop && (
+                        <div
+                            className={cn(
+                                "absolute right-0 top-0 bottom-0 w-1 bg-transparent cursor-col-resize transition-all z-50 group",
+                                "hover:w-2 hover:bg-primary/50",
+                                isResizing && "w-2 bg-primary"
+                            )}
+                            onMouseDown={handleResizeStart}
+                            onTouchStart={handleResizeStart}
+                        >
+                            {/* Wider hit area for easier grabbing */}
+                            <div className="absolute right-0 top-0 bottom-0 w-4 -mr-2" />
+                        </div>
+                    )}
+                </div>
+            </>
+        );
+    };
+
+    // Destructure common props once
+    const { onSetClipboard, onPaste, clipboard, onShowInfo, onShare, onRenameItem, onTogglePinItem, onNewFolder, onNewList, onNewPlayer, onNewCalendar, onNewSpace, onNewDevice, expandedItems, onToggleExpansion, setActiveDevice, activeDeviceId, setDraggedItem, onDeleteItem, onLibraryDrop } = props;
+
+    // Helper function to render panel content
+    const renderPanel = () => {
+        switch (type) {
         case 'library':
         case 'spaces':
-        case 'devices':
-            const { onSetClipboard, onPaste, clipboard, onShowInfo, onShare, onRenameItem, onTogglePinItem, onNewFolder, onNewList, onNewPlayer, onNewCalendar, onNewSpace, onNewDevice, expandedItems, onToggleExpansion, setActiveDevice, activeDeviceId, setDraggedItem, onDeleteItem, onLibraryDrop } = props;
-            
+        case 'devices': {
             return (
               <PanelWrapper testId={`${props.type}-panel`}>
                 <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
@@ -1382,6 +1690,17 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     >
                         {libraryViewMode === 'list' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
                     </Button>
+                    {!responsive.isMobile && !responsive.isTablet && (
+                        <Button
+                            variant={secondarySidebarOverlayMode ? 'secondary' : 'ghost'}
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => toggleSecondarySidebarOverlayMode()}
+                            title={secondarySidebarOverlayMode ? 'Normal Modu Aç' : 'Katman Modunu Aç'}
+                        >
+                            {secondarySidebarOverlayMode ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                        </Button>
+                    )}
                     {type === 'library' && (
                         <>
                             <Button
@@ -1775,7 +2094,8 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                 )}
               </PanelWrapper>
             );
-        case 'social':
+        }
+        case 'social': {
             return (
                 <PanelWrapper testId="social-panel">
                     <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
@@ -1813,14 +2133,14 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                                     if (props.onOpenInNewTab) {
                                         props.onOpenInNewTab(item, allItems);
                                     }
-                                }} activeTab="feed" />
+                                }} />
                             </TabsContent>
                             <TabsContent value="kesfet" className="flex-1 min-h-0">
                                 <SocialPanel onOpenContent={(item) => {
                                     if (props.onOpenInNewTab) {
                                         props.onOpenInNewTab(item, allItems);
                                     }
-                                }} activeTab="content" />
+                                }} />
                             </TabsContent>
                             <TabsContent value="profilim" className="flex-1 min-h-0">
                                 <ProfilePanel onOpenContent={(item) => {
@@ -1833,15 +2153,58 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     </div>
                 </PanelWrapper>
             );
+        }
         case 'messages': {
             // Use hooks from component level
             const conversationsToUse = realtimeConversations || conversations;
             
+            const mapStoreToMessaging = useCallback((msg: StoreMessage): MessagingMessage => ({
+                id: msg.id,
+                conversationId: msg.conversationId,
+                senderId: msg.senderId,
+                senderName: msg.senderName,
+                content: msg.content,
+                type: msg.type as MessagingMessageType,
+                mediaUrl: msg.mediaUrl,
+                metadata: msg.mediaUrl ? { mediaUrl: msg.mediaUrl } : undefined,
+                reactions: {},
+                mentions: [],
+                isEdited: msg.isEdited ?? false,
+                readBy: msg.isRead ? [msg.senderId] : [],
+                createdAt: msg.createdAt,
+                updatedAt: msg.editedAt ?? msg.createdAt,
+                replyToId: msg.replyToId,
+            }), []);
+
             // Combine all messages from state
-            const messagesMap: Record<string, any[]> = {};
+            const messagesMap: Record<string, MessagingMessage[]> = {};
             conversationsToUse.forEach(conv => {
-                messagesMap[conv.id] = messages[conv.id] || conversationMessages || [];
+                const storeMessages = (messages[conv.id] as StoreMessage[] | undefined) || [];
+                messagesMap[conv.id] = storeMessages.map(mapStoreToMessaging);
             });
+
+            const handleAddMessage = (message: MessagingMessage) => {
+                const storeMessage: StoreMessage = {
+                    id: message.id,
+                    conversationId: message.conversationId,
+                    senderId: message.senderId,
+                    senderName: message.senderName || 'Kullanıcı',
+                    type: message.type as any,
+                    content: message.content,
+                    mediaUrl: (message as any).mediaUrl,
+                    createdAt: message.createdAt || new Date().toISOString(),
+                    isRead: true,
+                    isEdited: message.isEdited,
+                    editedAt: message.updatedAt,
+                    replyToId: message.replyToId,
+                    reactions: [],
+                };
+                addMessage(storeMessage);
+            };
+
+            const handleSearchMessages = (filter: any) => {
+                return searchMessages(filter).map(mapStoreToMessaging);
+            };
 
             return (
                 <PanelWrapper testId="messages-panel">
@@ -1862,8 +2225,8 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                                 currentUserId={user?.id || ''}
                                 currentConversationId={selectedConversationId || currentConversationId}
                                 currentGroupId={currentGroupId}
-                                onAddMessage={addMessage}
-                                onSearchMessages={searchMessages}
+                                onAddMessage={handleAddMessage}
+                                onSearchMessages={handleSearchMessages}
                                 onCreateGroup={createGroup}
                                 onUpdateGroup={updateGroup}
                                 onRemoveGroupMember={removeGroupMember}
@@ -1880,7 +2243,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                 </PanelWrapper>
             );
         }
-        case 'notifications':
+        case 'notifications': {
             // Use hooks from component level
             return (
                 <PanelWrapper testId="notifications-panel">
@@ -1939,7 +2302,8 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     </ScrollArea>
                 </PanelWrapper>
             );
-        case 'profile':
+        }
+        case 'profile': {
             return (
                 <PanelWrapper testId="profile-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
@@ -1965,7 +2329,8 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     </div>
                 </PanelWrapper>
             );
-        case 'ai-chat':
+        }
+        case 'ai-chat': {
             return (
                 <PanelWrapper testId="ai-chat-panel">
                     <div className="px-3 sm:px-4 py-2 sm:py-3 border-b flex items-center justify-between h-12 sm:h-14 shrink-0">
@@ -2006,6 +2371,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     </div>
                 </PanelWrapper>
             );
+        }
         case 'widgets': {
             const { widgetTemplates: templates = {}, onWidgetClick, setDraggedItem, onNewFolder, onNewList, onNewPlayer } = props;
             const filteredTemplates = Object.entries(templates).reduce((acc, [category, widgets]) => {
@@ -2390,7 +2756,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                 </PanelWrapper>
             );
         }
-        case 'advanced-profiles':
+        case 'advanced-profiles': {
             return (
                 <PanelWrapper testId="profiles-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
@@ -2410,13 +2776,19 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     <div className="flex-1 min-h-0 overflow-hidden">
                         <ScrollArea className="h-full">
                             <div className="p-4">
-                                <SlugGeneratorEditor />
+                                <SlugGeneratorEditor 
+                                    title="Profil Slug Oluştur"
+                                    description="Profil bağlantınızı kişiselleştirin"
+                                    initialTitle={username || 'Profil'}
+                                    onSlugChange={() => {}}
+                                />
                             </div>
                         </ScrollArea>
                     </div>
                 </PanelWrapper>
             );
-        case 'message-groups':
+        }
+        case 'message-groups': {
             return (
                 <PanelWrapper testId="message-groups-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
@@ -2434,11 +2806,19 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                         </Button>
                     </div>
                     <div className="flex-1 min-h-0 overflow-hidden">
-                        <MessageGroupsPanel />
+                        <MessageGroupsPanel 
+                            groups={groups as any}
+                            currentGroupId={currentGroupId}
+                            onSelectGroup={(groupId) => setCurrentGroup(groupId)}
+                            onCreateGroup={async (name, description) => {
+                                await createGroup({ name, description: description || '', members: [] } as any);
+                            }}
+                        />
                     </div>
                 </PanelWrapper>
             );
-        case 'calls':
+        }
+        case 'calls': {
             return (
                 <PanelWrapper testId="calls-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
@@ -2458,13 +2838,23 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     <div className="flex-1 min-h-0 overflow-hidden">
                         <ScrollArea className="h-full">
                             <div className="p-4">
-                                <CallManager />
+                                <CallManager 
+                                    onInitiateCall={async (callType, recipientId) => {
+                                        const session = await initiateCall(callType, recipientId ? [recipientId] : []);
+                                        if (!session) throw new Error('Call could not be started');
+                                        return session;
+                                    }}
+                                    onEndCall={async (callId) => {
+                                        await endCallSession(callId);
+                                    }}
+                                />
                             </div>
                         </ScrollArea>
                     </div>
                 </PanelWrapper>
             );
-        case 'meetings':
+        }
+        case 'meetings': {
             return (
                 <PanelWrapper testId="meetings-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
@@ -2490,7 +2880,8 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     </div>
                 </PanelWrapper>
             );
-        case 'social-groups':
+        }
+        case 'social-groups': {
             return (
                 <PanelWrapper testId="social-groups-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
@@ -2510,13 +2901,26 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     <div className="flex-1 min-h-0 overflow-hidden">
                         <ScrollArea className="h-full">
                             <div className="p-4">
-                                <SocialGroupsManager />
+                                <SocialGroupsManager 
+                                    groups={socialGroups as any}
+                                    onSelectGroup={() => {}}
+                                    onCreateGroup={async (name, category) => {
+                                        await createSocialGroup(name, category);
+                                    }}
+                                    onDeleteGroup={async (groupId) => {
+                                        await deleteSocialGroup(groupId);
+                                    }}
+                                    onRemoveMember={async (groupId, userId) => {
+                                        await removeSocialGroupMember(groupId, userId);
+                                    }}
+                                />
                             </div>
                         </ScrollArea>
                     </div>
                 </PanelWrapper>
             );
-        case 'achievements':
+        }
+        case 'achievements': {
             return (
                 <PanelWrapper testId="achievements-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
@@ -2542,7 +2946,8 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     </div>
                 </PanelWrapper>
             );
-        case 'marketplace':
+        }
+        case 'marketplace': {
             return (
                 <PanelWrapper testId="marketplace-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
@@ -2560,14 +2965,15 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                         </Button>
                     </div>
                     <div className="flex-1 min-h-0 overflow-hidden">
-                        <ShoppingPanel 
+                        <ShoppingPanel
                             defaultTab="cart"
                             className="h-full"
                         />
                     </div>
                 </PanelWrapper>
             );
-        case 'rewards':
+        }
+        case 'rewards': {
             return (
                 <PanelWrapper testId="rewards-panel">
                     <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
@@ -2585,7 +2991,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                         </Button>
                     </div>
                     <div className="flex-1 min-h-0 overflow-hidden">
-                        <RewardsDashboard 
+                        <RewardsDashboard
                             userId={user?.id}
                             defaultTab="coupons"
                             className="h-full"
@@ -2593,14 +2999,19 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                     </div>
                 </PanelWrapper>
             );
-        default:
+        }
+        default: {
             return (
               <div className="h-full flex flex-col bg-card p-4 items-center justify-center">
                   <h2 className="font-bold text-lg capitalize">{type}</h2>
                   <p className="text-sm text-muted-foreground mt-2 text-center">Bu panel içeriği henüz oluşturulmadı.</p>
               </div>
             );
+        }
     }
+    };
+
+    return renderPanel();
 });
 
 export default SecondarySidebar;
@@ -2608,7 +3019,6 @@ export default SecondarySidebar;
     
 
     
-
 
 
 

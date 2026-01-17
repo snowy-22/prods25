@@ -12,6 +12,7 @@ export interface GridModeState {
   totalPages: number;
   itemsPerPage: number;
   totalItems: number;
+  paginationMode: 'pagination' | 'infinite'; // pagination = page-based, infinite = scroll-load
 }
 
 export interface GridPaginationInfo {

@@ -10,11 +10,12 @@ import { Draggable, Droppable } from '@hello-pangea/dnd';
 import { Skeleton } from './ui/skeleton';
 import { canvasLogger } from '@/lib/logger';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, ContextMenuSeparator } from './ui/context-menu';
-import { Plus, Clipboard, Settings, Folder, Trash2 } from 'lucide-react';
+import { Plus, Clipboard, Settings, Folder, Trash2, MessageCircle, ChevronDown } from 'lucide-react';
 
 import { calculateLayout, LayoutMode, calculateGridPagination, getPaginatedGridItems, snapToGrid } from '@/lib/layout-engine';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useAppStore } from '@/lib/store';
+import { usePlayingItems } from '@/hooks/use-tracker';
 
 const PlayerFrame = dynamic(() => import('./player-frame'), {
   loading: () => <Skeleton className="w-full h-full" />
@@ -29,6 +30,7 @@ const EcommerceLandingTemplate = dynamic(() => import('./templates/ecommerce-lan
 });
 
 import { WidgetRenderer } from './widget-renderer';
+import { MouseTrackerFrame, AudioTrackerFrame, AudioVisualizer } from './tracker-overlay';
 
 const noop = () => {};
 
@@ -109,6 +111,21 @@ const Canvas = memo(function Canvas({
 
   // Grid Mode State from Store
   const gridModeState = useAppStore(state => state.gridModeState);
+  const pointerFrameEnabled = useAppStore(state => state.pointerFrameEnabled);
+  const audioTrackerEnabled = useAppStore(state => state.audioTrackerEnabled);
+  const mouseTrackerEnabled = useAppStore(state => state.mouseTrackerEnabled);
+  const visualizerMode = useAppStore(state => state.visualizerMode);
+  
+  // Oynatılan öğeleri izle (hook ile)
+  const playingItems = usePlayingItems('[data-testid="main-canvas"]');
+  
+  // Canvas ref'i tracker'lar için
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Drop zone visual state
+  const [isDropZoneActive, setIsDropZoneActive] = useState(false);
+  const [dropIndicatorPosition, setDropIndicatorPosition] = useState<{ x: number; y: number } | null>(null);
+  const [dropGridLines, setDropGridLines] = useState<{ vertical: number | null; horizontal: number | null }>({ vertical: null, horizontal: null });
   
   // Drag & drop visual state
   const [dragFeedback, setDragFeedback] = useState<{
@@ -132,6 +149,50 @@ const Canvas = memo(function Canvas({
   const [isDescriptionsVisible, setIsDescriptionsVisible] = useState(false);
   const [isCommentsVisible, setIsCommentsVisible] = useState(false);
   const [isAnalyticsVisible, setIsAnalyticsVisible] = useState(false);
+
+  // Bottom Info Bar - Folder Comments
+  const [folderComments, setFolderComments] = useState<any[]>([]);
+  const [folderCommentsCount, setFolderCommentsCount] = useState(0);
+  const [lastComment, setLastComment] = useState<any>(null);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+
+  // Load folder comments on mount
+  useEffect(() => {
+    const loadFolderComments = async () => {
+      if (!activeViewId) return;
+      setIsLoadingComments(true);
+      try {
+        const { loadComments, subscribeFolderComments } = await import('@/lib/supabase-sync');
+        const comments = await loadComments(activeViewId);
+        setFolderComments(comments || []);
+        setFolderCommentsCount(comments?.length || 0);
+        setLastComment(comments?.[0] || null);
+
+        // Set up real-time subscription for new comments
+        const unsubscribe = await subscribeFolderComments(activeViewId, (newComments: any[]) => {
+          setFolderComments(newComments || []);
+          setFolderCommentsCount(newComments?.length || 0);
+          setLastComment(newComments?.[0] || null);
+        });
+
+        return unsubscribe;
+      } catch (error) {
+        console.warn('Failed to load folder comments:', error);
+      } finally {
+        setIsLoadingComments(false);
+      }
+    };
+
+    let unsubscribe: (() => void) | undefined;
+    const timer = setTimeout(async () => {
+      unsubscribe = await loadFolderComments();
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+      if (unsubscribe) unsubscribe();
+    };
+  }, [activeViewId]);
 
   // Video Controls - Detect video items in canvas
   const hasVideoItems = useMemo(() => {
@@ -244,7 +305,6 @@ const Canvas = memo(function Canvas({
   }, [items, activeViewId, activeView, allItems]);
 
   const [internalIsLoading, setInternalIsLoading] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [carouselCenterIndex, setCarouselCenterIndex] = useState(0);
   // Mini-map viewport rectangle (fractional top/height)
@@ -407,6 +467,7 @@ const Canvas = memo(function Canvas({
           onSaveItem={onSaveItem}
           activeAnimation={activeAnimation}
           layoutMode={normalizedLayoutMode as any}
+          playingItems={playingItems}
           data-item-id={item.id}
         >
             <Suspense fallback={<Skeleton className="w-full h-full" />}>
@@ -489,7 +550,37 @@ const Canvas = memo(function Canvas({
     }
     e.preventDefault();
     e.stopPropagation();
-  }, [isPreviewMode]);
+    
+    // Check if drag data is available
+    const hasData = e.dataTransfer.types.includes('application/json');
+    if (hasData) {
+      setIsDropZoneActive(true);
+      e.dataTransfer.dropEffect = 'copy';
+      
+      // Calculate drop position indicator for canvas mode
+      if (containerRef.current && layoutMode === 'canvas') {
+        const rect = containerRef.current.getBoundingClientRect();
+        let dropX = e.clientX - rect.left + containerRef.current.scrollLeft;
+        let dropY = e.clientY - rect.top + containerRef.current.scrollTop;
+        
+        // Snap to grid
+        const snappedX = snapToGrid(dropX, 20);
+        const snappedY = snapToGrid(dropY, 20);
+        
+        setDropIndicatorPosition({ x: snappedX, y: snappedY });
+        setDropGridLines({ vertical: snappedX, horizontal: snappedY });
+      }
+    }
+  }, [isPreviewMode, layoutMode]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    // Only deactivate if leaving the canvas entirely
+    if (e.currentTarget === e.target) {
+      setIsDropZoneActive(false);
+      setDropIndicatorPosition(null);
+      setDropGridLines({ vertical: null, horizontal: null });
+    }
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     if (isPreviewMode) {
@@ -499,23 +590,56 @@ const Canvas = memo(function Canvas({
     }
     e.preventDefault();
     e.stopPropagation();
+    setIsDropZoneActive(false);
     
     try {
       const data = e.dataTransfer.getData('application/json');
       if (data) {
         const itemData = JSON.parse(data);
-        onAddItem(itemData, activeViewId);
+        
+        // Calculate drop position in canvas
+        let dropX = e.clientX;
+        let dropY = e.clientY;
+        
+        // If container exists, calculate relative position
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          dropX = e.clientX - rect.left + containerRef.current.scrollLeft;
+          dropY = e.clientY - rect.top + containerRef.current.scrollTop;
+          
+          // Snap to grid if in canvas mode
+          if (layoutMode === 'canvas') {
+            dropX = snapToGrid(dropX, 20);
+            dropY = snapToGrid(dropY, 20);
+          }
+        }
+        
+        // Add item with calculated position
+        const itemWithPosition = {
+          ...itemData,
+          x: dropX,
+          y: dropY,
+          width: itemData.width || 300,
+          height: itemData.height || 200,
+          isNew: true
+        };
+
+        // In grid mode, append to the end of the current page items
+        const dropIndex = layoutMode === 'grid' ? paginatedItems.length : undefined;
+        onAddItem(itemWithPosition, activeViewId, dropIndex);
         setDragFeedback({
           isDragging: false,
           draggedItemId: null,
           dropTarget: null,
           dropPosition: null,
         });
+        setDropIndicatorPosition(null);
+        setDropGridLines({ vertical: null, horizontal: null });
       }
     } catch (err) {
       canvasLogger.error('Drop error', err);
     }
-  }, [isPreviewMode, onAddItem, activeViewId]);
+  }, [isPreviewMode, onAddItem, activeViewId, layoutMode, paginatedItems.length]);
 
   // Track drag events from hello-pangea/dnd for visual feedback
   const handleDragStart = useCallback((dragUpdate: any) => {
@@ -581,13 +705,25 @@ const Canvas = memo(function Canvas({
 
   return (
     <div 
-      className={cn('w-full h-full relative flex flex-col')} 
+      className={cn(
+        'w-full h-full relative flex flex-col transition-all duration-200',
+        isDropZoneActive && 'ring-2 ring-primary ring-opacity-50 bg-primary/5 shadow-xl shadow-primary/30'
+      )} 
       data-testid="main-canvas" 
       onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* Grid Mode Controls - Moved to settings dropdown in primary-sidebar */}
 
+      {/* Tracker Overlays */}
+      <MouseTrackerFrame 
+        enabled={mouseTrackerEnabled && pointerFrameEnabled}
+        color="#0ea5e9"
+        size={80}
+        blur={15}
+      />
+      
       {/* Canvas Content Container */}
       <div className="flex-1 relative">
               {/* MiniMapOverlay (floating, only if enabled) */}
@@ -631,6 +767,46 @@ const Canvas = memo(function Canvas({
             onScroll={handleScroll}
             style={{ maxHeight: '100%', height: '100%' }}
           >
+            {/* Drop Position Guide Lines - Canvas Mode */}
+            {isDropZoneActive && layoutMode === 'canvas' && dropGridLines.vertical !== null && (
+              <>
+                {/* Vertical Guide Line */}
+                <div 
+                  className="fixed pointer-events-none z-40 border-l-2 border-dashed border-primary/50"
+                  style={{
+                    left: `${dropGridLines.vertical}px`,
+                    top: 0,
+                    height: '100%',
+                    animation: 'pulse 2s infinite'
+                  }}
+                />
+                {/* Horizontal Guide Line */}
+                <div 
+                  className="fixed pointer-events-none z-40 border-t-2 border-dashed border-primary/50"
+                  style={{
+                    top: `${dropGridLines.horizontal}px`,
+                    left: 0,
+                    width: '100%',
+                    animation: 'pulse 2s infinite'
+                  }}
+                />
+                {/* Drop Position Indicator (Ghost Box) */}
+                <div 
+                  className="absolute pointer-events-none z-40 rounded-lg shadow-lg"
+                  style={{
+                    left: `${dropIndicatorPosition?.x}px`,
+                    top: `${dropIndicatorPosition?.y}px`,
+                    width: '300px',
+                    height: '200px',
+                    border: '2px solid rgba(var(--color-primary), 0.4)',
+                    backgroundColor: 'rgba(var(--color-primary), 0.05)',
+                    boxShadow: '0 0 20px rgba(var(--color-primary), 0.3)',
+                    animation: 'pulse 1.5s infinite'
+                  }}
+                />
+              </>
+            )}
+            
             <div className={cn(canvasScale !== 1 && 'origin-top-left')} style={{...scaledWrapperStyle, minHeight: 0}}>
               <Droppable droppableId="canvas-droppable" direction="horizontal" isDropDisabled={isPreviewMode || normalizedLayoutMode !== 'grid'} type="canvas-item">
                 {(provided, snapshot) => (
@@ -640,7 +816,8 @@ const Canvas = memo(function Canvas({
                     className={cn(
                       'transition-all duration-500 relative w-full select-none',
                       normalizedLayoutMode === 'grid' ? 'grid' : 'block',
-                      snapshot.isDraggingOver && normalizedLayoutMode !== 'canvas' && "bg-primary/5 ring-2 ring-primary/20 ring-inset rounded-lg"
+                      snapshot.isDraggingOver && normalizedLayoutMode !== 'canvas' && "bg-primary/5 ring-2 ring-primary/20 ring-inset rounded-lg",
+                      isDropZoneActive && normalizedLayoutMode === 'grid' && 'ring-2 ring-primary/30 ring-inset bg-primary/5 border border-primary/20 rounded-lg'
                     )}
                     style={{ 
                       padding: `${padding}px`, 
@@ -814,6 +991,37 @@ const Canvas = memo(function Canvas({
       </ContextMenu>
       {/* Canvas Content Container end */}
       </div>
+
+      {/* Bottom Info Bar - Folder Comments */}
+      {folderCommentsCount > 0 && (
+        <div className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border px-4 py-3 text-sm">
+          <div className="flex items-center justify-between gap-2 max-w-full">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <MessageCircle className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="font-medium text-foreground">
+                  {folderCommentsCount} {folderCommentsCount === 1 ? 'yorum' : 'yorum'}
+                </span>
+                {lastComment && (
+                  <div className="text-muted-foreground truncate">
+                    <span className="font-medium">{lastComment.authorName || 'Anonim'}:</span>{' '}
+                    {lastComment.content?.substring(0, 40)}
+                    {lastComment.content?.length > 40 ? '...' : ''}
+                  </div>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => setIsCommentsVisible(!isCommentsVisible)}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-accent text-foreground hover:text-foreground text-xs font-medium flex-shrink-0"
+            >
+              Görüntüle
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      )}
+
     {/* Main canvas wrapper end */}
     </div>
   );

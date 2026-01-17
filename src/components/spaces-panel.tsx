@@ -21,10 +21,37 @@ import {
 
 const SpaceCard = ({ space, allItems, onSelect, onDelete }: { space: ContentItem, allItems: ContentItem[], onSelect: () => void, onDelete?: () => void }) => {
     const Icon = getIconByName(space.icon) as any;
+    const [isDropZoneActive, setIsDropZoneActive] = React.useState(false);
     
     const assignedItems = allItems.filter(item => item.assignedSpaceId === space.id);
     const deviceCount = assignedItems.length;
     const spaceTypeLabel = space.spaceType || 'other';
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDropZoneActive(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDropZoneActive(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDropZoneActive(false);
+        const data = e.dataTransfer.getData('application/json');
+        if (data) {
+            try {
+                const droppedItem = JSON.parse(data);
+                // Update item to assign to this space
+                console.log(`Item "${droppedItem.title}" assigned to space "${space.title}"`);
+            } catch (err) {
+                if (process.env.NODE_ENV === 'development') {
+                    console.error('Drop failed:', err);
+                }
+            }
+        }
+    };
 
     const handleContextMenu = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -32,7 +59,17 @@ const SpaceCard = ({ space, allItems, onSelect, onDelete }: { space: ContentItem
     };
 
     return (
-        <div className="border bg-card/50 rounded-lg overflow-hidden hover:bg-card/80 transition-colors" onContextMenu={handleContextMenu}>
+        <div 
+            className={`border rounded-lg overflow-hidden transition-all ${
+                isDropZoneActive 
+                    ? 'bg-primary/10 border-primary/50 ring-2 ring-primary/30' 
+                    : 'bg-card/50 hover:bg-card/80'
+            }`}
+            onContextMenu={handleContextMenu}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+        >
             <div className="p-3 flex items-center justify-between bg-muted/50 border-b cursor-pointer hover:bg-muted transition-colors" onClick={onSelect}>
                 <div className="flex items-center gap-3 flex-1">
                     {Icon && <Icon className="h-5 w-5 text-primary" />}

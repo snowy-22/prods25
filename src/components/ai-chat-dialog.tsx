@@ -101,6 +101,7 @@ export function AiChatDialog({
   const [messages, setMessages] = useState<Message[]>(initialMessages || exampleMessages[panelState.id] || []);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDropZoneActive, setIsDropZoneActive] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isInitialPromptSent = useRef(false);
@@ -530,11 +531,47 @@ export function AiChatDialog({
           minWidth={300}
           minHeight={400}
           bounds="window"
-          className="bg-card/80 backdrop-blur-lg border rounded-lg shadow-2xl flex flex-col"
+          className={cn(
+              'bg-card/80 backdrop-blur-lg border rounded-lg shadow-2xl flex flex-col',
+              isDropZoneActive && 'border-primary/50 bg-primary/5 shadow-primary/20'
+          )}
           dragHandleClassName="handle"
           onDragStart={onFocus}
           onResizeStart={onFocus}
           onDragStop={(e, d) => onStateChange({ x: d.x, y: d.y })}
+          onDragOver={(e) => {
+              e.preventDefault();
+              setIsDropZoneActive(true);
+          }}
+          onDragLeave={(e) => {
+              setIsDropZoneActive(false);
+          }}
+          onDrop={(e) => {
+              e.preventDefault();
+              setIsDropZoneActive(false);
+              const data = e.dataTransfer.getData('application/json');
+              if (data) {
+                  try {
+                      const droppedItem = JSON.parse(data);
+                      // Add dropped item reference as a message
+                      const itemReference: Message = {
+                          role: 'user',
+                          content: [{
+                              text: `📎 Referans: "${droppedItem.title}" (${droppedItem.type})`
+                          }]
+                      };
+                      setMessages(prev => [...prev, itemReference]);
+                      toast({
+                          title: '✓ Item Linked',
+                          description: `"${droppedItem.title}" has been linked to this chat.`,
+                      });
+                  } catch (err) {
+                      if (process.env.NODE_ENV === 'development') {
+                          console.error('Drop failed:', err);
+                      }
+                  }
+              }
+          }}
           onResizeStop={(e, direction, ref, delta, position) => {
               onStateChange({
                   width: parseInt(ref.style.width),

@@ -187,9 +187,15 @@ export const UnifiedGridPreview: React.FC<UnifiedGridPreviewProps> = ({
                 className={cn(
                   "relative rounded-sm cursor-pointer transition-all duration-200 shadow-sm overflow-hidden",
                   isSelected 
-                    ? 'bg-primary/60 border-2 border-primary ring-1 ring-primary/30' 
-                    : 'bg-accent/40 border border-accent/60 hover:bg-accent/60 hover:border-accent'
+                    ? 'bg-primary/60 ring-1 ring-primary/30' 
+                    : 'bg-accent/40 hover:bg-accent/60'
                 )}
+                style={{
+                  borderColor: item.frameColor || undefined,
+                  borderWidth: item.frameWidth ? `${item.frameWidth}px` : undefined,
+                  borderStyle: item.frameStyle || (isSelected ? 'solid' : 'solid'),
+                  boxShadow: item.frameEffect === 'neon' ? `0 0 5px ${item.frameColor || '#00ffff'}, 0 0 10px ${(item.frameColor || '#00ffff')}80` : undefined,
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
