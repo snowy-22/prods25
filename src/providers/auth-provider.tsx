@@ -9,10 +9,11 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, username: string) => Promise<void>;
+  signUp: (email: string, password: string, username: string, referralCode?: string) => Promise<void>;
   signInWithOAuth: (provider: 'google' | 'github' | 'facebook' | 'apple') => Promise<void>;
   signOut: () => Promise<void>;
   signInAnonymously: () => void;
+  generateReferralCode: (userId: string) => string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,6 +74,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [supabase, setStoreUser, setUsername]);
 
+  const generateReferralCode = (userId: string): string => {
+    // Generate referral code from first 4 chars of userId + random string
+    const prefix = userId.substring(0, 4).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    return `${prefix}${random}`;
+  };
+
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -84,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // User state will be updated by onAuthStateChange
   };
 
-  const signUp = async (email: string, password: string, username: string) => {
+  const signUp = async (email: string, password: string, username: string, referralCode?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -92,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data: {
           username,
           full_name: username,
+          referral_code: undefined, // Will be generated after user creation
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
@@ -102,12 +111,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Create profile directly (trigger disabled for reliability)
     if (data.user) {
       try {
+        // Generate referral code for new user
+        const generatedReferralCode = generateReferralCode(data.user.id);
+        
+        // Find referred_by user if referral code provided
+        let referredBy: string | null = null;
+        if (referralCode) {
+          const { data: referrer } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('referral_code', referralCode)
+            .single();
+          
+          if (referrer) {
+            referredBy = referrer.id;
+          }
+        }
+
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
             id: data.user.id,
             email: data.user.email,
             full_name: username,
+            referral_code: generatedReferralCode,
+            referred_by: referredBy,
+            referral_count: 0,
+            is_referrer: false,
           }, {
             count: 'exact',
           });
@@ -118,6 +148,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         console.log('✅ Profile created successfully for:', data.user.email);
+        console.log('✅ Referral code:', generatedReferralCode);
+        if (referredBy) console.log('✅ Referred by:', referralCode);
       } catch (err: any) {
         console.error('Failed to create profile:', err?.message || err);
         throw err;
@@ -170,7 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, signInAnonymously, signInWithOAuth }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, signInAnonymously, signInWithOAuth, generateReferralCode }}>
       {children}
     </AuthContext.Provider>
   );

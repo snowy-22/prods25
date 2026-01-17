@@ -33,8 +33,8 @@ interface PrimarySidebarProps {
   onSetView: (item: ContentItem | null, event?: React.MouseEvent) => void;
   username: string;
   setUsername: (username: string) => void;
-  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | null;
-  setActiveSecondaryPanel: (panel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | null) => void;
+  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | null;
+  setActiveSecondaryPanel: (panel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | null) => void;
   isSecondLeftSidebarOpen: boolean;
   toggleSecondLeftSidebar: (open?: boolean) => void;
   toggleSearchDialog: () => void;
@@ -374,6 +374,98 @@ export default function PrimarySidebar({
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Aramalar</p></TooltipContent>
                         </Tooltip>
+                        
+                        <Separator className='my-2 w-8' />
+                        
+                        {/* E-Commerce, Marketplace & Social Section */}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'shopping' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'shopping' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('shopping');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="shopping-button"
+                                >
+                                    <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5"/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right"><p>E-Ticaret</p></TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'social' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'social' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('social');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="social-button"
+                                >
+                                    <Globe className="h-4 w-4 sm:h-5 sm:w-5"/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right"><p>Marketplace</p></TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'social-groups' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'social-groups' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('social-groups');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }} 
+                                    data-testid="social-feed-button"
+                                >
+                                    <Users2 className="h-4 w-4 sm:h-5 sm:w-5"/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right"><p>Sosyal Akış</p></TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'achievements' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'achievements' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('achievements');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }}
+                                    data-testid="achievements-button"
+                                >
+                                    <Award className="h-4 w-4 sm:h-5 sm:w-5"/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right"><p>Başarılar & Ödüller</p></TooltipContent>
+                        </Tooltip>
+                        
                         <Separator className='my-2 w-8' />
                  </div>
             </ScrollArea>

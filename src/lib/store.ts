@@ -308,7 +308,7 @@ interface AppStore {
   customNewTabContent?: ContentItem;
   customStartupContent?: ContentItem;
   isSecondLeftSidebarOpen: boolean;
-  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | null;
+  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | null;
   isStyleSettingsOpen: boolean;
   isViewportEditorOpen: boolean;
   isSpacesPanelOpen: boolean;

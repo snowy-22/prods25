@@ -123,6 +123,9 @@ import { MeetingScheduler } from './meeting-scheduler';
 import { SocialGroupsManager } from './social-groups-manager';
 import { ProfileSlugCard } from './profile-slug-card';
 import { SlugGeneratorEditor } from './slug-generator-editor';
+import RewardsDashboard from '@/components/rewards/rewards-dashboard';
+import ShoppingPanel from '@/components/shopping/shopping-panel';
+import AchievementsFolder from '@/components/achievements/achievements-folder';
 import { Draggable, Droppable, DropResult } from '@hello-pangea/dnd';
 import { SocialLogo } from './icons/social-logo';
 import { MessagingLogo } from './icons/messaging-logo';
@@ -2510,6 +2513,83 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                                 <SocialGroupsManager />
                             </div>
                         </ScrollArea>
+                    </div>
+                </PanelWrapper>
+            );
+        case 'achievements':
+            return (
+                <PanelWrapper testId="achievements-panel">
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <Award className="h-5 w-5" /> Başarılar & Ödüller
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <RewardsDashboard 
+                            userId={user?.id}
+                            defaultTab="overview"
+                            className="h-full"
+                        />
+                    </div>
+                </PanelWrapper>
+            );
+        case 'marketplace':
+            return (
+                <PanelWrapper testId="marketplace-panel">
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <Globe className="h-5 w-5" /> Marketplace
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <ShoppingPanel 
+                            defaultTab="cart"
+                            className="h-full"
+                        />
+                    </div>
+                </PanelWrapper>
+            );
+        case 'rewards':
+            return (
+                <PanelWrapper testId="rewards-panel">
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <Star className="h-5 w-5" /> Ödüllerim
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <RewardsDashboard 
+                            userId={user?.id}
+                            defaultTab="coupons"
+                            className="h-full"
+                        />
                     </div>
                 </PanelWrapper>
             );
