@@ -99,28 +99,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (error) throw error;
 
-    // Profile is auto-created by trigger on auth.users insert
-    // This is just a fallback if trigger fails for some reason
+    // Create profile directly (trigger disabled for reliability)
     if (data.user) {
       try {
         const { error: profileError } = await supabase
           .from('profiles')
-          .upsert({
+          .insert({
             id: data.user.id,
             email: data.user.email,
             full_name: username,
-            updated_at: new Date().toISOString(),
           }, {
-            onConflict: 'id',
+            count: 'exact',
           });
 
         if (profileError) {
-          console.warn('Note: Profile already created by trigger or error:', profileError);
-          // Don't throw - auth user was created successfully, trigger should have handled profile
+          console.error('Profile creation error:', profileError);
+          throw profileError;
         }
-      } catch (err) {
-        console.warn('Fallback profile creation note:', err);
-        // Don't throw - auth user was created successfully
+        
+        console.log('✅ Profile created successfully for:', data.user.email);
+      } catch (err: any) {
+        console.error('Failed to create profile:', err?.message || err);
+        throw err;
       }
     }
 
