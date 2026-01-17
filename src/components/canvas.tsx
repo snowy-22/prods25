@@ -707,9 +707,13 @@ const Canvas = memo(function Canvas({
                             isDragDisabled={isPreviewMode || item.isDeletable === false || normalizedLayoutMode === 'canvas'}
                           >
                             {(provided, snapshot) => {
-                              // Update feedback on drag state change
+                              // Defer drag start state updates to avoid setState during render
                               if (snapshot.isDragging && !dragFeedback.isDragging) {
-                                handleDragStart({ draggableId: item.id });
+                                if (typeof window !== 'undefined') {
+                                  requestAnimationFrame(() => handleDragStart({ draggableId: item.id }));
+                                } else {
+                                  setTimeout(() => handleDragStart({ draggableId: item.id }), 0);
+                                }
                               }
                               
                               return (

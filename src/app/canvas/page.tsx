@@ -1073,9 +1073,11 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     }, [activeViewId]);
 
     // Handle minimap item click: scroll to item and select it
+    const activeViewChildrenIds = useMemo(() => activeViewChildren.map(i => i.id), [activeViewChildren]);
+    
     const handleMiniMapItemClick = useCallback((item: ContentItem) => {
         // Select the item
-        state.setSelectedItem(item, { ctrlKey: false, shiftKey: false } as any, activeViewChildren.map(i => i.id));
+        state.setSelectedItem(item, { ctrlKey: false, shiftKey: false } as any, activeViewChildrenIds);
         
         // Scroll to item in canvas
         if (canvasScrollRef.current) {
@@ -1084,7 +1086,19 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 itemElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
-    }, [state, activeViewChildren]);
+    }, [state, activeViewChildrenIds]);
+    
+    // Stable callbacks for MiniMapOverlay to prevent infinite rerenders
+    const handleToggleControlPin = useCallback((groupId: string, pinned: boolean) => {
+        state.togglePlayerControlMiniMapPin(groupId, pinned);
+    }, [state.togglePlayerControlMiniMapPin]);
+    
+    const handleMiniMapItemDrop = useCallback((item: ContentItem, targetType: string, targetData?: any) => {
+        // Handle minimap drops - could navigate to item or add to minimap view
+        console.log('Item dropped on minimap:', item, targetType, targetData);
+        // For now, just navigate to the item
+        state.updateTab(state.activeTabId, { activeViewId: item.id });
+    }, [state.updateTab, state.activeTabId]);
     
     // Responsive sidebar widths based on breakpoint
     // Optimized to eliminate gap between player and library
@@ -1907,17 +1921,12 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                 playerControlGroups={state.playerControlGroups}
                                 isOpen={isMiniMapOpen}
                                 onToggle={setIsMiniMapOpen}
-                                onToggleControlPin={(groupId, pinned) => state.togglePlayerControlMiniMapPin(groupId, pinned)}
+                                onToggleControlPin={handleToggleControlPin}
                                 maxItems={(activeView as any)?.coverMaxItems ?? 20}
                                 viewportRect={viewportRect}
                                 onItemClick={handleMiniMapItemClick}
                                 selectedItemIds={state.selectedItemIds}
-                                onItemDrop={(item, targetType, targetData) => {
-                                    // Handle minimap drops - could navigate to item or add to minimap view
-                                    console.log('Item dropped on minimap:', item, targetType, targetData);
-                                    // For now, just navigate to the item
-                                    state.updateTab(state.activeTabId, { activeViewId: item.id });
-                                }}
+                                onItemDrop={handleMiniMapItemDrop}
                             />
                             <Tabs defaultValue="description" className="w-full">
                                 {/* Bottom Control Bar - Tabs sol, Controls sağ */}

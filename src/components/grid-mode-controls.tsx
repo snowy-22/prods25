@@ -90,10 +90,11 @@ const GridModeControls = memo(function GridModeControls({
   const isVertical = gridState.type === 'vertical';
   const isSquare = gridState.type === 'square';
   
-  // Canlı totalPages hesapla
+  // Canlı totalPages hesapla - Grid span desteği ile
   const rowsPerPageCalc = isSquare ? gridState.columns : 1;
   const itemsPerPageCalc = gridState.columns * rowsPerPageCalc;
-  const calculatedTotalPages = Math.max(1, Math.ceil(totalItems / itemsPerPageCalc));
+  // Grid span büyük öğeler için daha fazla alan kullanır, bu yüzden tahmini bir sayfa hesabı
+  const calculatedTotalPages = Math.max(1, Math.ceil(totalItems / Math.max(1, itemsPerPageCalc * 0.8)));
   
   const canGoPrevious = gridState.currentPage > 1;
   const canGoNext = gridState.currentPage < calculatedTotalPages;

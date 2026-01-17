@@ -2,7 +2,7 @@
 
 'use client';
 
-import { memo, useRef, useState, useEffect, useMemo, ReactNode } from 'react';
+import { memo, useRef, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { Bot, Library, Plus, Trash2, Folder as FolderIcon, FileText as FileIcon, Frame, Copy, List, Eye, Clock, StickyNote, Calendar, Play, Upload, LayoutGrid, AlertCircle, Film, Save, Pencil, MousePointer, Settings, Monitor, Moon, Sun, GripHorizontal, Image as ImageIcon, Expand, RotateCw, ArrowUpNarrowWide, Info, GanttChart, Wand2, User, LogOut, LogIn, ChevronDown, ListIcon, Undo, Redo, Share, Users, MessageSquare, Pin, PinOff, Palette, ArrowDownAZ, ArrowUpAZ, UserPlus, MessageSquarePlus, Minus, EyeOff, ChevronRight, PanelLeft, Link as LinkIcon, ChevronsRight, FolderSync, Award, Mic, History, Sparkles, Bell, Search, Puzzle, Globe, Camera, Tv, UserCog, Home, MonitorSmartphone, Airplay, Projector, QrCode, KeyRound, Maximize, Minimize, ExternalLink, BarChart, ShoppingCart, Columns3, SquareStack, Phone, Users2 } from 'lucide-react';
 import { AppLogo } from '@/components/icons/app-logo';
 import type { ContentItem, ItemType, SortOption } from '@/lib/initial-content';
@@ -124,7 +124,26 @@ export default function PrimarySidebar({
         event.preventDefault();
         onSetView(null);
         router.push('/canvas'); 
-    }
+    };
+    
+    // Stable handlers for sidebar buttons to prevent infinite rerenders
+    const handleLibraryClick = useCallback(() => {
+        if (activeSecondaryPanel === 'library' && isSecondLeftSidebarOpen) {
+            toggleSecondLeftSidebar(false);
+        } else {
+            setActiveSecondaryPanel('library');
+            toggleSecondLeftSidebar(true);
+        }
+    }, [activeSecondaryPanel, isSecondLeftSidebarOpen, toggleSecondLeftSidebar, setActiveSecondaryPanel]);
+    
+    const handleProfileClick = useCallback(() => {
+        if (activeSecondaryPanel === 'profile' && isSecondLeftSidebarOpen) {
+            toggleSecondLeftSidebar(false);
+        } else {
+            setActiveSecondaryPanel('profile');
+            toggleSecondLeftSidebar(true);
+        }
+    }, [activeSecondaryPanel, isSecondLeftSidebarOpen, toggleSecondLeftSidebar, setActiveSecondaryPanel]);
     
     const awardsFolder = useMemo(() => allItems?.find(item => item.id === 'awards-folder'), [allItems]);
     const userProfileItem = useMemo(() => allItems?.find(item => item.id === 'user-profile'), [allItems]);
@@ -176,14 +195,7 @@ export default function PrimarySidebar({
                                     variant={activeSecondaryPanel === 'library' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
                                     className='h-8 w-8 sm:h-10 sm:w-10' 
-                                    onClick={() => {
-                                        if (activeSecondaryPanel === 'library' && isSecondLeftSidebarOpen) {
-                                            toggleSecondLeftSidebar(false);
-                                        } else {
-                                            setActiveSecondaryPanel('library');
-                                            toggleSecondLeftSidebar(true);
-                                        }
-                                    }} 
+                                    onClick={handleLibraryClick}
                                     data-testid="library-button"
                                 >
                                     <Library className="h-4 w-4 sm:h-5 sm:w-5"/>
@@ -198,15 +210,8 @@ export default function PrimarySidebar({
                                     variant={activeSecondaryPanel === 'profile' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
                                     size="icon" 
                                     className='h-8 w-8 sm:h-10 sm:w-10' 
-                                    onClick={() => {
-                                        if (activeSecondaryPanel === 'profile' && isSecondLeftSidebarOpen) {
-                                            toggleSecondLeftSidebar(false);
-                                        } else {
-                                            setActiveSecondaryPanel('profile');
-                                            toggleSecondLeftSidebar(true);
-                                        }
-                                    }} 
-                                    data-testid="profile-sidebar-button"
+                                    onClick={handleProfileClick}
+                                    data-testid="profile-button"
                                 >
                                     <UserCog className="h-4 w-4 sm:h-5 sm:w-5"/>
                                 </Button>
@@ -376,18 +381,6 @@ export default function PrimarySidebar({
             {/* Fixed Footer */}
             <div className="mt-auto flex flex-col items-center gap-2 p-2">
                     {/* System & Device Management */}
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant={isSpacesPanelOpen ? "secondary" : "ghost"} size="icon" className='h-8 w-8 sm:h-10 sm:w-10' onClick={() => toggleSpacesPanel()} data-testid="spaces-button"><Home className="h-4 w-4 sm:h-5 sm:w-5"/></Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right"><p>Mekanlar</p></TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button variant={isDevicesPanelOpen ? "secondary" : "ghost"} size="icon" className='h-8 w-8 sm:h-10 sm:w-10' onClick={() => toggleDevicesPanel()} data-testid="devices-button"><MonitorSmartphone className="h-4 w-4 sm:h-5 sm:w-5"/></Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right"><p>Eşyalarım</p></TooltipContent>
-                    </Tooltip>
                     <Popover>
                         <Tooltip>
                             <TooltipTrigger asChild>

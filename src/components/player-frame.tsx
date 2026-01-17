@@ -390,6 +390,19 @@ const PlayerFrameComponent = ({
     return () => clearTimeout(timer);
   }, [item.id, onLoad]);
 
+  // Player navigation handler
+  const handlePlayerNav = (direction: 'next' | 'prev') => {
+    if (!item.children || item.children.length === 0) return;
+    const currentIndex = item.playerIndex || 0;
+    const totalItems = item.children.length;
+    let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
+    
+    if (newIndex >= totalItems) newIndex = 0;
+    if (newIndex < 0) newIndex = totalItems - 1;
+    
+    onUpdateItem(item.id, { playerIndex: newIndex });
+  };
+
   // Keyboard shortcuts handler
   useEffect(() => {
     const isContainer = ['folder', 'list', 'player', 'inventory', 'space', 'devices', 'calendar', 'saved-items', 'awards-folder', 'spaces-folder', 'devices-folder', 'root', 'trash-folder'].includes(item.type);
@@ -477,18 +490,6 @@ const PlayerFrameComponent = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSelected, item, onSetView, onDeleteItem, onItemClick, handlePlayerNav, setItemToShare, setItemToMessage]);
-
-  const handlePlayerNav = (direction: 'next' | 'prev') => {
-      if (!item.children || item.children.length === 0) return;
-      const currentIndex = item.playerIndex || 0;
-      const totalItems = item.children.length;
-      let newIndex = direction === 'next' ? currentIndex + 1 : currentIndex - 1;
-      
-      if (newIndex >= totalItems) newIndex = 0;
-      if (newIndex < 0) newIndex = totalItems - 1;
-      
-      onUpdateItem(item.id, { playerIndex: newIndex });
-  }
 
   const handleLike = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1001,6 +1002,65 @@ const PlayerFrameComponent = ({
             </ContextMenuItem>
             {isEditMode && (
                 <>
+                <ContextMenuSeparator />
+                {/* Grid Boyutlandırma */}
+                <ContextMenuItem 
+                    onClick={() => {
+                        const currentSpan = item.gridSpanCol || 1;
+                        const newSpan = Math.min(4, currentSpan + 1);
+                        onUpdateItem(item.id, { gridSpanCol: newSpan });
+                        toast({ title: "Grid Genişletildi", description: `Genişlik: ${newSpan}x` });
+                    }}
+                >
+                    <Maximize2 className="mr-2 h-4 w-4" />
+                    Genişlet
+                    <ContextMenuShortcut>→</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem 
+                    onClick={() => {
+                        const currentSpan = item.gridSpanCol || 1;
+                        const newSpan = Math.max(1, currentSpan - 1);
+                        onUpdateItem(item.id, { gridSpanCol: newSpan });
+                        toast({ title: "Grid Daraltıldı", description: `Genişlik: ${newSpan}x` });
+                    }}
+                >
+                    <Minimize2 className="mr-2 h-4 w-4" />
+                    Daralt
+                    <ContextMenuShortcut>←</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem 
+                    onClick={() => {
+                        const currentSpan = item.gridSpanRow || 1;
+                        const newSpan = Math.min(4, currentSpan + 1);
+                        onUpdateItem(item.id, { gridSpanRow: newSpan });
+                        toast({ title: "Grid Yükseltildi", description: `Yükseklik: ${newSpan}x` });
+                    }}
+                >
+                    <ChevronDown className="mr-2 h-4 w-4" />
+                    Yükselt
+                    <ContextMenuShortcut>↓</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem 
+                    onClick={() => {
+                        const currentSpan = item.gridSpanRow || 1;
+                        const newSpan = Math.max(1, currentSpan - 1);
+                        onUpdateItem(item.id, { gridSpanRow: newSpan });
+                        toast({ title: "Grid Alçaltıldı", description: `Yükseklik: ${newSpan}x` });
+                    }}
+                >
+                    <ChevronUp className="mr-2 h-4 w-4" />
+                    Alçalt
+                    <ContextMenuShortcut>↑</ContextMenuShortcut>
+                </ContextMenuItem>
+                <ContextMenuItem 
+                    onClick={() => {
+                        onUpdateItem(item.id, { gridSpanCol: 1, gridSpanRow: 1 });
+                        toast({ title: "Grid Sıfırlandı", description: "Normal boyut: 1x1" });
+                    }}
+                >
+                    <Ruler className="mr-2 h-4 w-4" />
+                    Sıfırla (1x1)
+                </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem 
                     onClick={() => onDeleteItem(item.id)} 

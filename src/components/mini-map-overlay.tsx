@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback, useRef } from 'react';
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ContentItem, PlayerControlGroup } from '@/lib/initial-content';
@@ -8,7 +8,10 @@ import {
   Map, X, Maximize2, Minimize2, 
   Grid3X3, Layers, ZoomIn, ZoomOut, RotateCcw,
   ChevronUp, ChevronDown, ChevronLeft, ChevronRight,
-  Target, Move, FolderOpen, Video, Image as ImageIcon, Globe, FileText
+  Target, Move, FolderOpen, Video, Image as ImageIcon, Globe, FileText,
+  Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, Repeat, Shuffle,
+  Gamepad2, Monitor, Pin, PinOff, Eye, EyeOff, Filter, Search, SortAsc,
+  Cast, Settings, Tv
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -21,6 +24,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface MiniMapOverlayProps {
   items: ContentItem[];
@@ -61,19 +68,24 @@ const getItemTypeIcon = (item: ContentItem): React.ReactNode => {
 
 // Mini thumbnail component
 const MiniThumbnail = ({ item, size = 'sm' }: { item: ContentItem; size?: 'xs' | 'sm' | 'md' }) => {
-  const sizeClasses = { xs: 'w-2.5 h-2.5', sm: 'w-3.5 h-3.5', md: 'w-5 h-5' };
+  const sizeClasses = { xs: 'w-3 h-3', sm: 'w-4 h-4', md: 'w-6 h-6' };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const itemData = item as Record<string, any>;
-  const thumbnailUrl = itemData.thumbnail || itemData.imageUrl || itemData.coverUrl || itemData.image;
+  // Klasör cover'ı dahil tüm image kaynakları
+  const thumbnailUrl = itemData.thumbnail || itemData.imageUrl || itemData.coverUrl || itemData.coverImage || itemData.image;
 
   if (thumbnailUrl) {
     return (
-      <div className={cn("rounded-sm overflow-hidden flex-shrink-0", sizeClasses[size])}>
+      <div className={cn(
+        "rounded-sm overflow-hidden flex-shrink-0 ring-1 ring-border/30",
+        sizeClasses[size],
+        item.type === 'folder' && "ring-amber-400/40"
+      )}>
         <Image 
           src={thumbnailUrl} 
           alt={item.title || ''} 
-          width={20} 
-          height={20}
+          width={32} 
+          height={32}
           className="w-full h-full object-cover"
           unoptimized
         />
@@ -115,10 +127,40 @@ export function MiniMapOverlay({
   const [viewMode, setViewMode] = useState<'preview' | 'grid'>('preview');
   const [zoom, setZoom] = useState(100);
   const [dropToken, setDropToken] = useState<DropToken | null>(null);
+  const [showSmartRemote, setShowSmartRemote] = useState(false);
+  const [remoteTab, setRemoteTab] = useState<'controls' | 'players' | 'filter'>('controls');
+  const [filterType, setFilterType] = useState<'all' | 'video' | 'folder' | 'widget'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   
   const { isMobile, isTablet } = useResponsiveLayout();
   const mapRef = useRef<HTMLDivElement>(null);
   const dragManager = CrossDragManager.getInstance();
+
+  // Filter items based on type and search
+  const filteredItems = useMemo(() => {
+    let result = items;
+    
+    // Type filter
+    if (filterType !== 'all') {
+      result = result.filter(item => {
+        if (filterType === 'video') return ['video', 'player'].includes(item.type);
+        if (filterType === 'folder') return item.type === 'folder';
+        if (filterType === 'widget') return ['clock', 'notes', 'todo', 'calendar', 'weather'].includes(item.type);
+        return true;
+      });
+    }
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(item => 
+        item.title?.toLowerCase().includes(query) ||
+        item.type.toLowerCase().includes(query)
+      );
+    }
+    
+    return result.slice(0, maxItems);
+  }, [items, filterType, searchQuery, maxItems]);
 
   // Responsive dimensions
   const baseWidth = isExpanded 
@@ -135,8 +177,14 @@ export function MiniMapOverlay({
   const scaleY = mapHeight / canvasHeight;
   const scale = Math.min(scaleX, scaleY);
 
-  // Limit visible items
-  const visibleItems = useMemo(() => items.slice(0, maxItems), [items, maxItems]);
+  // Use filtered items for display
+  const visibleItems = filteredItems;
+  
+  // Player control groups that are pinned to minimap
+  const pinnedControlGroups = useMemo(() => 
+    playerControlGroups.filter(g => g.isPinnedToMiniMap),
+    [playerControlGroups]
+  );
 
   // Drag handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -202,6 +250,69 @@ export function MiniMapOverlay({
     };
     onNavigateToPosition(moves[direction][0], moves[direction][1]);
   };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (!isOpen || !showSmartRemote) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent if typing in input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      
+      // Navigation shortcuts (Arrow keys)
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        handleNavigate('up');
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        handleNavigate('down');
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handleNavigate('left');
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNavigate('right');
+      }
+      
+      // Zoom shortcuts
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '=' || e.key === '+') {
+          e.preventDefault();
+          handleZoomIn();
+        } else if (e.key === '-') {
+          e.preventDefault();
+          handleZoomOut();
+        } else if (e.key === '0') {
+          e.preventDefault();
+          handleZoomReset();
+        }
+      }
+      
+      // Center shortcut (Space)
+      if (e.key === ' ' && !e.ctrlKey && !e.shiftKey) {
+        e.preventDefault();
+        onNavigateToPosition?.(canvasWidth / 2, canvasHeight / 2);
+      }
+      
+      // Tab switching (1, 2, 3)
+      if (e.key === '1') setRemoteTab('controls');
+      if (e.key === '2') setRemoteTab('players');
+      if (e.key === '3') setRemoteTab('filter');
+      
+      // View mode (V)
+      if (e.key === 'v' || e.key === 'V') {
+        setViewMode(prev => prev === 'preview' ? 'grid' : 'preview');
+      }
+      
+      // Toggle remote (R)
+      if (e.key === 'r' || e.key === 'R') {
+        setShowSmartRemote(prev => !prev);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, showSmartRemote, canvasWidth, canvasHeight, onNavigateToPosition]);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -283,6 +394,60 @@ export function MiniMapOverlay({
                 )}
               </AnimatePresence>
               
+              {/* Smart Remote, Broadcast, Cast */}
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.div
+                    className="flex items-center gap-0.5 bg-muted/60 rounded-md p-0.5 mr-1"
+                    initial={{ opacity: 0, x: 5 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 5 }}
+                  >
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={showSmartRemote ? 'secondary' : 'ghost'}
+                          size="icon"
+                          className="h-4.5 w-4.5"
+                          onClick={() => setShowSmartRemote(!showSmartRemote)}
+                        >
+                          <Settings className="h-2.5 w-2.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-[10px] py-0.5 px-1.5">
+                        {showSmartRemote ? 'Kumandayı Gizle' : 'Akıllı Kumanda'}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4.5 w-4.5"
+                          onClick={() => {}}
+                        >
+                          <Tv className="h-2.5 w-2.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-[10px] py-0.5 px-1.5">Yayın</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4.5 w-4.5"
+                          onClick={() => {}}
+                        >
+                          <Cast className="h-2.5 w-2.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-[10px] py-0.5 px-1.5">Yansıt</TooltipContent>
+                    </Tooltip>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
               {/* Expand */}
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -311,6 +476,261 @@ export function MiniMapOverlay({
               </Button>
             </div>
           </div>
+
+          {/* Smart Remote Control Panel */}
+          <AnimatePresence>
+            {showSmartRemote && (
+              <motion.div
+                className="border-t bg-card/30"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {/* Remote Tabs */}
+                <div className="flex items-center gap-0.5 px-1.5 py-1 bg-muted/20 border-b">
+                  <Button
+                    variant={remoteTab === 'controls' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-6 text-[10px] px-2"
+                    onClick={() => setRemoteTab('controls')}
+                  >
+                    <Gamepad2 className="h-3 w-3 mr-1" />
+                    Kontroller
+                  </Button>
+                  <Button
+                    variant={remoteTab === 'players' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-6 text-[10px] px-2"
+                    onClick={() => setRemoteTab('players')}
+                  >
+                    <Monitor className="h-3 w-3 mr-1" />
+                    Players
+                    {pinnedControlGroups.length > 0 && (
+                      <Badge variant="secondary" className="ml-1 h-3.5 px-1 text-[8px]">
+                        {pinnedControlGroups.length}
+                      </Badge>
+                    )}
+                  </Button>
+                  <Button
+                    variant={remoteTab === 'filter' ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className="h-6 text-[10px] px-2"
+                    onClick={() => setRemoteTab('filter')}
+                  >
+                    <Filter className="h-3 w-3 mr-1" />
+                    Filtre
+                  </Button>
+                </div>
+
+                {/* Remote Content */}
+                <div className="p-2 max-h-48 overflow-auto">
+                  {remoteTab === 'controls' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="text-[10px] text-muted-foreground font-medium">Navigasyon</div>
+                        <div className="text-[8px] text-muted-foreground">↑ ↓ ← → tuşları</div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1">
+                        <div />
+                        <Button size="sm" variant="outline" className="h-7" onClick={() => handleNavigate('up')}>
+                          <ChevronUp className="h-3 w-3" />
+                        </Button>
+                        <div />
+                        <Button size="sm" variant="outline" className="h-7" onClick={() => handleNavigate('left')}>
+                          <ChevronLeft className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="secondary" className="h-7" onClick={() => onNavigateToPosition?.(canvasWidth / 2, canvasHeight / 2)}>
+                          <Target className="h-3 w-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7" onClick={() => handleNavigate('right')}>
+                          <ChevronRight className="h-3 w-3" />
+                        </Button>
+                        <div />
+                        <Button size="sm" variant="outline" className="h-7" onClick={() => handleNavigate('down')}>
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                        <div />
+                      </div>
+                      
+                      <Separator className="my-2" />
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="text-[10px] text-muted-foreground font-medium">Zoom</div>
+                        <div className="text-[8px] text-muted-foreground">Ctrl +/- veya 0</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleZoomOut} disabled={zoom <= 50}>
+                          <ZoomOut className="h-3 w-3" />
+                        </Button>
+                        <Slider
+                          value={[zoom]}
+                          onValueChange={([v]) => setZoom(v)}
+                          min={50}
+                          max={200}
+                          step={25}
+                          className="flex-1"
+                        />
+                        <Button size="sm" variant="outline" className="h-6 w-6 p-0" onClick={handleZoomIn} disabled={zoom >= 200}>
+                          <ZoomIn className="h-3 w-3" />
+                        </Button>
+                        <span className="text-[10px] text-muted-foreground w-10 text-right">{zoom}%</span>
+                      </div>
+                      
+                      <Separator className="my-2" />
+                      
+                      <div className="text-[9px] text-muted-foreground space-y-0.5 bg-muted/20 p-1.5 rounded-md">
+                        <div className="font-medium mb-1">⌨️ Kısayollar</div>
+                        <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+                          <div><kbd className="text-[8px] px-1 py-0.5 bg-background rounded">Space</kbd> Merkez</div>
+                          <div><kbd className="text-[8px] px-1 py-0.5 bg-background rounded">V</kbd> Görünüm</div>
+                          <div><kbd className="text-[8px] px-1 py-0.5 bg-background rounded">R</kbd> Kumanda</div>
+                          <div><kbd className="text-[8px] px-1 py-0.5 bg-background rounded">1-3</kbd> Sekmeler</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {remoteTab === 'players' && (
+                    <ScrollArea className="max-h-40">
+                      <div className="space-y-1.5">
+                        {pinnedControlGroups.length === 0 ? (
+                          <div className="text-center py-4 text-[10px] text-muted-foreground">
+                            <Monitor className="h-6 w-6 mx-auto mb-1 opacity-30" />
+                            <div>Hiç sabitlenmiş player yok</div>
+                            <div className="mt-1 text-[9px]">Player&apos;lara sağ tıklayıp &quot;Mini Map&apos;e Sabitle&quot; seçin</div>
+                          </div>
+                        ) : (
+                          pinnedControlGroups.map(group => (
+                            <div key={group.id} className="p-1.5 rounded-md bg-muted/30 border border-border/40">
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-1">
+                                  <Monitor className="h-3 w-3 text-primary" />
+                                  <span className="text-[10px] font-medium">{group.name}</span>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-4 w-4 p-0"
+                                  onClick={() => onToggleControlPin?.(group.id, false)}
+                                >
+                                  <PinOff className="h-2.5 w-2.5 text-muted-foreground" />
+                                </Button>
+                              </div>
+                              <div className="flex items-center gap-0.5">
+                                <Button size="sm" variant="ghost" className="h-6 flex-1 text-[9px]">
+                                  <SkipBack className="h-2.5 w-2.5" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-6 flex-1 text-[9px]">
+                                  <Play className="h-2.5 w-2.5" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-6 flex-1 text-[9px]">
+                                  <Pause className="h-2.5 w-2.5" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-6 flex-1 text-[9px]">
+                                  <SkipForward className="h-2.5 w-2.5" />
+                                </Button>
+                                <Separator orientation="vertical" className="h-4 mx-0.5" />
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                                  <Volume2 className="h-2.5 w-2.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </ScrollArea>
+                  )}
+
+                  {remoteTab === 'filter' && (
+                    <div className="space-y-2">
+                      <div className="text-[10px] text-muted-foreground font-medium mb-1">Tip Filtresi</div>
+                      <div className="grid grid-cols-2 gap-1">
+                        <Button
+                          size="sm"
+                          variant={filterType === 'all' ? 'secondary' : 'outline'}
+                          className="h-7 text-[10px]"
+                          onClick={() => setFilterType('all')}
+                        >
+                          <Layers className="h-3 w-3 mr-1" />
+                          Hepsi
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={filterType === 'video' ? 'secondary' : 'outline'}
+                          className="h-7 text-[10px]"
+                          onClick={() => setFilterType('video')}
+                        >
+                          <Video className="h-3 w-3 mr-1" />
+                          Video
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={filterType === 'folder' ? 'secondary' : 'outline'}
+                          className="h-7 text-[10px]"
+                          onClick={() => setFilterType('folder')}
+                        >
+                          <FolderOpen className="h-3 w-3 mr-1" />
+                          Klasör
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={filterType === 'widget' ? 'secondary' : 'outline'}
+                          className="h-7 text-[10px]"
+                          onClick={() => setFilterType('widget')}
+                        >
+                          <Grid3X3 className="h-3 w-3 mr-1" />
+                          Widget
+                        </Button>
+                      </div>
+                      
+                      <Separator className="my-2" />
+                      
+                      <div className="text-[10px] text-muted-foreground font-medium mb-1">Arama</div>
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                        <input
+                          type="text"
+                          placeholder="İsim ile ara..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full h-7 pl-7 pr-2 text-[10px] bg-muted/30 border border-border/40 rounded-md focus:outline-none focus:ring-1 focus:ring-primary/50"
+                        />
+                        {searchQuery && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-5 w-5 p-0"
+                            onClick={() => setSearchQuery('')}
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </Button>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-[9px] text-muted-foreground pt-1">
+                        <span>Sonuç: {filteredItems.length} öğe</span>
+                        {(filterType !== 'all' || searchQuery) && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 text-[9px] px-1"
+                            onClick={() => {
+                              setFilterType('all');
+                              setSearchQuery('');
+                            }}
+                          >
+                            <RotateCcw className="h-2.5 w-2.5 mr-1" />
+                            Sıfırla
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Map Area - wrapped with ref on regular div to avoid Framer Motion ref issues */}
           <div ref={mapRef} style={{ position: 'relative' }}>

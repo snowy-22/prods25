@@ -46,6 +46,17 @@ let realtimeChannel: RealtimeChannel | null = null;
 let deviceId: string | null = null;
 
 /**
+ * Internal helpers to ensure Supabase is properly configured on the client.
+ * Prevents noisy errors when env vars are missing or placeholders are used.
+ */
+function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Treat placeholder or empty values as not configured
+  return !!url && !!key && url !== 'https://placeholder.supabase.co' && key !== 'placeholder';
+}
+
+/**
  * Get or generate device ID for conflict resolution
  */
 export function getDeviceId(): string {
@@ -69,6 +80,12 @@ export async function saveCanvasData(
   userId: string
 ): Promise<boolean> {
   try {
+    if (!isSupabaseConfigured() || !userId) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Skip saveCanvasData: Supabase not configured or missing userId');
+      }
+      return false;
+    }
     const supabase = createClient();
     const currentDeviceId = getDeviceId();
 
@@ -84,7 +101,12 @@ export async function saveCanvasData(
       });
 
     if (error) {
-      syncLogger.error('Failed to save canvas data', error);
+      const msg = (error as any)?.message;
+      if (typeof msg === 'string' && msg.trim()) {
+        syncLogger.error('Failed to save canvas data', error);
+      } else if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to save canvas data (no message).');
+      }
       return false;
     }
 
@@ -103,6 +125,12 @@ export async function loadCanvasData(
   userId: string
 ): Promise<any | null> {
   try {
+    if (!isSupabaseConfigured() || !userId) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Skip loadCanvasData: Supabase not configured or missing userId');
+      }
+      return null;
+    }
     const supabase = createClient();
 
     const { data, error } = await supabase
@@ -113,11 +141,16 @@ export async function loadCanvasData(
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
+      if ((error as any).code === 'PGRST116') {
         // No data found, return null
         return null;
       }
-      syncLogger.error('Failed to load canvas data', error);
+      const msg = (error as any)?.message;
+      if (typeof msg === 'string' && msg.trim()) {
+        syncLogger.error('Failed to load canvas data', error);
+      } else if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to load canvas data (no message).');
+      }
       return null;
     }
 
@@ -138,6 +171,12 @@ export async function loadAllCanvasData(userId: string): Promise<{
   layout?: any;
 } | null> {
   try {
+    if (!isSupabaseConfigured() || !userId) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Skip loadAllCanvasData: Supabase not configured or missing userId');
+      }
+      return null;
+    }
     const supabase = createClient();
 
     const { data, error } = await supabase
@@ -146,9 +185,12 @@ export async function loadAllCanvasData(userId: string): Promise<{
       .eq('user_id', userId);
 
     if (error) {
+      const msg = (error as any)?.message;
       // Only log if there's a meaningful error message (not empty object)
-      if (typeof error.message === 'string' && error.message.trim() && process.env.NODE_ENV === 'development') {
+      if (typeof msg === 'string' && msg.trim() && process.env.NODE_ENV === 'development') {
         console.error('Failed to load all canvas data:', error);
+      } else if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to load all canvas data (no message).');
       }
       return null;
     }
@@ -173,6 +215,12 @@ export async function saveUserPreferences(
   preferences: Partial<UserPreferences>
 ): Promise<boolean> {
   try {
+    if (!isSupabaseConfigured() || !userId) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Skip saveUserPreferences: Supabase not configured or missing userId');
+      }
+      return false;
+    }
     const supabase = createClient();
 
     const { error } = await supabase
@@ -185,7 +233,12 @@ export async function saveUserPreferences(
       });
 
     if (error) {
-      console.error('Failed to save user preferences:', error);
+      const msg = (error as any)?.message;
+      if (typeof msg === 'string' && msg.trim()) {
+        console.error('Failed to save user preferences:', error);
+      } else if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to save user preferences (no message).');
+      }
       return false;
     }
 
@@ -201,6 +254,12 @@ export async function saveUserPreferences(
  */
 export async function loadUserPreferences(userId: string): Promise<UserPreferences | null> {
   try {
+    if (!isSupabaseConfigured() || !userId) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Skip loadUserPreferences: Supabase not configured or missing userId');
+      }
+      return null;
+    }
     const supabase = createClient();
 
     const { data, error } = await supabase
@@ -210,12 +269,15 @@ export async function loadUserPreferences(userId: string): Promise<UserPreferenc
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
+      if ((error as any).code === 'PGRST116') {
         return null;
       }
       // Only log if there's a meaningful error message (not empty object)
-      if (typeof error.message === 'string' && error.message.trim() && process.env.NODE_ENV === 'development') {
+      const msg = (error as any)?.message;
+      if (typeof msg === 'string' && msg.trim() && process.env.NODE_ENV === 'development') {
         console.error('Failed to load user preferences:', error);
+      } else if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to load user preferences (no message).');
       }
       return null;
     }
@@ -332,6 +394,15 @@ export async function migrateLocalStorageToCloud(userId: string): Promise<boolea
       return true;
     }
 
+    // If Supabase is not configured, avoid noisy failures; mark as done.
+    if (!isSupabaseConfigured() || !userId) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Skip migration: Supabase not configured or missing userId');
+      }
+      localStorage.setItem(migrationKey, 'true');
+      return true;
+    }
+
     const localData = localStorage.getItem('tv25-storage');
     if (!localData) {
       localStorage.setItem(migrationKey, 'true');
@@ -352,7 +423,7 @@ export async function migrateLocalStorageToCloud(userId: string): Promise<boolea
     }
 
     // Migrate preferences
-    await saveUserPreferences(userId, {
+    const prefsSaved = await saveUserPreferences(userId, {
       layout_mode: state.layoutMode,
       new_tab_behavior: state.newTabBehavior,
       startup_behavior: state.startupBehavior,
@@ -368,7 +439,10 @@ export async function migrateLocalStorageToCloud(userId: string): Promise<boolea
       },
     });
 
-    // Mark migration as done
+    // Mark migration as done even if prefs failed (to prevent loops on startup)
+    if (!prefsSaved && process.env.NODE_ENV === 'development') {
+      console.warn('Preferences save failed during migration; continuing without blocking.');
+    }
     localStorage.setItem(migrationKey, 'true');
     
     if (process.env.NODE_ENV === 'development') {

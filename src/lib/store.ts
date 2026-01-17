@@ -3491,6 +3491,31 @@ export const useAppStore = create<AppStore>()(
         const { user } = get();
         if (!user) return;
         try {
+          // Allow only folders and player-like items in trash
+          const allowedTypes = new Set<ContentItem['type']>(['folder', 'player', 'video', 'audio', '3dplayer']);
+
+          const hasPersonalization = (ci: ContentItem): boolean => {
+            const hasRatings = (ci.ratings && ci.ratings.length > 0) || typeof ci.myRating === 'number';
+            const hasTags = !!(ci.tags && ci.tags.length);
+            const hasComments = !!(ci.comments && ci.comments.length) || (typeof ci.commentCount === 'number' && ci.commentCount > 0);
+            const hasStyles = !!(ci.styles && Object.keys(ci.styles).length > 0);
+            const hasFrame = !!(ci.frameEffect || ci.frameColor || ci.frameWidth || ci.frameStyle);
+            const hasLayout = !!(ci.x || ci.y || ci.width || ci.height || ci.gridSpanCol || ci.gridSpanRow || ci.layoutMode || ci.baseFrameStyles);
+            const hasContent = !!(ci.content && ci.content.trim().length > 0) || !!ci.html;
+            const hasFlags = !!(ci.isPinned || ci.isLiked || ci.priority || ci.visibleMetrics?.length);
+            return hasRatings || hasTags || hasComments || hasStyles || hasFrame || hasLayout || hasContent || hasFlags;
+          };
+
+          // Skip keeping in trash if type not allowed or not personalized
+          if (!allowedTypes.has(item.type)) {
+            console.log('[Trash] Skipping unsupported type:', item.type, item.id);
+            return;
+          }
+          if (!hasPersonalization(item)) {
+            console.log('[Trash] Skipping unpersonalized item:', item.type, item.id);
+            return;
+          }
+
           const { moveToTrash } = await import('./supabase-sync');
           await moveToTrash(user.id, item.id, item, reason);
           const { loadTrashBucket } = await import('./supabase-sync');

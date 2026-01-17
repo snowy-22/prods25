@@ -23,8 +23,10 @@ import {
   SelectScrollDownButton
 } from "@/components/ui/select";
 import type { AIProviderConfig } from "@/lib/ai-providers";
-import { Settings, Brain, Music, Cloud, MessageSquare, Home, BarChart, CreditCard, Save, Database, Zap } from "lucide-react";
+import { Settings, Brain, Music, Cloud, MessageSquare, Home, BarChart, CreditCard, Save, Database, Zap, MonitorSmartphone, Key } from "lucide-react";
 import { KeyRound, TrendingUp, TestTube2, Youtube, Chrome, Disc, Video, Globe } from "lucide-react";
+import type { ContentItem } from "@/lib/initial-content";
+import { getIconByName } from "@/lib/icons";
 
 // Section components (varsayılan, sade, fonksiyonel)
 // ... (AIProvidersSection, MediaApisSection, CloudStorageSection, CommunicationSection, IoTSection, AnalyticsSection, SubscriptionSection, SearchHistorySection)
@@ -57,20 +59,22 @@ export default function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogP
             <button onClick={() => setActiveTab('cloud')} className={`settings-tab-btn ${activeTab==='cloud' ? 'active' : ''}`}><Cloud className="h-4 w-4 mr-2"/>Bulut</button>
             <button onClick={() => setActiveTab('iot')} className={`settings-tab-btn ${activeTab==='iot' ? 'active' : ''}`}><Home className="h-4 w-4 mr-2"/>Akıllı Ev</button>
             <button onClick={() => setActiveTab('analytics')} className={`settings-tab-btn ${activeTab==='analytics' ? 'active' : ''}`}><BarChart className="h-4 w-4 mr-2"/>Analitik</button>
-              {/* <button onClick={() => setActiveTab('communication')} className={`settings-tab-btn ${activeTab==='communication' ? 'active' : ''}`}><MessageSquare className="h-4 w-4 mr-2"/>İletişim</button> */}
-              {/* <button onClick={() => setActiveTab('subscription')} className={`settings-tab-btn ${activeTab==='subscription' ? 'active' : ''}`}><CreditCard className="h-4 w-4 mr-2"/>Abonelik</button> */}
+            <button onClick={() => setActiveTab('apikeys')} className={`settings-tab-btn ${activeTab==='apikeys' ? 'active' : ''}`}><Key className="h-4 w-4 mr-2"/>API Ayarları</button>
+            <button onClick={() => setActiveTab('subscription')} className={`settings-tab-btn ${activeTab==='subscription' ? 'active' : ''}`}><CreditCard className="h-4 w-4 mr-2"/>Abonelik</button>
+            <button onClick={() => setActiveTab('spaces')} className={`settings-tab-btn ${activeTab==='spaces' ? 'active' : ''}`}><Home className="h-4 w-4 mr-2"/>Mekanlar</button>
+            <button onClick={() => setActiveTab('devices')} className={`settings-tab-btn ${activeTab==='devices' ? 'active' : ''}`}><MonitorSmartphone className="h-4 w-4 mr-2"/>Cihazlarım</button>
           </div>
           {/* Sağ içerik: Aktif sekme */}
           <div className="flex-1 overflow-y-auto px-2 py-1">
             {activeTab === 'ai' && <AIProvidersSection />}
             {activeTab === 'media' && <MediaApisSection />}
             {activeTab === 'cloud' && <CloudStorageSection />}
-              {/* {activeTab === 'iot' && <IoTSection />} */}
-              {/* {activeTab === 'analytics' && <AnalyticsSection />} */}
-              {/* {activeTab === 'communication' && <CommunicationSection />} */}
-              {/* {activeTab === 'subscription' && <SubscriptionSection />} */}
-            {/* Arama geçmişi sadece bulut sekmesinden sonra gösterilsin */}
-              {/* {activeTab === 'cloud' && <div className="mt-4"><SearchHistorySection /></div>} */}
+            {activeTab === 'iot' && <IoTSection />}
+            {activeTab === 'analytics' && <AnalyticsSection />}
+            {activeTab === 'apikeys' && <ApiKeysSection />}
+            {activeTab === 'subscription' && <SubscriptionSection />}
+            {activeTab === 'spaces' && <SpacesSection />}
+            {activeTab === 'devices' && <DevicesSection />}
           </div>
         </div>
       </DialogContent>
@@ -789,6 +793,283 @@ function AnalyticsSection() {
           Kaydet
         </Button>
       </div>
+    </div>
+  );
+}
+
+// API Keys Section
+function ApiKeysSection() {
+  const { apiKeys, setApiKey, youtubeApiKey, setYoutubeApiKey, googleApiKey, setGoogleApiKey } = useAppStore();
+
+  const [localYoutubeKey, setLocalYoutubeKey] = useState(youtubeApiKey || '');
+  const [localGoogleKey, setLocalGoogleKey] = useState(googleApiKey || '');
+  const [localSpotify, setLocalSpotify] = useState(apiKeys.spotify || '');
+  const [localDropbox, setLocalDropbox] = useState(apiKeys.dropbox || '');
+  const [localSlack, setLocalSlack] = useState(apiKeys.slack || '');
+
+  const handleSave = () => {
+    if (localYoutubeKey) setYoutubeApiKey(localYoutubeKey);
+    if (localGoogleKey) setGoogleApiKey(localGoogleKey);
+    if (localSpotify) setApiKey('media', 'spotify', localSpotify);
+    if (localDropbox) setApiKey('cloud', 'dropbox', localDropbox);
+    if (localSlack) setApiKey('communication', 'slack', localSlack);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Youtube className="h-5 w-5 text-red-500" />
+            YouTube API
+          </CardTitle>
+          <CardDescription>YouTube videoları için metadata ve arama desteği</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label>API Key</Label>
+            <Input
+              type="password"
+              placeholder="YouTube Data API v3 Key..."
+              value={localYoutubeKey}
+              onChange={(e) => setLocalYoutubeKey(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Google Cloud Console'dan YouTube Data API v3 anahtarı alabilirsiniz.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            Google API
+          </CardTitle>
+          <CardDescription>Google servisleri için genel API anahtarı</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <Label>API Key</Label>
+            <Input
+              type="password"
+              placeholder="Google API Key..."
+              value={localGoogleKey}
+              onChange={(e) => setLocalGoogleKey(e.target.value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Diğer API Anahtarları</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Spotify</Label>
+            <Input
+              type="password"
+              placeholder="Spotify Client ID..."
+              value={localSpotify}
+              onChange={(e) => setLocalSpotify(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Dropbox</Label>
+            <Input
+              type="password"
+              placeholder="Dropbox Access Token..."
+              value={localDropbox}
+              onChange={(e) => setLocalDropbox(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Slack</Label>
+            <Input
+              type="password"
+              placeholder="Slack Bot Token..."
+              value={localSlack}
+              onChange={(e) => setLocalSlack(e.target.value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end">
+        <Button onClick={handleSave}>
+          <Save className="h-4 w-4 mr-2" />
+          Kaydet
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Subscription Section
+function SubscriptionSection() {
+  const { userSubscriptionTier, setUserSubscriptionTier } = useAppStore();
+
+  const tiers = [
+    { id: 'guest', name: 'Misafir', price: 'Ücretsiz', features: ['Temel özellikler', 'Sınırlı depolama', 'Topluluk desteği'] },
+    { id: 'free', name: 'Free', price: 'Ücretsiz', features: ['Tüm temel özellikler', '5 GB depolama', 'Standart destek'] },
+    { id: 'basic', name: 'Basic', price: '$9.99/ay', features: ['Tüm Free özellikleri', '50 GB depolama', 'Öncelikli destek', 'Temel AI özellikleri'] },
+    { id: 'pro', name: 'Pro', price: '$29.99/ay', features: ['Tüm Basic özellikleri', '500 GB depolama', '7/24 destek', 'Gelişmiş AI özellikleri', 'API erişimi'] },
+    { id: 'enterprise', name: 'Enterprise', price: 'Özel fiyat', features: ['Tüm Pro özellikleri', 'Sınırsız depolama', 'Özel destek', 'SLA garantisi', 'Özel entegrasyonlar'] }
+  ];
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Mevcut Abonelik</CardTitle>
+          <CardDescription>
+            Şu anki abonelik planınız: <Badge variant="secondary" className="ml-2">{userSubscriptionTier}</Badge>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            {tiers.map((tier) => (
+              <Card key={tier.id} className={tier.id === userSubscriptionTier ? 'border-primary' : ''}>
+                <CardHeader>
+                  <CardTitle className="text-lg">{tier.name}</CardTitle>
+                  <CardDescription className="text-xl font-bold">{tier.price}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-1 text-sm">
+                    {tier.features.map((feature, idx) => (
+                      <li key={idx}>✓ {feature}</li>
+                    ))}
+                  </ul>
+                  {tier.id !== userSubscriptionTier && (
+                    <Button 
+                      className="mt-4 w-full" 
+                      onClick={() => setUserSubscriptionTier(tier.id as any)}
+                    >
+                      {tier.id === 'guest' || tier.id === 'free' ? 'Seç' : 'Yükselt'}
+                    </Button>
+                  )}
+                  {tier.id === userSubscriptionTier && (
+                    <Button className="mt-4 w-full" variant="secondary" disabled>
+                      Aktif Plan
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Spaces Section
+function SpacesSection() {
+  const allItems = useAppStore((state) => state.tabs.flatMap(tab => [tab, ...(tab.children || [])]));
+  const spaces = allItems.filter((item: ContentItem) => item.type === 'space');
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Home className="h-5 w-5" />
+            Mekanlar
+          </CardTitle>
+          <CardDescription>
+            Fiziksel mekanlarınızı ve sanal alanlarınızı yönetin
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {spaces.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Home className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>Henüz mekan eklenmedi</p>
+              <p className="text-sm">Kitaplıktan yeni mekan oluşturabilirsiniz</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {spaces.map((space: ContentItem) => {
+                const Icon = getIconByName(space.icon as any) || Home;
+                return (
+                  <Card key={space.id} className="p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-muted">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold">{space.title}</h4>
+                        {space.description && (
+                          <p className="text-sm text-muted-foreground">{space.description}</p>
+                        )}
+                      </div>
+                      <Badge variant="secondary">{space.type}</Badge>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Devices Section
+function DevicesSection() {
+  const allItems = useAppStore((state) => state.tabs.flatMap(tab => [tab, ...(tab.children || [])]));
+  const devices = allItems.filter((item: ContentItem) => item.type === 'device' || item.type === 'tv' || item.type === 'monitor');
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MonitorSmartphone className="h-5 w-5" />
+            Cihazlarım
+          </CardTitle>
+          <CardDescription>
+            TV, monitör ve diğer akıllı cihazlarınızı yönetin
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {devices.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <MonitorSmartphone className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <p>Henüz cihaz eklenmedi</p>
+              <p className="text-sm">Kitaplıktan yeni cihaz ekleyebilirsiniz</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {devices.map((device: ContentItem) => {
+                const Icon = getIconByName(device.icon as any) || MonitorSmartphone;
+                return (
+                  <Card key={device.id} className="p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-muted">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold">{device.title}</h4>
+                        {device.description && (
+                          <p className="text-sm text-muted-foreground">{device.description}</p>
+                        )}
+                        {(device as any).isCurrentDevice && (
+                          <Badge variant="default" className="mt-1">Bu Cihaz</Badge>
+                        )}
+                      </div>
+                      <Badge variant="secondary">{device.type}</Badge>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
