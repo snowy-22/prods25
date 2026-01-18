@@ -1956,3 +1956,14 @@ export async function deleteComment(commentId: string) {
   if (error) throw error;
   return true;
 }
+/**
+ * Sync folder items across devices - Re-export from cloud-storage-manager
+ */
+export async function syncFolderItemsAcrossDevices(
+  userId: string,
+  deviceId: string,
+  folderId: string
+) {
+  const { syncFolderItemsAcrossDevices } = await import('./cloud-storage-manager');
+  return syncFolderItemsAcrossDevices(userId, deviceId, folderId);
+}

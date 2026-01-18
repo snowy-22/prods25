@@ -5,9 +5,10 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "theme_color": "#0066cc",
   "background_color": "#ffffff",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
   "icons": [
     {
       "src": "/favicon.svg",

@@ -62,7 +62,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { DeviceType, OsType, BrowserType } from '@/hooks/use-device';
 
-export type ItemType = 'website' | 'image' | 'video' | 'audio' | 'pdf' | 'map' | 'folder' | 'list' | 'clock' | 'notes' | 'player' | 'calendar' | '3dplayer' | 'award' | 'todolist' | 'weather' | 'calculator' | 'currencyConverter' | 'unitConverter' | 'currencyRates' | 'playerControls' | 'navigation' | 'mediaHub' | 'aiImage' | 'inventory' | 'space' | 'file' | 'pharmacy' | 'trash-folder' | 'flowchart' | 'kanban' | 'swot' | 'fishbone' | '5s' | 'six-s' | 'kaizen-platform' | 'agile-calendar' | 'qfd' | 'processchart' | 'pmp' | 'rss' | 'devices' | 'profile-card' | 'profile-share' | 'mindmap' | 'gantt' | 'financial-engineering' | 'financial-calculator' | 'book' | 'item' | 'saved-items' | 'alarm' | 'stopwatch' | 'timer' | 'world-clock' | 'pomodoro' | 'user-profile' | 'awards-folder' | 'spaces-folder' | 'devices-folder' | 'root' | 'match' | 'league-table' | 'fixture' | 'scan' | 'search' | 'todo' | 'social-feed' | 'social-post' | 'user-list' | 'screenshot' | 'screen-recorder' | 'qrcode' | 'color-picker' | 'clipboard-manager' | 'gradient-generator' | 'lorem-ipsum' | 'business-model-canvas' | 'hue' | 'reservation' | 'purchase' | 'achievements' | 'training-module' | 'award-card' | 'new-tab' | 'device' | 'hue-light' | 'organization-chart' | 'business-analysis' | 'product-catalog' | 'stock-management' | 'sales-card' | 'advanced-table' | 'speed-test' | 'performance-monitor' | 'macro-pad' | 'player-controls-widget' | 'product-grid' | 'product-list' | 'shopping-cart' | 'marketplace-grid' | 'ecommerce-landing' | 'order-history' | 'profile-canvas';
+export type ItemType = 'website' | 'image' | 'video' | 'audio' | 'pdf' | 'map' | 'folder' | 'list' | 'clock' | 'notes' | 'player' | 'calendar' | '3dplayer' | 'award' | 'todolist' | 'weather' | 'calculator' | 'currencyConverter' | 'unitConverter' | 'currencyRates' | 'playerControls' | 'navigation' | 'mediaHub' | 'aiImage' | 'inventory' | 'space' | 'file' | 'pharmacy' | 'trash-folder' | 'flowchart' | 'kanban' | 'swot' | 'fishbone' | '5s' | 'six-s' | 'kaizen-platform' | 'agile-calendar' | 'qfd' | 'processchart' | 'pmp' | 'rss' | 'devices' | 'profile-card' | 'profile-share' | 'mindmap' | 'gantt' | 'financial-engineering' | 'financial-calculator' | 'book' | 'item' | 'saved-items' | 'alarm' | 'stopwatch' | 'timer' | 'world-clock' | 'pomodoro' | 'user-profile' | 'awards-folder' | 'spaces-folder' | 'devices-folder' | 'root' | 'match' | 'league-table' | 'fixture' | 'scan' | 'search' | 'todo' | 'social-feed' | 'social-post' | 'user-list' | 'screenshot' | 'screen-recorder' | 'qrcode' | 'color-picker' | 'clipboard-manager' | 'gradient-generator' | 'lorem-ipsum' | 'business-model-canvas' | 'hue' | 'reservation' | 'purchase' | 'achievements' | 'training-module' | 'award-card' | 'new-tab' | 'device' | 'hue-light' | 'organization-chart' | 'business-analysis' | 'product-catalog' | 'stock-management' | 'sales-card' | 'advanced-table' | 'speed-test' | 'performance-monitor' | 'macro-pad' | 'player-controls-widget' | 'product-grid' | 'product-list' | 'shopping-cart' | 'marketplace-grid' | 'ecommerce-landing' | 'order-history' | 'profile-canvas' | 'poll' | 'quiz' | 'question' | 'instruction' | 'feed-widget' | 'my-feed' | 'discover-feed';
 
 export type SortOption = 'manual' | 'name' | 'createdAt' | 'updatedAt' | 'itemCount' | 'averageRating' | 'platformViews' | 'platformLikes' | 'sourceViews' | 'sourceLikes' | 'sourceCreatedAt';
 export type SortDirection = 'asc' | 'desc';
@@ -420,6 +420,133 @@ export type ContentItem = {
   matchData?: MatchData;
   leagueTableData?: LeagueTableData;
   fixtureData?: FixtureData;
+
+  // Poll Widget Properties
+  pollData?: {
+    question: string;
+    options: Array<{
+      id: string;
+      text: string;
+      votes: number;
+    }>;
+    allowMultiple?: boolean;
+    showResults?: boolean;
+    endsAt?: string;
+    isAnonymous?: boolean;
+    totalVotes?: number;
+    userVotedOptionIds?: string[];
+  };
+
+  // Quiz Widget Properties
+  quizData?: {
+    title: string;
+    description?: string;
+    questions: Array<{
+      id: string;
+      question: string;
+      type: 'multiple-choice' | 'true-false' | 'short-answer';
+      options?: string[];
+      correctAnswer: string | string[];
+      points?: number;
+      explanation?: string;
+    }>;
+    timeLimit?: number; // in seconds
+    passingScore?: number;
+    randomizeQuestions?: boolean;
+    showCorrectAnswers?: boolean;
+    attempts?: number;
+    bestScore?: number;
+    lastAttemptAt?: string;
+  };
+
+  // Question (Q&A) Widget Properties
+  questionData?: {
+    question: string;
+    details?: string;
+    askedBy: string;
+    askedByAvatar?: string;
+    askedAt: string;
+    answers: Array<{
+      id: string;
+      content: string;
+      answeredBy: string;
+      answeredByAvatar?: string;
+      answeredAt: string;
+      upvotes: number;
+      downvotes: number;
+      isAccepted?: boolean;
+    }>;
+    isResolved?: boolean;
+    acceptedAnswerId?: string;
+    viewCount?: number;
+    followCount?: number;
+  };
+
+  // Instruction Widget Properties
+  instructionData?: {
+    title: string;
+    description?: string;
+    steps: Array<{
+      id: string;
+      order: number;
+      title: string;
+      content: string;
+      mediaUrl?: string;
+      mediaType?: 'image' | 'video' | 'embed';
+      isOptional?: boolean;
+      estimatedTime?: number; // in minutes
+    }>;
+    difficulty?: 'beginner' | 'intermediate' | 'advanced';
+    estimatedTotalTime?: number;
+    prerequisites?: string[];
+    completedSteps?: string[];
+    completionRate?: number;
+    lastAccessedStep?: string;
+  };
+
+  // Feed Widget Properties
+  feedData?: {
+    feedType: 'my-feed' | 'discover' | 'following' | 'trending';
+    filters?: {
+      categories?: string[];
+      tags?: string[];
+      dateRange?: { from: string; to: string };
+    };
+    sortBy?: 'recent' | 'popular' | 'trending' | 'top-rated';
+    itemsPerPage?: number;
+    showComments?: boolean;
+    showRatings?: boolean;
+  };
+
+  // Profile Canvas Properties
+  profileCanvasData?: {
+    bio?: string;
+    coverImageUrl?: string;
+    avatarUrl?: string;
+    theme?: 'light' | 'dark' | 'system' | 'custom';
+    customTheme?: {
+      primaryColor?: string;
+      secondaryColor?: string;
+      backgroundColor?: string;
+      textColor?: string;
+    };
+    layout?: 'grid' | 'masonry' | 'list' | 'canvas';
+    visibility?: 'public' | 'private' | 'followers-only';
+    featuredItems?: string[];
+    pinnedItems?: string[];
+    stats?: {
+      followers?: number;
+      following?: number;
+      posts?: number;
+      totalViews?: number;
+      totalLikes?: number;
+    };
+    socialLinks?: Array<{
+      platform: string;
+      url: string;
+      icon?: string;
+    }>;
+  };
 };
 
 export type CanvasDraft = {

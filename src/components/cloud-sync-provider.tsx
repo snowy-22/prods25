@@ -7,6 +7,7 @@
 
 import { useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
+import { CloudStorageInitializer } from '@/components/cloud-storage-initializer';
 
 export function CloudSyncProvider({ children }: { children: React.ReactNode }) {
   const user = useAppStore((state) => state.user);
@@ -20,5 +21,10 @@ export function CloudSyncProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, isSyncEnabled, initializeCloudSync]);
 
-  return <>{children}</>;
+  return (
+    <>
+      <CloudStorageInitializer />
+      {children}
+    </>
+  );
 }

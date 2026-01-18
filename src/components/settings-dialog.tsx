@@ -27,6 +27,7 @@ import { Settings, Brain, Music, Cloud, MessageSquare, Home, BarChart, CreditCar
 import { KeyRound, TrendingUp, TestTube2, Youtube, Chrome, Disc, Video, Globe } from "lucide-react";
 import type { ContentItem } from "@/lib/initial-content";
 import { getIconByName } from "@/lib/icons";
+import { StorageSettings } from "@/components/storage-settings";
 
 // Section components (varsayılan, sade, fonksiyonel)
 // ... (AIProvidersSection, MediaApisSection, CloudStorageSection, CommunicationSection, IoTSection, AnalyticsSection, SubscriptionSection, SearchHistorySection)
@@ -56,6 +57,7 @@ export default function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogP
           <div className="flex flex-row md:flex-col gap-2 md:w-48 w-full md:min-w-[160px] border-r border-muted-foreground/10 py-2 md:py-0">
             <button onClick={() => setActiveTab('ai')} className={`settings-tab-btn ${activeTab==='ai' ? 'active' : ''}`}><Brain className="h-4 w-4 mr-2"/>AI</button>
             <button onClick={() => setActiveTab('media')} className={`settings-tab-btn ${activeTab==='media' ? 'active' : ''}`}><Music className="h-4 w-4 mr-2"/>Medya</button>
+            <button onClick={() => setActiveTab('storage')} className={`settings-tab-btn ${activeTab==='storage' ? 'active' : ''}`}><Database className="h-4 w-4 mr-2"/>Depolama</button>
             <button onClick={() => setActiveTab('cloud')} className={`settings-tab-btn ${activeTab==='cloud' ? 'active' : ''}`}><Cloud className="h-4 w-4 mr-2"/>Bulut</button>
             <button onClick={() => setActiveTab('iot')} className={`settings-tab-btn ${activeTab==='iot' ? 'active' : ''}`}><Home className="h-4 w-4 mr-2"/>Akıllı Ev</button>
             <button onClick={() => setActiveTab('analytics')} className={`settings-tab-btn ${activeTab==='analytics' ? 'active' : ''}`}><BarChart className="h-4 w-4 mr-2"/>Analitik</button>
@@ -68,6 +70,7 @@ export default function SettingsDialog({ isOpen, onOpenChange }: SettingsDialogP
           <div className="flex-1 overflow-y-auto px-2 py-1">
             {activeTab === 'ai' && <AIProvidersSection />}
             {activeTab === 'media' && <MediaApisSection />}
+            {activeTab === 'storage' && <StorageSettingsSection />}
             {activeTab === 'cloud' && <CloudStorageSection />}
             {activeTab === 'iot' && <IoTSection />}
             {activeTab === 'analytics' && <AnalyticsSection />}
@@ -1072,4 +1075,9 @@ function DevicesSection() {
       </Card>
     </div>
   );
+}
+
+// Storage Settings Section Component
+function StorageSettingsSection() {
+  return <StorageSettings className="w-full" />;
 }

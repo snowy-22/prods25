@@ -81,6 +81,13 @@ const SpeedTestWidget = dynamic(() => import('./widgets/speed-test').then(mod =>
 const PerformanceMonitorWidget = dynamic(() => import('./widgets/performance-monitor').then(mod => ({ default: mod.PerformanceMonitor })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const NewTabScreen = dynamic(() => import('./new-tab-screen').then(m => ({ default: m.NewTabScreen })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 
+// Social & Interactive Widgets
+const PollWidget = dynamic(() => import('./widgets/poll-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const QuizWidget = dynamic(() => import('./widgets/quiz-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const QuestionWidget = dynamic(() => import('./widgets/question-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const InstructionWidget = dynamic(() => import('./widgets/instruction-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const FeedWidget = dynamic(() => import('./widgets/feed-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+
 const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
     item: UnifiedGridPreview,
     folder: UnifiedGridPreview,
@@ -178,6 +185,14 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'business-analysis': BusinessAnalysisFormWidget,
   'speed-test': SpeedTestWidget,
   'performance-monitor': PerformanceMonitorWidget,
+  // Social & Interactive Widgets
+  'poll': PollWidget,
+  'quiz': QuizWidget,
+  'question': QuestionWidget,
+  'instruction': InstructionWidget,
+  'feed-widget': FeedWidget,
+  'my-feed': FeedWidget,
+  'discover-feed': FeedWidget,
 };
 
 const WidgetRendererBase = ({ item, allItems, activeViewId, ...props }: { item: ContentItem, allItems?: ContentItem[], activeViewId?: string | null } & any) => {

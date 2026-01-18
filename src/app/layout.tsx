@@ -6,6 +6,7 @@ import { AuthProvider } from '@/providers/auth-provider';
 import { CloudSyncProvider } from '@/components/cloud-sync-provider';
 import { LogTracker } from '@/components/log-tracker';
 import { VercelAnalytics } from '@/components/vercel-analytics';
+import { MobileFullscreenHandler } from '@/components/mobile-fullscreen-handler';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -79,12 +80,14 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="tv25" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        
+        {/* Fullscreen Support */}
+        <meta name="fullscreen" content="yes" />
+        <meta name="apple-touch-fullscreen" content="yes" />
         
         {/* Safe Area Support (notched phones) */}
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=yes, minimum-scale=1, maximum-scale=5" />
-        
-        {/* iOS Fixed Position Fix */}
-        <meta name="mobile-web-app-capable" content="yes" />
         
         {/* Prevent iOS zoom on input focus */}
         <style>{`
@@ -117,6 +120,7 @@ export default function RootLayout({
         <AuthProvider>
           <CloudSyncProvider>
             <AppProvider>
+              <MobileFullscreenHandler />
               <LogTracker />
               {children}
               <VercelAnalytics />

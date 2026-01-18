@@ -78,6 +78,60 @@ input.input, input[type="text"], input[type="email"], input[type="password"], te
   
   /* Touch/Pointer */
   --touch-target-min: 44px; /* Minimum touch target size */
+  
+  /* Dynamic viewport height for mobile browsers (iOS Safari fix) */
+  --vh: 1vh;
+}
+
+/* Mobile Landscape Fullscreen Mode */
+body.landscape-fullscreen {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
+}
+
+/* iOS Safari: Hide address bar in landscape */
+@media screen and (orientation: landscape) and (max-width: 926px) {
+  body.landscape-fullscreen {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+  }
+  
+  /* Ensure main content takes full height */
+  body.landscape-fullscreen > div {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+  }
+}
+
+/* Chrome Android: Hide address bar in landscape */
+@supports (-webkit-touch-callout: none) {
+  body.landscape-fullscreen {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Fullscreen mode styles */
+:fullscreen,
+:-webkit-full-screen,
+:-moz-full-screen,
+:-ms-fullscreen {
+  width: 100%;
+  height: 100%;
+  background: var(--background);
+}
+
+/* Prevent scrolling in fullscreen */
+body.landscape-fullscreen,
+html.landscape-fullscreen {
+  overflow: hidden;
+  touch-action: pan-x pan-y;
 }
 
 /* Tablet (640px and up) */

@@ -6,9 +6,24 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Share2, Grid, Bookmark, Play, Box, Puzzle, Heart, Plus, Globe } from 'lucide-react';
+import { User, Share2, Grid, Bookmark, Play, Box, Puzzle, Heart, Plus, Globe, LayoutGrid } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
+
+// Lazy load ProfileCanvasComponent
+const ProfileCanvasComponent = dynamic(
+  () => import('./profile/profile-canvas').then((mod) => mod.ProfileCanvasComponent),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
+  }
+);
 
 interface ProfilePanelProps {
   onOpenContent?: (item: any) => void;
@@ -16,6 +31,7 @@ interface ProfilePanelProps {
 
 export function ProfilePanel({ onOpenContent }: ProfilePanelProps = {}) {
   const { username, user, socialPosts, profileCanvasId, setProfileCanvasId } = useAppStore();
+  const [viewMode, setViewMode] = useState<'simple' | 'canvas'>('simple');
 
   // Akışım: Posts authored by the user
   const myPosts = socialPosts.filter(p => p.author_id === user?.id);
@@ -36,7 +52,34 @@ export function ProfilePanel({ onOpenContent }: ProfilePanelProps = {}) {
   const handleCreateProfileCanvas = () => {
     const id = `profile-canvas-${Date.now()}`;
     setProfileCanvasId(id);
+    setViewMode('canvas');
   };
+
+  // Full profile canvas view
+  if (viewMode === 'canvas') {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex items-center justify-between p-2 border-b">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setViewMode('simple')}
+            className="gap-1"
+          >
+            ← Geri
+          </Button>
+          <span className="text-sm font-medium">Profil Tuvalim</span>
+          <div className="w-16" />
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <ProfileCanvasComponent
+            isOwnProfile={true}
+            onNavigate={onOpenContent}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -61,7 +104,10 @@ export function ProfilePanel({ onOpenContent }: ProfilePanelProps = {}) {
                 <p className="text-muted-foreground">Herkes görüntüleyebilir</p>
               </div>
             </div>
-            <Button size="sm" variant="outline" className="h-8">Düzenle</Button>
+            <Button size="sm" variant="outline" className="h-8" onClick={() => setViewMode('canvas')}>
+              <LayoutGrid className="h-3 w-3 mr-1" />
+              Düzenle
+            </Button>
           </div>
         ) : (
           <Button 

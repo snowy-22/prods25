@@ -748,6 +748,20 @@ interface AppStore {
   addMySharedItem: (item: ContentItem) => void;
   removeMySharedItem: (itemId: string) => void;
 
+  // Cloud Storage Management (Personal Folders & Players)
+  cloudStorageQuota?: import('./cloud-storage-manager').UserStorageQuota;
+  cloudFolderItems: import('./cloud-storage-manager').FolderItemCloud[];
+  storageDistribution: import('./cloud-storage-manager').StorageDistribution[];
+  storageSyncStatus: import('./cloud-storage-manager').StorageSyncStatus[];
+  storageAnalytics?: {
+    usagePercent: number;
+    availableBytes: number;
+    quotaBytes: number;
+    usedBytes: number;
+  };
+  isStorageSyncing: boolean;
+  storageError?: string;
+
   // Advanced Features State
   profileSlugs: ProfileSlug[];
   profileSlugReferences: ProfileSlugReference[];
@@ -766,6 +780,17 @@ interface AppStore {
   joinRequests: JoinRequest[];
 
   // Advanced Features Actions
+  // Cloud Storage Actions
+  initializeCloudStorage: () => Promise<void>;
+  saveFolderItemToCloud: (folderId: string, item: ContentItem, sizeBytes?: number) => Promise<void>;
+  saveFolderItemsToCloud: (folderId: string, items: { item: ContentItem; sizeBytes?: number }[]) => Promise<void>;
+  loadFolderItemsFromCloud: (folderId: string) => Promise<void>;
+  loadAllPersonalFolderItems: () => Promise<void>;
+  deleteFolderItemFromCloud: (itemId: string) => Promise<void>;
+  syncFolderItemsAcrossDevices: (folderId: string) => Promise<void>;
+  getStorageAnalytics: () => Promise<void>;
+  subscribeToStorageChanges: () => () => void;
+
   // Profile Slugs
   createProfileSlug: (displayName: string, bio?: string, profileImageUrl?: string) => Promise<ProfileSlug | null>;
   updateProfileSlug: (slugId: string, updates: Partial<ProfileSlug>) => Promise<void>;
@@ -1394,6 +1419,12 @@ export const useAppStore = create<AppStore>()(
       profileCanvasId: null,
       socialPosts: [],
       mySharedItems: [],
+
+      // Cloud Storage defaults
+      cloudFolderItems: [],
+      storageDistribution: [],
+      storageSyncStatus: [],
+      isStorageSyncing: false,
 
       // Advanced Features defaults
       profileSlugs: [],
@@ -4270,6 +4301,231 @@ export const useAppStore = create<AppStore>()(
       removeSocialGroupMember: async (groupId, userId) => {
         const supabase = createClient();
         await supabase.from('social_group_members').delete().eq('group_id', groupId).eq('user_id', userId);
+      },
+
+      // Cloud Storage Actions
+      initializeCloudStorage: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          const { initializeUserStorageQuota, getStorageAnalytics } = await import('./cloud-storage-manager');
+          
+          // Initialize quota
+          const quota = await initializeUserStorageQuota(user.id);
+          set({ cloudStorageQuota: quota });
+
+          // Get analytics
+          const analytics = await getStorageAnalytics(user.id);
+          set({ 
+            storageDistribution: analytics.distribution,
+            storageSyncStatus: analytics.syncStatus,
+            storageAnalytics: {
+              usagePercent: analytics.usagePercent,
+              availableBytes: analytics.availableBytes,
+              quotaBytes: analytics.quota.quota_bytes,
+              usedBytes: analytics.quota.used_bytes,
+            }
+          });
+
+          console.log('Cloud storage initialized');
+        } catch (error) {
+          console.error('Failed to initialize cloud storage:', error);
+          set({ storageError: String(error) });
+        }
+      },
+
+      saveFolderItemToCloud: async (folderId, item, sizeBytes) => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          set({ isStorageSyncing: true });
+          const { saveFolderItemToCloud } = await import('./cloud-storage-manager');
+          
+          await saveFolderItemToCloud(user.id, folderId, item, sizeBytes);
+          
+          // Refresh analytics
+          const { getStorageAnalytics } = await import('./cloud-storage-manager');
+          const analytics = await getStorageAnalytics(user.id);
+          set({ 
+            cloudStorageQuota: analytics.quota,
+            storageDistribution: analytics.distribution,
+            storageAnalytics: {
+              usagePercent: analytics.usagePercent,
+              availableBytes: analytics.availableBytes,
+              quotaBytes: analytics.quota.quota_bytes,
+              usedBytes: analytics.quota.used_bytes,
+            },
+            isStorageSyncing: false
+          });
+        } catch (error) {
+          console.error('Failed to save folder item:', error);
+          set({ storageError: String(error), isStorageSyncing: false });
+        }
+      },
+
+      saveFolderItemsToCloud: async (folderId, items) => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          set({ isStorageSyncing: true });
+          const { saveFolderItemsToCloud } = await import('./cloud-storage-manager');
+          
+          await saveFolderItemsToCloud(user.id, folderId, items);
+          
+          // Refresh analytics
+          const { getStorageAnalytics } = await import('./cloud-storage-manager');
+          const analytics = await getStorageAnalytics(user.id);
+          set({ 
+            cloudStorageQuota: analytics.quota,
+            storageDistribution: analytics.distribution,
+            storageAnalytics: {
+              usagePercent: analytics.usagePercent,
+              availableBytes: analytics.availableBytes,
+              quotaBytes: analytics.quota.quota_bytes,
+              usedBytes: analytics.quota.used_bytes,
+            },
+            isStorageSyncing: false
+          });
+        } catch (error) {
+          console.error('Failed to save folder items:', error);
+          set({ storageError: String(error), isStorageSyncing: false });
+        }
+      },
+
+      loadFolderItemsFromCloud: async (folderId) => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          set({ isStorageSyncing: true });
+          const { loadFolderItemsFromCloud } = await import('./cloud-storage-manager');
+          
+          const items = await loadFolderItemsFromCloud(user.id, folderId);
+          set({ cloudFolderItems: items, isStorageSyncing: false });
+        } catch (error) {
+          console.error('Failed to load folder items:', error);
+          set({ storageError: String(error), isStorageSyncing: false });
+        }
+      },
+
+      loadAllPersonalFolderItems: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          set({ isStorageSyncing: true });
+          const { loadAllPersonalFolderItems } = await import('./cloud-storage-manager');
+          
+          const items = await loadAllPersonalFolderItems(user.id);
+          set({ cloudFolderItems: items, isStorageSyncing: false });
+        } catch (error) {
+          console.error('Failed to load personal folder items:', error);
+          set({ storageError: String(error), isStorageSyncing: false });
+        }
+      },
+
+      deleteFolderItemFromCloud: async (itemId) => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          set({ isStorageSyncing: true });
+          const { deleteFolderItemFromCloud } = await import('./cloud-storage-manager');
+          
+          await deleteFolderItemFromCloud(user.id, itemId);
+          
+          // Remove from local state
+          set((state) => ({
+            cloudFolderItems: state.cloudFolderItems.filter(item => item.item_id !== itemId)
+          }));
+
+          // Refresh analytics
+          const { getStorageAnalytics } = await import('./cloud-storage-manager');
+          const analytics = await getStorageAnalytics(user.id);
+          set({ 
+            cloudStorageQuota: analytics.quota,
+            storageDistribution: analytics.distribution,
+            storageAnalytics: {
+              usagePercent: analytics.usagePercent,
+              availableBytes: analytics.availableBytes,
+              quotaBytes: analytics.quota.quota_bytes,
+              usedBytes: analytics.quota.used_bytes,
+            },
+            isStorageSyncing: false
+          });
+        } catch (error) {
+          console.error('Failed to delete folder item:', error);
+          set({ storageError: String(error), isStorageSyncing: false });
+        }
+      },
+
+      syncFolderItemsAcrossDevices: async (folderId) => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          set({ isStorageSyncing: true });
+          const { syncFolderItemsAcrossDevices, getDeviceId } = await import('./supabase-sync');
+          
+          const deviceId = getDeviceId?.() || 'default';
+          const result = await syncFolderItemsAcrossDevices(user.id, deviceId, folderId);
+          
+          set({ 
+            cloudFolderItems: result.synced,
+            isStorageSyncing: false
+          });
+
+          console.log(`Synced ${result.itemCount} items (${result.bytesCount} bytes)`);
+        } catch (error) {
+          console.error('Failed to sync folder items:', error);
+          set({ storageError: String(error), isStorageSyncing: false });
+        }
+      },
+
+      getStorageAnalytics: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          set({ isStorageSyncing: true });
+          const { getStorageAnalytics } = await import('./cloud-storage-manager');
+          
+          const analytics = await getStorageAnalytics(user.id);
+          set({ 
+            cloudStorageQuota: analytics.quota,
+            storageDistribution: analytics.distribution,
+            storageSyncStatus: analytics.syncStatus,
+            storageAnalytics: {
+              usagePercent: analytics.usagePercent,
+              availableBytes: analytics.availableBytes,
+              quotaBytes: analytics.quota.quota_bytes,
+              usedBytes: analytics.quota.used_bytes,
+            },
+            isStorageSyncing: false
+          });
+        } catch (error) {
+          console.error('Failed to get storage analytics:', error);
+          set({ storageError: String(error), isStorageSyncing: false });
+        }
+      },
+
+      subscribeToStorageChanges: () => {
+        const { user } = get();
+        if (!user) return () => {};
+
+        const { subscribeToStorageChanges } = require('./cloud-storage-manager');
+        const unsubscribe = subscribeToStorageChanges(user.id, async (payload: any) => {
+          console.log('Storage changed:', payload);
+          // Reload folder items
+          await get().loadAllPersonalFolderItems();
+          // Refresh analytics
+          await get().getStorageAnalytics();
+        });
+
+        return unsubscribe;
       },
     }),
     {
