@@ -2299,19 +2299,31 @@ export const useAppStore = create<AppStore>()(
           // Load data from cloud
           await get().loadFromCloud();
 
-          // Subscribe to real-time changes
+          // Subscribe to real-time changes from other devices
           subscribeToCanvasChanges(user.id, ({ dataType, data }) => {
             const state = get();
             
+            console.log(`🔄 Realtime update received: ${dataType}`, data);
+            
             switch (dataType) {
               case 'tabs':
-                set({ tabs: data });
+                // Only update if tabs array is not empty
+                if (Array.isArray(data) && data.length > 0) {
+                  set({ tabs: data });
+                  console.log('✓ Tabs updated from realtime:', data.length);
+                }
                 break;
               case 'expanded_items':
-                set({ expandedItems: data });
+                // Merge expanded items from other devices
+                if (Array.isArray(data)) {
+                  const currentExpanded = state.expandedItems || [];
+                  const mergedExpanded = [...new Set([...currentExpanded, ...data])];
+                  set({ expandedItems: mergedExpanded });
+                  console.log('✓ Expanded items merged from realtime');
+                }
                 break;
               case 'settings':
-                // Update preferences
+                // Update preferences (cloud takes priority)
                 if (data.layout_mode) set({ layoutMode: data.layout_mode });
                 if (data.new_tab_behavior) set({ newTabBehavior: data.new_tab_behavior });
                 if (data.startup_behavior) set({ startupBehavior: data.startup_behavior });
@@ -2327,6 +2339,7 @@ export const useAppStore = create<AppStore>()(
                     virtualizerMode: ui.virtualizerMode ?? state.virtualizerMode,
                     visualizerMode: ui.visualizerMode ?? state.visualizerMode,
                   });
+                  console.log('✓ Settings updated from realtime');
                 }
                 break;
             }
@@ -2351,39 +2364,56 @@ export const useAppStore = create<AppStore>()(
         if (!user) return;
 
         try {
-          // Load all canvas data
+          // Load all canvas data from cloud
           const data = await loadAllCanvasData(user.id);
+          
+          // IMPORTANT: Only update state if cloud has data
+          // This prevents empty cloud data from overwriting localStorage defaults
           if (data) {
-            if (data.tabs) set({ tabs: data.tabs });
-            if (data.expandedItems) set({ expandedItems: data.expandedItems });
+            if (data.tabs && Array.isArray(data.tabs) && data.tabs.length > 0) {
+              set({ tabs: data.tabs });
+              console.log('✓ Loaded tabs from cloud:', data.tabs.length);
+            } else {
+              console.log('ℹ Using local tabs (cloud empty)');
+            }
+            
+            if (data.expandedItems && Array.isArray(data.expandedItems)) {
+              set({ expandedItems: data.expandedItems });
+            }
           }
 
-          // Load preferences - now automatically creates defaults if not exists
+          // Load preferences - Cloud takes priority over localStorage
           const prefs = await loadUserPreferences(user.id);
           if (prefs) {
-            set({
-              layoutMode: prefs.layout_mode || 'grid',
-              newTabBehavior: prefs.new_tab_behavior || 'chrome-style',
-              startupBehavior: prefs.startup_behavior || 'last-session',
-              gridModeState: prefs.grid_mode_state || get().gridModeState,
-            });
+            const currentState = get();
+            
+            // Only update if cloud value exists (not null/undefined)
+            const updates: any = {};
+            
+            if (prefs.layout_mode) updates.layoutMode = prefs.layout_mode;
+            if (prefs.new_tab_behavior) updates.newTabBehavior = prefs.new_tab_behavior;
+            if (prefs.startup_behavior) updates.startupBehavior = prefs.startup_behavior;
+            if (prefs.grid_mode_state) updates.gridModeState = prefs.grid_mode_state;
 
+            // UI Settings: Merge with current state (cloud takes priority)
             if (prefs.ui_settings) {
               const ui = prefs.ui_settings;
-              set({
-                isSecondLeftSidebarOpen: ui.isSecondLeftSidebarOpen !== false, // default true
-                activeSecondaryPanel: (ui.activeSecondaryPanel as AppStore['activeSecondaryPanel']) || 'library',
-                pointerFrameEnabled: ui.pointerFrameEnabled === true,
-                audioTrackerEnabled: ui.audioTrackerEnabled === true,
-                mouseTrackerEnabled: ui.mouseTrackerEnabled === true,
-                virtualizerMode: ui.virtualizerMode === true,
-                visualizerMode: (ui.visualizerMode as any) || 'off',
-              });
+              if (ui.isSecondLeftSidebarOpen !== undefined) updates.isSecondLeftSidebarOpen = ui.isSecondLeftSidebarOpen;
+              if (ui.activeSecondaryPanel) updates.activeSecondaryPanel = ui.activeSecondaryPanel as AppStore['activeSecondaryPanel'];
+              if (ui.pointerFrameEnabled !== undefined) updates.pointerFrameEnabled = ui.pointerFrameEnabled;
+              if (ui.audioTrackerEnabled !== undefined) updates.audioTrackerEnabled = ui.audioTrackerEnabled;
+              if (ui.mouseTrackerEnabled !== undefined) updates.mouseTrackerEnabled = ui.mouseTrackerEnabled;
+              if (ui.virtualizerMode !== undefined) updates.virtualizerMode = ui.virtualizerMode;
+              if (ui.visualizerMode) updates.visualizerMode = ui.visualizerMode as any;
+            }
+
+            if (Object.keys(updates).length > 0) {
+              set(updates);
+              console.log('✓ Loaded preferences from cloud');
             }
           }
 
           set({ lastSyncTime: Date.now() });
-          console.log('User preferences loaded from cloud');
         } catch (error) {
           console.error('Failed to load from cloud:', error);
         }

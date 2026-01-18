@@ -384,12 +384,16 @@ export function unsubscribeFromCanvasChanges(): void {
 }
 
 /**
- * Migrate local storage data to Supabase
+ * Smart sync: Cloud-first approach
+ * 1. Cloud'daki veri varsa, cloud'u kullan
+ * 2. Cloud'da veri yoksa ve localStorage'da varsa, localStorage'ı cloud'a yükle
+ * 3. İkisi de yoksa, varsayılan durumu kullan
  */
 export async function migrateLocalStorageToCloud(userId: string): Promise<boolean> {
   try {
-    // Check if migration already done
-    const migrationKey = `migration_done_${userId}`;
+    // Check if migration already done FOR THIS DEVICE
+    const deviceId = getDeviceId();
+    const migrationKey = `migration_done_${userId}_${deviceId}`;
     if (localStorage.getItem(migrationKey)) {
       return true;
     }
@@ -403,55 +407,84 @@ export async function migrateLocalStorageToCloud(userId: string): Promise<boolea
       return true;
     }
 
+    // STEP 1: Load existing data from cloud
+    const cloudData = await loadAllCanvasData(userId);
+    const cloudPrefs = await loadUserPreferences(userId);
+
+    // STEP 2: Load local data
     const localData = localStorage.getItem('tv25-storage');
-    if (!localData) {
-      localStorage.setItem(migrationKey, 'true');
-      return true;
+    let localState: any = null;
+    if (localData) {
+      try {
+        const parsed = JSON.parse(localData);
+        localState = parsed.state;
+      } catch (e) {
+        console.error('Failed to parse local storage:', e);
+      }
     }
 
-    const parsed = JSON.parse(localData);
-    const state = parsed.state;
+    // STEP 3: Smart merge - Cloud takes priority
+    let shouldUpdateLocal = false;
 
-    // Migrate tabs
-    if (state.tabs) {
-      await saveCanvasData('tabs', state.tabs, userId);
+    // Tabs: Cloud first
+    if (cloudData?.tabs && Array.isArray(cloudData.tabs) && cloudData.tabs.length > 0) {
+      // Cloud has tabs, use them (will be applied in store.ts)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Using tabs from cloud:', cloudData.tabs.length);
+      }
+    } else if (localState?.tabs && Array.isArray(localState.tabs) && localState.tabs.length > 0) {
+      // Cloud empty, local has tabs, upload to cloud
+      await saveCanvasData('tabs', localState.tabs, userId);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Uploaded local tabs to cloud:', localState.tabs.length);
+      }
     }
 
-    // Migrate expanded items
-    if (state.expandedItems) {
-      await saveCanvasData('expanded_items', state.expandedItems, userId);
+    // Expanded items: Merge both
+    const cloudExpanded = cloudData?.expandedItems || [];
+    const localExpanded = localState?.expandedItems || [];
+    const mergedExpanded = [...new Set([...cloudExpanded, ...localExpanded])];
+    if (mergedExpanded.length > 0) {
+      await saveCanvasData('expanded_items', mergedExpanded, userId);
     }
 
-    // Migrate preferences
-    const prefsSaved = await saveUserPreferences(userId, {
-      layout_mode: state.layoutMode,
-      new_tab_behavior: state.newTabBehavior,
-      startup_behavior: state.startupBehavior,
-      grid_mode_state: state.gridModeState,
-      ui_settings: {
-        isSecondLeftSidebarOpen: state.isSecondLeftSidebarOpen,
-        activeSecondaryPanel: state.activeSecondaryPanel,
-        pointerFrameEnabled: state.pointerFrameEnabled,
-        audioTrackerEnabled: state.audioTrackerEnabled,
-        mouseTrackerEnabled: state.mouseTrackerEnabled,
-        virtualizerMode: state.virtualizerMode,
-        visualizerMode: state.visualizerMode,
-      },
-    });
+    // Preferences: Cloud first, but merge UI settings
+    if (cloudPrefs || localState) {
+      const finalPrefs: any = {
+        layout_mode: cloudPrefs?.layout_mode || localState?.layoutMode || 'grid',
+        new_tab_behavior: cloudPrefs?.new_tab_behavior || localState?.newTabBehavior || 'chrome-style',
+        startup_behavior: cloudPrefs?.startup_behavior || localState?.startupBehavior || 'last-session',
+        grid_mode_state: cloudPrefs?.grid_mode_state || localState?.gridModeState,
+      };
 
-    // Mark migration as done even if prefs failed (to prevent loops on startup)
-    if (!prefsSaved && process.env.NODE_ENV === 'development') {
-      console.warn('Preferences save failed during migration; continuing without blocking.');
+      // UI settings: Merge with cloud priority
+      const cloudUI = cloudPrefs?.ui_settings || {};
+      const localUI = {
+        isSecondLeftSidebarOpen: localState?.isSecondLeftSidebarOpen,
+        activeSecondaryPanel: localState?.activeSecondaryPanel,
+        pointerFrameEnabled: localState?.pointerFrameEnabled,
+        audioTrackerEnabled: localState?.audioTrackerEnabled,
+        mouseTrackerEnabled: localState?.mouseTrackerEnabled,
+        virtualizerMode: localState?.virtualizerMode,
+        visualizerMode: localState?.visualizerMode,
+      };
+
+      finalPrefs.ui_settings = { ...localUI, ...cloudUI };
+
+      // Save final merged preferences
+      await saveUserPreferences(userId, finalPrefs);
     }
+
+    // Mark migration as done for this device
     localStorage.setItem(migrationKey, 'true');
     
     if (process.env.NODE_ENV === 'development') {
-      console.log('Local storage migrated to cloud successfully');
+      console.log('✓ Smart sync completed (cloud-first merge)');
     }
 
     return true;
   } catch (error) {
-    console.error('Error migrating local storage:', error);
+    console.error('Error during smart sync:', error);
     return false;
   }
 }
