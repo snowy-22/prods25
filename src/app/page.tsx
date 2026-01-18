@@ -135,12 +135,18 @@ const heroWords = [
 	'İnternet Deneyimini',
 	'İş Akışını',
 	'Haber Deneyimini',
-	'Sihirli Değneğini',
+	'Takım Projeni',
+	'Dijital Sanat Galerini',
+	'Sihirli Kumandanı',
 	'Görsel Programını',
 	'Eğlence Dünyanı',
 	'Eğitim Materyalini',
 	'Marka Sunumunu',
 	'Dijital Sanat Galerini',
+	'Dijital Koleksiyonunu',
+	'Müzeni',
+
+	
 ];
 
 // OAuth code handler component
