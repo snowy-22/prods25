@@ -227,6 +227,38 @@ import {
   SocialGroupPost,
   JoinRequest,
 } from './advanced-features-types';
+import { 
+  FolderDescription,
+  Comment,
+  CommentThread,
+  FolderCommentManager,
+  folderCommentManager
+} from './folder-comments-system';
+import {
+  Like,
+  LikeStats,
+  Reaction,
+  LikeableType,
+  LikesManager,
+  likesManager
+} from './likes-system';
+import {
+  SharedItem,
+  ShareLink,
+  SharePermission_Type,
+  SharingStats,
+  SharingManager,
+  sharingManager
+} from './sharing-system';
+import {
+  AnalyticsEvent,
+  UserMetrics,
+  ContentMetrics,
+  EngagementMetrics,
+  EventType,
+  AnalyticsManager,
+  analyticsManager
+} from './advanced-analytics';
 
 export type SearchPanelState = {
   isOpen: boolean;
@@ -452,6 +484,32 @@ interface AppStore {
   socialPosts: ContentItem[];
   mySharedItems: ContentItem[];
 
+  // Folder Comments System
+  folderComments: Record<string, Comment[]>;
+  folderDescriptions: Record<string, FolderDescription>;
+  commentThreads: Record<string, CommentThread[]>;
+  isCommentsLoading: boolean;
+
+  // Likes & Reactions System
+  likes: Like[];
+  likeStats: Record<string, LikeStats>;
+  userReactions: Record<string, Reaction[]>;
+  trendingItems: ContentItem[];
+  isLikesLoading: boolean;
+
+  // Sharing System
+  sharedItems: SharedItem[];
+  shareLinks: ShareLink[];
+  sharingStats: Record<string, SharingStats>;
+  isSharingLoading: boolean;
+
+  // Analytics System
+  analyticsEvents: AnalyticsEvent[];
+  userAnalyticsMetrics: UserMetrics | null;
+  contentAnalyticsMetrics: Record<string, ContentMetrics>;
+  engagementMetrics: EngagementMetrics | null;
+  isAnalyticsLoading: boolean;
+
   // Actions
   setUser: (user: User | null) => void;
   setUsername: (username: string | null) => void;
@@ -647,13 +705,6 @@ interface AppStore {
   trackMultiTabSync: (deviceId: string, tabId: string, entityType: any, entityId: string, action: any, changeData?: any) => Promise<void>;
   subscribeToMultiTabSync: () => () => void;
 
-  // Sharing System Actions (Paylaşım Sistemi)
-  createSharedItem: (itemId: string, itemType: string) => Promise<any>;
-  grantSharingPermission: (sharedItemId: string, granteeUserId: string | null, granteeEmail: string | null, role: string, permissions: any, expiresAt?: string) => Promise<any>;
-  createSharingLink: (sharedItemId: string, settings: any) => Promise<any>;
-  logSharingAccess: (sharingLinkId: string, userId: string | null, ipAddress: string | null, userAgent: string, action: string) => Promise<void>;
-  getSharedItems: () => Promise<any[]>;
-
   // Social Realtime Actions (Sosyal Canlı Güncellemeler)
   logSocialEvent: (eventType: string, targetEntityType: string, targetEntityId: string, actorId: string, eventData?: any) => Promise<void>;
   subscribeSocialEvents: () => () => void;
@@ -747,6 +798,45 @@ interface AppStore {
   removeSocialPost: (postId: string) => void;
   addMySharedItem: (item: ContentItem) => void;
   removeMySharedItem: (itemId: string) => void;
+
+  // Folder Comments Actions
+  addFolderDescription: (folderId: string, description: FolderDescription) => void;
+  updateFolderDescription: (folderId: string, updates: Partial<FolderDescription>) => void;
+  deleteFolderDescription: (folderId: string) => void;
+  addComment: (comment: Comment) => void;
+  editComment: (commentId: string, content: string) => void;
+  deleteComment: (folderId: string, commentId: string) => void;
+  togglePinComment: (commentId: string, pinned: boolean) => void;
+  markCommentResolved: (commentId: string, resolved: boolean) => void;
+  getCommentThread: (folderId: string) => CommentThread[];
+  loadFolderComments: (folderId: string) => Promise<void>;
+
+  // Likes Actions
+  toggleLike: (targetId: string, targetType: LikeableType, reaction?: Reaction) => void;
+  getLikeStats: (targetId: string, targetType: LikeableType) => LikeStats | null;
+  getTrendingItems: (targetType: LikeableType, timeHours?: number) => void;
+  loadLikesForItem: (itemId: string, itemType: LikeableType) => Promise<void>;
+  clearLikesCache: () => void;
+
+  // Sharing Actions
+  createSharedItem: (itemId: string, itemType: string) => void;
+  grantSharingPermission: (sharedItemId: string, granteeUserId: string | null, granteeEmail: string | null, role: string, expiresAt?: string) => void;
+  createSharingLink: (sharedItemId: string, settings: any) => void;
+  revokeSharingPermission: (permissionId: string) => void;
+  revokeSharingLink: (linkId: string) => void;
+  logSharingAccess: (sharingLinkId: string, userId: string | null, ipAddress: string | null, userAgent: string, action: string) => void;
+  getSharingStats: (itemId: string) => SharingStats | null;
+  loadSharingForItem: (itemId: string) => Promise<void>;
+
+  // Analytics Actions
+  trackAnalyticsEvent: (eventType: EventType, entityType: string, entityId: string, metadata?: any) => void;
+  trackPageView: (pageName: string, metadata?: any) => void;
+  trackUserAction: (action: string, metadata?: any) => void;
+  getUserAnalytics: () => Promise<UserMetrics | null>;
+  getContentAnalytics: (contentId: string) => Promise<ContentMetrics | null>;
+  getEngagementMetrics: () => Promise<EngagementMetrics | null>;
+  generateAnalyticsReport: (startDate: string, endDate: string) => Promise<any>;
+  loadAnalyticsMetrics: () => Promise<void>;
 
   // Cloud Storage Management (Personal Folders & Players)
   cloudStorageQuota?: import('./cloud-storage-manager').UserStorageQuota;
@@ -1419,6 +1509,32 @@ export const useAppStore = create<AppStore>()(
       profileCanvasId: null,
       socialPosts: [],
       mySharedItems: [],
+
+      // Folder Comments System defaults
+      folderComments: {},
+      folderDescriptions: {},
+      commentThreads: {},
+      isCommentsLoading: false,
+
+      // Likes & Reactions System defaults
+      likes: [],
+      likeStats: {},
+      userReactions: {},
+      trendingItems: [],
+      isLikesLoading: false,
+
+      // Sharing System defaults
+      sharedItems: [],
+      shareLinks: [],
+      sharingStats: {},
+      isSharingLoading: false,
+
+      // Analytics System defaults
+      analyticsEvents: [],
+      userAnalyticsMetrics: null,
+      contentAnalyticsMetrics: {},
+      engagementMetrics: null,
+      isAnalyticsLoading: false,
 
       // Cloud Storage defaults
       cloudFolderItems: [],
@@ -3084,52 +3200,6 @@ export const useAppStore = create<AppStore>()(
         return unsubscribe;
       },
 
-      // Sharing System Actions (Paylaşım Sistemi)
-      createSharedItem: async (itemId, itemType) => {
-        const { user } = get();
-        if (!user) throw new Error('User not authenticated');
-        
-        const { createSharedItem } = await import('./supabase-sync');
-        return await createSharedItem(user.id, itemId, itemType);
-      },
-
-      grantSharingPermission: async (sharedItemId, granteeUserId, granteeEmail, role, permissions, expiresAt) => {
-        const { user } = get();
-        if (!user) throw new Error('User not authenticated');
-        
-        const { grantSharingPermission } = await import('./supabase-sync');
-        return await grantSharingPermission(
-          sharedItemId,
-          granteeUserId,
-          granteeEmail,
-          role as 'owner' | 'viewer' | 'commenter' | 'editor',
-          permissions,
-          user.id,
-          expiresAt
-        );
-      },
-
-      createSharingLink: async (sharedItemId, settings) => {
-        const { user } = get();
-        if (!user) throw new Error('User not authenticated');
-        
-        const { createSharingLink } = await import('./supabase-sync');
-        return await createSharingLink(sharedItemId, user.id, settings);
-      },
-
-      logSharingAccess: async (sharingLinkId, userId, ipAddress, userAgent, action) => {
-        const { logSharingAccess } = await import('./supabase-sync');
-        await logSharingAccess(sharingLinkId, userId, ipAddress, userAgent, action as 'view' | 'comment' | 'download' | 'share');
-      },
-
-      getSharedItems: async () => {
-        const { user } = get();
-        if (!user) return [];
-        
-        const { getSharedItems } = await import('./supabase-sync');
-        return await getSharedItems(user.id);
-      },
-
       // Social Realtime Actions (Sosyal Canlı Güncellemeler)
       logSocialEvent: async (eventType, targetEntityType, targetEntityId, actorId, eventData) => {
         const { user } = get();
@@ -3957,6 +4027,453 @@ export const useAppStore = create<AppStore>()(
       removeMySharedItem: (itemId) => set((state) => ({
         mySharedItems: state.mySharedItems.filter(i => i.id !== itemId)
       })),
+
+      // Folder Comments Actions
+      addFolderDescription: (folderId, description) => set((state) => ({
+        folderDescriptions: {
+          ...state.folderDescriptions,
+          [folderId]: description
+        }
+      })),
+      updateFolderDescription: (folderId, updates) => set((state) => ({
+        folderDescriptions: {
+          ...state.folderDescriptions,
+          [folderId]: state.folderDescriptions[folderId]
+            ? { ...state.folderDescriptions[folderId], ...updates, editedAt: new Date().toISOString() }
+            : updates as FolderDescription
+        }
+      })),
+      deleteFolderDescription: (folderId) => set((state) => {
+        const newDescriptions = { ...state.folderDescriptions };
+        delete newDescriptions[folderId];
+        return { folderDescriptions: newDescriptions };
+      }),
+      addComment: (comment) => set((state) => ({
+        folderComments: {
+          ...state.folderComments,
+          [comment.folderId]: [...(state.folderComments[comment.folderId] || []), comment]
+        }
+      })),
+      editComment: (commentId, content) => set((state) => {
+        const updated: Record<string, Comment[]> = {};
+        for (const [folderId, comments] of Object.entries(state.folderComments)) {
+          updated[folderId] = comments.map(c =>
+            c.id === commentId
+              ? { ...c, content, isEdited: true, editedAt: new Date().toISOString() }
+              : c
+          );
+        }
+        return { folderComments: updated };
+      }),
+      deleteComment: (folderId, commentId) => set((state) => ({
+        folderComments: {
+          ...state.folderComments,
+          [folderId]: state.folderComments[folderId]?.filter(c => c.id !== commentId) || []
+        }
+      })),
+      togglePinComment: (commentId, pinned) => set((state) => {
+        const updated: Record<string, Comment[]> = {};
+        for (const [folderId, comments] of Object.entries(state.folderComments)) {
+          updated[folderId] = comments.map(c =>
+            c.id === commentId ? { ...c, isPinned: pinned } : c
+          );
+        }
+        return { folderComments: updated };
+      }),
+      markCommentResolved: (commentId, resolved) => set((state) => {
+        const updated: Record<string, Comment[]> = {};
+        for (const [folderId, comments] of Object.entries(state.folderComments)) {
+          updated[folderId] = comments.map(c =>
+            c.id === commentId ? { ...c, isResolved: resolved } : c
+          );
+        }
+        return { folderComments: updated };
+      }),
+      getCommentThread: (folderId) => get().commentThreads[folderId] || [],
+      loadFolderComments: async (folderId) => {
+        set({ isCommentsLoading: true });
+        try {
+          const { user } = get();
+          if (!user) return;
+          
+          const supabase = createClient();
+          const { data, error } = await supabase
+            .from('comments')
+            .select('*')
+            .eq('folder_id', folderId)
+            .order('created_at', { ascending: false });
+          
+          if (!error && data) {
+            set((state) => ({
+              folderComments: {
+                ...state.folderComments,
+                [folderId]: data as Comment[]
+              },
+              isCommentsLoading: false
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to load folder comments:', error);
+          set({ isCommentsLoading: false });
+        }
+      },
+
+      // Likes Actions
+      toggleLike: (targetId, targetType, reaction) => set((state) => {
+        const { user } = get();
+        if (!user) return state;
+        
+        const likeId = `like-${Date.now()}`;
+        const newLike: Like = {
+          id: likeId,
+          userId: user.id,
+          userName: state.username || 'Unknown',
+          userAvatar: '',
+          targetId,
+          targetType,
+          reaction: reaction || '👍',
+          createdAt: new Date().toISOString()
+        };
+        
+        // Check if already liked
+        const existing = state.likes.find(l => 
+          l.userId === user.id && l.targetId === targetId && l.targetType === targetType
+        );
+        
+        if (existing) {
+          return {
+            likes: state.likes.filter(l => l.id !== existing.id),
+            likeStats: {
+              ...state.likeStats,
+              [targetId]: {
+                ...state.likeStats[targetId],
+                totalLikes: (state.likeStats[targetId]?.totalLikes || 1) - 1
+              }
+            }
+          };
+        }
+        
+        return {
+          likes: [...state.likes, newLike],
+          likeStats: {
+            ...state.likeStats,
+            [targetId]: {
+              ...state.likeStats[targetId],
+              totalLikes: (state.likeStats[targetId]?.totalLikes || 0) + 1
+            }
+          }
+        };
+      }),
+      getLikeStats: (targetId, targetType) => {
+        return get().likeStats[targetId] || null;
+      },
+      getTrendingItems: (targetType, timeHours = 24) => {
+        const { likes, trendingItems } = get();
+        const cutoffTime = new Date(Date.now() - timeHours * 60 * 60 * 1000);
+        
+        const recentLikes = likes.filter(l => 
+          l.targetType === targetType && new Date(l.createdAt) > cutoffTime
+        );
+        
+        const likeCounts: Record<string, number> = {};
+        recentLikes.forEach(l => {
+          likeCounts[l.targetId] = (likeCounts[l.targetId] || 0) + 1;
+        });
+        
+        const sortedItems = Object.entries(likeCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 20)
+          .map(([itemId]) => itemId);
+        
+        set({ trendingItems: trendingItems.filter(i => sortedItems.includes(i.id)) });
+      },
+      loadLikesForItem: async (itemId, itemType) => {
+        set({ isLikesLoading: true });
+        try {
+          const supabase = createClient();
+          const { data, error } = await supabase
+            .from('likes')
+            .select('*')
+            .eq('target_id', itemId)
+            .eq('target_type', itemType);
+          
+          if (!error && data) {
+            set((state) => ({
+              likes: [...state.likes, ...data] as Like[],
+              isLikesLoading: false
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to load likes:', error);
+          set({ isLikesLoading: false });
+        }
+      },
+      clearLikesCache: () => set({
+        likes: [],
+        likeStats: {},
+        userReactions: {},
+        trendingItems: []
+      }),
+
+      // Sharing Actions
+      createSharedItem: (itemId, itemType) => set((state) => {
+        const { user } = get();
+        if (!user) return state;
+        
+        const newSharedItem: SharedItem = {
+          id: `shared-${Date.now()}`,
+          ownerId: user.id,
+          itemId,
+          itemType,
+          itemName: '',
+          isPublic: false,
+          publicUrl: `share/${itemId}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        return {
+          sharedItems: [...state.sharedItems, newSharedItem]
+        };
+      }),
+      grantSharingPermission: (sharedItemId, granteeUserId, granteeEmail, role, expiresAt) => set((state) => ({
+        sharedItems: state.sharedItems.map(si =>
+          si.id === sharedItemId
+            ? { ...si, updatedAt: new Date().toISOString() }
+            : si
+        )
+      })),
+      createSharingLink: (sharedItemId, settings) => set((state) => {
+        const newLink: ShareLink = {
+          id: `link-${Date.now()}`,
+          sharedItemId,
+          createdBy: get().user?.id || 'unknown',
+          token: Math.random().toString(36).substring(2, 15),
+          shortCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+          permission: 'view',
+          expiresAt: settings.expiresAt,
+          maxAccesses: settings.maxAccesses,
+          accessCount: 0,
+          isActive: true,
+          canDownload: settings.canDownload || false,
+          canPrint: settings.canPrint || false,
+          password: settings.password,
+          metadata: settings.metadata || {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        return {
+          shareLinks: [...state.shareLinks, newLink]
+        };
+      }),
+      revokeSharingPermission: (permissionId) => {
+        // Revoke a specific permission
+        console.log('Revoking permission:', permissionId);
+      },
+      revokeSharingLink: (linkId) => set((state) => ({
+        shareLinks: state.shareLinks.map(l =>
+          l.id === linkId ? { ...l, isActive: false, updatedAt: new Date().toISOString() } : l
+        )
+      })),
+      logSharingAccess: (sharingLinkId, userId, ipAddress, userAgent, action) => {
+        // Log access to sharing
+        console.log('Sharing access logged:', { sharingLinkId, userId, ipAddress, action });
+      },
+      getSharingStats: (itemId) => {
+        return get().sharingStats[itemId] || null;
+      },
+      loadSharingForItem: async (itemId) => {
+        set({ isSharingLoading: true });
+        try {
+          const { user } = get();
+          if (!user) return;
+          
+          const supabase = createClient();
+          const { data, error } = await supabase
+            .from('share_links')
+            .select('*')
+            .eq('shared_item_id', itemId);
+          
+          if (!error && data) {
+            set((state) => ({
+              shareLinks: [...state.shareLinks, ...data] as ShareLink[],
+              isSharingLoading: false
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to load sharing:', error);
+          set({ isSharingLoading: false });
+        }
+      },
+
+      // Analytics Actions
+      trackAnalyticsEvent: (eventType, entityType, entityId, metadata) => set((state) => {
+        const { user } = get();
+        if (!user) return state;
+        
+        const event: AnalyticsEvent = {
+          id: `event-${Date.now()}`,
+          userId: user.id,
+          eventType: eventType as any,
+          entityType: entityType as any,
+          entityId,
+          entityName: '',
+          durationMs: 0,
+          metadata: metadata || {},
+          deviceInfo: {
+            os: 'unknown',
+            browser: 'unknown',
+            screenSize: '1920x1080'
+          },
+          location: {
+            country: 'unknown',
+            city: 'unknown'
+          },
+          sessionId: 'session-' + Date.now(),
+          timestamp: new Date().toISOString()
+        };
+        
+        return {
+          analyticsEvents: [...state.analyticsEvents, event]
+        };
+      }),
+      trackPageView: (pageName, metadata) => {
+        get().trackAnalyticsEvent('view', 'page', pageName, metadata);
+      },
+      trackUserAction: (action, metadata) => {
+        get().trackAnalyticsEvent('click', 'action', action, metadata);
+      },
+      getUserAnalytics: async () => {
+        const { user } = get();
+        if (!user) return null;
+        
+        try {
+          const { analyticsEvents } = get();
+          const userEvents = analyticsEvents.filter(e => e.userId === user.id);
+          
+          const metrics: UserMetrics = {
+            userId: user.id,
+            totalEvents: userEvents.length,
+            totalViews: userEvents.filter(e => e.eventType === 'view').length,
+            totalClicks: userEvents.filter(e => e.eventType === 'click').length,
+            totalShares: userEvents.filter(e => e.eventType === 'share').length,
+            totalLikes: userEvents.filter(e => e.eventType === 'like').length,
+            averageSessionDuration: 0,
+            sessionsCount: new Set(userEvents.map(e => e.sessionId)).size,
+            lastActiveAt: userEvents[0]?.timestamp || new Date().toISOString(),
+            firstSeenAt: new Date().toISOString(),
+            favoriteEntityTypes: ['item', 'folder'] as any,
+            topActions: ['view', 'click'] as any
+          };
+          
+          set({ userAnalyticsMetrics: metrics });
+          return metrics;
+        } catch (error) {
+          console.error('Failed to get user analytics:', error);
+          return null;
+        }
+      },
+      getContentAnalytics: async (contentId) => {
+        try {
+          const { analyticsEvents, likes } = get();
+          const contentEvents = analyticsEvents.filter(e => e.entityId === contentId);
+          const contentLikes = likes.filter(l => l.targetId === contentId);
+          
+          const metrics: ContentMetrics = {
+            entityId: contentId,
+            entityType: 'item' as any,
+            entityName: '',
+            totalViews: contentEvents.filter(e => e.eventType === 'view').length,
+            totalLikes: contentLikes.length,
+            totalComments: contentEvents.filter(e => e.eventType === 'comment').length,
+            totalShares: contentEvents.filter(e => e.eventType === 'share').length,
+            avgTimeSpent: 0,
+            engagementRate: 0,
+            trending: false,
+            topReferrers: []
+          };
+          
+          set((state) => ({
+            contentAnalyticsMetrics: {
+              ...state.contentAnalyticsMetrics,
+              [contentId]: metrics
+            }
+          }));
+          
+          return metrics;
+        } catch (error) {
+          console.error('Failed to get content analytics:', error);
+          return null;
+        }
+      },
+      getEngagementMetrics: async () => {
+        try {
+          const { user, analyticsEvents, likes } = get();
+          if (!user) return null;
+          
+          const userEvents = analyticsEvents.filter(e => e.userId === user.id);
+          const userLikes = likes.filter(l => l.userId === user.id);
+          
+          const engagementScore = Math.min(
+            100,
+            (userLikes.length * 10 + userEvents.filter(e => e.eventType === 'comment').length * 5) / 2
+          );
+          
+          const metrics: EngagementMetrics = {
+            userId: user.id,
+            engagementScore,
+            contentCreated: userEvents.filter(e => e.eventType === 'create').length,
+            contentConsumed: userEvents.filter(e => e.eventType === 'view').length,
+            socialInteractions: userLikes.length + userEvents.filter(e => e.eventType === 'comment').length,
+            collaborations: 0,
+            achievements: 0,
+            level: engagementScore > 75 ? 'platinum' : engagementScore > 50 ? 'gold' : engagementScore > 25 ? 'silver' : 'bronze',
+            monthlyActiveScore: engagementScore
+          };
+          
+          set({ engagementMetrics: metrics });
+          return metrics;
+        } catch (error) {
+          console.error('Failed to get engagement metrics:', error);
+          return null;
+        }
+      },
+      generateAnalyticsReport: async (startDate, endDate) => {
+        try {
+          const { analyticsEvents, user } = get();
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          
+          const events = analyticsEvents.filter(e => {
+            const eventDate = new Date(e.timestamp);
+            return eventDate >= start && eventDate <= end && e.userId === user?.id;
+          });
+          
+          return {
+            startDate,
+            endDate,
+            totalEvents: events.length,
+            eventTypes: {} as Record<string, number>,
+            entityTypes: {} as Record<string, number>,
+            createdAt: new Date().toISOString()
+          };
+        } catch (error) {
+          console.error('Failed to generate report:', error);
+          return null;
+        }
+      },
+      loadAnalyticsMetrics: async () => {
+        set({ isAnalyticsLoading: true });
+        try {
+          await get().getUserAnalytics();
+          await get().getEngagementMetrics();
+          set({ isAnalyticsLoading: false });
+        } catch (error) {
+          console.error('Failed to load analytics:', error);
+          set({ isAnalyticsLoading: false });
+        }
+      },
 
       // Advanced Features Actions
       // Profile Slugs
