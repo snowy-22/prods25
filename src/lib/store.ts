@@ -180,6 +180,17 @@ import {
   loadPlayerControls,
   subscribeToToolkitChanges
 } from './supabase-sync';
+import {
+  initializeCrossDeviceSync,
+  clearAllCaches,
+  loadFoldersFromCloud,
+  loadFolderContentFromCloud,
+  saveFolderContentToCloud,
+  syncAllFoldersToCloud,
+  folderContentCache,
+  folderMetaCache,
+  getCacheStats
+} from './sync-cache-manager';
 import { AIProviderConfig, AIAgentConfig, DEFAULT_PROVIDERS } from './ai-providers';
 import {
   MarketplaceListing,
@@ -672,6 +683,13 @@ interface AppStore {
   initializeCloudSync: () => Promise<void>;
   syncToCloud: (dataType: SyncDataType, data: any) => void;
   loadFromCloud: () => Promise<void>;
+
+  // Cross-Device Folder Sync Actions (Optimize Edilmiş Cache ile)
+  initializeFolderSync: () => Promise<void>;
+  loadFoldersFromCloudCache: () => Promise<ContentItem[]>;
+  syncFolderToCloud: (folderId: string, items: ContentItem[]) => Promise<void>;
+  clearLocalCaches: () => void;
+  getCacheDiagnostics: () => { folderContent: any; folderMeta: any };
 
   // Toolkit Cloud Sync Actions
   syncToolkitKeyboardShortcuts: () => Promise<void>;
@@ -1569,6 +1587,8 @@ export const useAppStore = create<AppStore>()(
         } else {
           // Cleanup when user logs out
           unsubscribeFromCanvasChanges();
+          // Clear all caches for privacy and fresh start
+          get().clearLocalCaches();
           set({ isSyncEnabled: false });
         }
       },
@@ -2414,6 +2434,9 @@ export const useAppStore = create<AppStore>()(
 
           // Load data from cloud
           await get().loadFromCloud();
+          
+          // Initialize cross-device folder sync with optimized caching
+          await get().initializeFolderSync();
 
           // Subscribe to real-time changes from other devices
           subscribeToCanvasChanges(user.id, ({ dataType, data }) => {
@@ -2462,9 +2485,78 @@ export const useAppStore = create<AppStore>()(
           });
 
           set({ isSyncEnabled: true, lastSyncTime: Date.now() });
+          console.log('✓ Cloud sync initialized with cross-device folder support');
         } catch (error) {
           console.error('Failed to initialize cloud sync:', error);
         }
+      },
+
+      // Cross-Device Folder Sync Actions (Optimize Edilmiş Cache ile)
+      initializeFolderSync: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          // Initialize cross-device sync with callbacks
+          const syncResult = await initializeCrossDeviceSync(user.id, {
+            onFolderChange: (payload) => {
+              console.log('📁 Folder changed from another device:', payload);
+              // Invalidate cache for changed folder
+              if (payload.new?.folder_id) {
+                folderContentCache.invalidate(`folder_${payload.new.folder_id}`);
+              }
+              // Reload folders from cloud
+              get().loadFoldersFromCloudCache();
+            },
+            onMessageChange: (payload) => {
+              console.log('💬 Message update from another device:', payload);
+              // Handle message updates
+            },
+            onSocialChange: (payload) => {
+              console.log('📢 Social update from another device:', payload);
+              // Handle social updates
+            }
+          });
+
+          console.log('✓ Cross-device folder sync initialized:', syncResult);
+        } catch (error) {
+          console.error('Failed to initialize folder sync:', error);
+        }
+      },
+
+      loadFoldersFromCloudCache: async () => {
+        const { user } = get();
+        if (!user) return [];
+
+        try {
+          const folders = await loadFoldersFromCloud(user.id);
+          console.log(`✓ Loaded ${folders.length} folders from cloud (cache-optimized)`);
+          return folders;
+        } catch (error) {
+          console.error('Failed to load folders from cloud:', error);
+          return [];
+        }
+      },
+
+      syncFolderToCloud: async (folderId, items) => {
+        const { user } = get();
+        if (!user) return;
+
+        try {
+          await saveFolderContentToCloud(user.id, folderId, items);
+          console.log(`✓ Folder ${folderId} synced to cloud (${items.length} items)`);
+        } catch (error) {
+          console.error('Failed to sync folder to cloud:', error);
+        }
+      },
+
+      clearLocalCaches: () => {
+        clearAllCaches();
+        console.log('✓ All local caches cleared');
+      },
+
+      getCacheDiagnostics: () => {
+        return getCacheStats();
       },
 
       syncToCloud: (dataType, data) => {
