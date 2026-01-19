@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -11,6 +11,7 @@ interface RouteParams {
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: call } = await supabase
       .from('call_sessions')
       .select('id, initiator_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!call || call.initiator_id !== user.id) {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: existing } = await supabase
       .from('call_participants')
       .select('id')
-      .eq('call_id', params.id)
+      .eq('call_id', id)
       .eq('user_id', user_id)
       .single();
 
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .from('call_participants')
       .insert([
         {
-          call_id: params.id,
+          call_id: id,
           user_id,
           audio_enabled: false,
           video_enabled: false,
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -102,7 +104,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { data: call } = await supabase
       .from('call_sessions')
       .select('id, initiator_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!call) {
@@ -118,7 +120,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { error } = await supabase
       .from('call_participants')
       .delete()
-      .eq('call_id', params.id)
+      .eq('call_id', id)
       .eq('user_id', participantUserId);
 
     if (error) {

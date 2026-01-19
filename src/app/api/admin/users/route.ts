@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
     // TODO: Replace with actual auth users query
     // For MVP, return empty array
-    const users = [];
+    const users: Array<{ id: string; email: string }> = [];
 
     return new Response(JSON.stringify(users), {
       status: 200,

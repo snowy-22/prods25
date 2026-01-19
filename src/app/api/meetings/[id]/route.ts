@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -27,6 +27,7 @@ async function verifyMeetingOwner(meetingId: string, userId: string): Promise<bo
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           completed_at
         )`
       )
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!data) {
@@ -97,6 +98,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -104,7 +106,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Verify organizer
-    const isOwner = await verifyMeetingOwner(params.id, user.id);
+    const isOwner = await verifyMeetingOwner(id, user.id);
     if (!isOwner) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -157,7 +159,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await supabase
       .from('scheduled_meetings')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -180,6 +182,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -187,23 +190,23 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Verify organizer
-    const isOwner = await verifyMeetingOwner(params.id, user.id);
+    const isOwner = await verifyMeetingOwner(id, user.id);
     if (!isOwner) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Delete related records
     await Promise.all([
-      supabase.from('meeting_participants').delete().eq('meeting_id', params.id),
-      supabase.from('meeting_recordings').delete().eq('meeting_id', params.id),
-      supabase.from('meeting_follow_ups').delete().eq('meeting_id', params.id),
+      supabase.from('meeting_participants').delete().eq('meeting_id', id),
+      supabase.from('meeting_recordings').delete().eq('meeting_id', id),
+      supabase.from('meeting_follow_ups').delete().eq('meeting_id', id),
     ]);
 
     // Delete meeting
     const { error: deleteError } = await supabase
       .from('scheduled_meetings')
       .delete()
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (deleteError) {
       console.error('Delete error:', deleteError);

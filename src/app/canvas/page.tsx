@@ -223,7 +223,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                     if (fetchError) throw fetchError;
 
                     // If no items in DB, sync local items
-                    if (existingItems === null || existingItems.length === 0) {
+                    if (!existingItems?.length) {
                         const itemsToSync = allRawItems.map(item => ({
                             id: item.id,
                             user_id: state.user!.id,
@@ -262,7 +262,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
                         if (dbFetchError) throw dbFetchError;
 
-                        if (dbItems !== null && dbItems.length > 0) {
+                        if (dbItems && dbItems.length > 0) {
                             const mappedItems: ContentItem[] = dbItems.map(item => ({
                                 ...item,
                                 parentId: item.parent_id,
@@ -1844,7 +1844,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                         toggleViewportEditor={() => state.togglePanel('isViewportEditorOpen')}
                                         gridSize={gridSize}
                                         setGridSize={setGridSize}
-                                        layoutMode={activeView?.layoutMode || 'grid'}
+                                        layoutMode={(activeView?.layoutMode === 'grid' || activeView?.layoutMode === 'canvas' || activeView?.layoutMode === 'grid-vertical' || activeView?.layoutMode === 'grid-square' ? activeView.layoutMode : 'grid')}
                                         onSetLayoutMode={(mode) => activeView && updateItem(activeView.id, { layoutMode: mode })}
                                         activeViewId={activeView?.id}
                                         canUndo={(activeTab?.undoRedoIndex || 0) > 0}

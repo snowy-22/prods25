@@ -3,6 +3,9 @@
  * Complete product, cart, order, payment, and reservation system
  */
 
+// Re-export marketplace types for convenience
+export type { MarketplaceListing, MarketplaceListingStatus } from './marketplace-types';
+
 // ============================================================================
 // PRODUCT & INVENTORY SYSTEM
 // ============================================================================

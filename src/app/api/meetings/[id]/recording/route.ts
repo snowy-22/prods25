@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -12,6 +12,7 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: meeting } = await supabase
       .from('scheduled_meetings')
       .select('user_id, recording_enabled')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!meeting || meeting.user_id !== user.id) {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const { data: activeRecording } = await supabase
         .from('meeting_recordings')
         .select('id')
-        .eq('meeting_id', params.id)
+        .eq('meeting_id', id)
         .eq('status', 'recording')
         .single();
 
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         .from('meeting_recordings')
         .insert([
           {
-            meeting_id: params.id,
+            meeting_id: id,
             status: 'recording',
             started_at: new Date().toISOString(),
           },
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const { data: recording } = await supabase
         .from('meeting_recordings')
         .select('id, started_at')
-        .eq('meeting_id', params.id)
+        .eq('meeting_id', id)
         .eq('status', 'recording')
         .single();
 
@@ -143,6 +144,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -153,7 +155,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data: meeting } = await supabase
       .from('scheduled_meetings')
       .select('user_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!meeting || meeting.user_id !== user.id) {
@@ -164,7 +166,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await supabase
       .from('meeting_recordings')
       .select('*')
-      .eq('meeting_id', params.id)
+      .eq('meeting_id', id)
       .order('started_at', { ascending: false });
 
     if (error) {
@@ -189,6 +191,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -209,7 +212,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { data: meeting } = await supabase
       .from('scheduled_meetings')
       .select('user_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!meeting || meeting.user_id !== user.id) {
@@ -221,7 +224,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .from('meeting_recordings')
       .delete()
       .eq('id', recordingId)
-      .eq('meeting_id', params.id);
+      .eq('meeting_id', id);
 
     if (error) {
       console.error('Delete error:', error);

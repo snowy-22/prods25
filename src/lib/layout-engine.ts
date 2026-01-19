@@ -2,7 +2,7 @@
 import { ContentItem } from "./initial-content";
 import { CSSProperties } from "react";
 
-export type LayoutMode = 'grid' | 'canvas' | 'grid-vertical' | 'grid-square';
+export type LayoutMode = 'grid' | 'canvas' | 'grid-vertical' | 'grid-square' | 'studio' | 'presentation' | 'stream' | 'free' | 'carousel';
 
 export interface GridModeState {
   enabled: boolean;

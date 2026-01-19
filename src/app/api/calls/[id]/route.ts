@@ -2,14 +2,14 @@ import { createClient } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
  * Helper: Verify user participated in call or initiated it
  */
 async function verifyCallAccess(callId: string, userId: string): Promise<boolean> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: call } = await supabase
     .from('call_sessions')
@@ -39,7 +39,8 @@ async function verifyCallAccess(callId: string, userId: string): Promise<boolean
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const supabase = createClient();
+    const { id } = await params;
+    const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Verify access
-    const hasAccess = await verifyCallAccess(params.id, user.id);
+    const hasAccess = await verifyCallAccess(id, user.id);
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           left_at
         )`
       )
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (error || !data) {
@@ -85,6 +86,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -96,7 +98,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { data: call } = await supabase
       .from('call_sessions')
       .select('initiator_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!call || call.initiator_id !== user.id) {
@@ -123,7 +125,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await supabase
       .from('call_sessions')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -145,6 +147,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -156,7 +159,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { data: call } = await supabase
       .from('call_sessions')
       .select('initiator_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!call || call.initiator_id !== user.id) {
@@ -167,13 +170,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     await supabase
       .from('call_participants')
       .delete()
-      .eq('call_id', params.id);
+      .eq('call_id', id);
 
     // Delete call
     const { error: deleteError } = await supabase
       .from('call_sessions')
       .delete()
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (deleteError) {
       console.error('Delete error:', deleteError);

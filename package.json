@@ -13,7 +13,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "upload:email": "node scripts/upload-email-templates.mjs",
+    "upload:email:welcome": "node scripts/upload-email-templates.mjs welcome",
+    "upload:email:all": "node scripts/upload-email-templates.mjs all",
+    "open:supabase:email": "node scripts/open-supabase-dashboard.mjs",
+    "send:reminder": "node scripts/send-reminder.mjs"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.27.0",
@@ -78,6 +83,7 @@
     "react-rnd": "^10.5.2",
     "react-use": "^17.6.0",
     "reaflow": "^5.4.1",
+    "resend": "^4.0.0",
     "recharts": "^3.6.0",
     "stripe": "^20.1.2",
     "suncalc": "^1.9.0",

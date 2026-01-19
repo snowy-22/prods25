@@ -332,6 +332,11 @@ export function AiChatDialog({
     setIsListening(true);
     };
 
+  // Toggle wrapper used by UI button (keeps naming consistent)
+  const toggleVoiceInput = () => {
+    handleVoiceInput();
+  };
+
   // Contact List Component (Mobile + Desktop Panel)
   const ContactListView = () => (
     <div className="h-full flex flex-col">

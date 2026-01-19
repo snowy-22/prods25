@@ -36,9 +36,7 @@ interface CanvasSpaceControlProps {
 const getBrowserIcon = (browserName?: string) => {
   const name = browserName?.toLowerCase() || '';
   if (name.includes('chrome')) return Chrome;
-  if (name.includes('edge')) return Edge;
-  if (name.includes('firefox')) return Firefox;
-  if (name.includes('safari')) return Safari;
+  // For edge, firefox, safari, use generic Globe icon (not available in lucide-react)
   return Globe;
 };
 

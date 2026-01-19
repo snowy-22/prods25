@@ -2,7 +2,7 @@
  * Subscription Tiers and Types
  */
 
-export type SubscriptionTier = 'guest' | 'free' | 'basic' | 'pro' | 'enterprise';
+export type SubscriptionTier = 'guest' | 'free' | 'basic' | 'pro' | 'enterprise' | 'kurumsal' | 'kurumsal_pro';
 
 export interface SubscriptionFeatureGroup {
   name: string;

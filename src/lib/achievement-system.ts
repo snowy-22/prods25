@@ -44,14 +44,17 @@ export interface UnlockCriteria {
 }
 
 export interface AwardedAchievement {
+  id?: string;
   achievementId: string;
   userId: string;
   unlockedAt: string;
+  awardedAt?: string;
   blockchainHash: string; // Cryptographic proof
   verificationChain: VerificationNode[];
   isPubliclyDisplayed: boolean;
   customMessage?: string;
   metadata: Record<string, any>;
+  download?: string;
 }
 
 export interface VerificationNode {

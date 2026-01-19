@@ -98,9 +98,9 @@ export default function AchievementsFolder({
       if (result.success) {
         toast({
           title: '🎉 Ödül Alındı!',
-          description: result.couponCode 
-            ? `${result.rewardValue} kupon kodunuz: ${result.couponCode}`
-            : `${result.rewardValue || ''} ${result.rewardType === 'points' ? 'puan' : 'ödül'} kazandınız!`,
+          description: result.couponId 
+            ? `Kupon kodunuz başarıyla oluşturuldu.`
+            : result.points ? `${result.points} puan kazandınız!` : 'Ödülünüz başarıyla alındı!',
         });
         loadAchievements();
       } else {
@@ -131,7 +131,7 @@ export default function AchievementsFolder({
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(a => 
         a.title.toLowerCase().includes(query) || 
-        a.description.toLowerCase().includes(query)
+        (a.description && a.description.toLowerCase().includes(query))
       );
     }
     

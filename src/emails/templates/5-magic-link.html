@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Şifresiz Giriş - Sihirli Bağlantı</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .logo {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+        }
+        
+        .logo-subtext {
+            font-size: 14px;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .greeting {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+        }
+        
+        .text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        
+        .magic-link-box {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .magic-link-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .magic-link-text {
+            font-size: 14px;
+            color: #667eea;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            padding: 16px 40px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            margin: 15px 0;
+            font-size: 16px;
+            transition: transform 0.2s;
+            border: 0;
+            cursor: pointer;
+            text-align: center;
+            display: inline-block;
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+        }
+        
+        .button-subtitle {
+            display: block;
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 8px;
+            color: white;
+        }
+        
+        .link-text {
+            font-size: 14px;
+            color: #999;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .full-link {
+            background-color: #f5f5f5;
+            padding: 12px;
+            border-radius: 4px;
+            word-break: break-all;
+            font-size: 12px;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+            margin: 12px 0;
+            border: 1px solid #e0e0e0;
+            line-height: 1.4;
+        }
+        
+        .features {
+            background-color: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 25px 0;
+        }
+        
+        .feature-item {
+            display: flex;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        
+        .feature-icon {
+            font-size: 18px;
+            margin-right: 10px;
+        }
+        
+        .feature-text {
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .security-warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ff9800;
+            padding: 16px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        .divider {
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 30px 0;
+        }
+        
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        
+        .footer-text {
+            font-size: 13px;
+            color: #999;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        
+        .social-links {
+            margin: 15px 0;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            margin: 0 6px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            line-height: 32px;
+            border-radius: 50%;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .copyright {
+            font-size: 12px;
+            color: #bbb;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .copyright a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .copyright a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">TV25</div>
+            <div class="logo-subtext">CanvasFlow - Digital Canvas Experience</div>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <div class="greeting">Şifresiz Giriş Başladı ✨</div>
+            
+            <div class="text">
+                Merhaba,<br><br>
+                CanvasFlow'a şifresiz giriş yapmak istediğinizi gördük. Aşağıdaki sihirli bağlantıyı kullanarak hesabınıza anında erişebilirsiniz.
+            </div>
+            
+            <div class="magic-link-box">
+                <div class="magic-link-icon">✨</div>
+                <div class="magic-link-text">Sihirli Bağlantı</div>
+                <a href="https://tv25.app/auth/magic-link?token={{ .MagicToken }}" class="cta-button">
+                    Hemen Girin
+                    <span class="button-subtitle">Otomatik şifre girmeksizin</span>
+                </a>
+            </div>
+            
+            <div class="link-text">
+                Butona tıklamazsa, tam bağlantıyı tarayıcıya yapıştırabilirsiniz:
+            </div>
+            
+            <div class="full-link">
+                https://tv25.app/auth/magic-link?token={{ .MagicToken }}
+            </div>
+            
+            <div class="features">
+                <strong style="color: #667eea;">Şifresiz Giriş Avantajları:</strong>
+                <div class="feature-item">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-text">Daha güvenli - Şifreyi hatırlamaya gerek yok</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-text">Daha hızlı - Tek tıkla giriş yapın</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📱</div>
+                    <div class="feature-text">Mobil uyumlu - Tüm cihazlarda çalışır</div>
+                </div>
+            </div>
+            
+            <div class="security-warning">
+                ⚠️ <strong>Güvenlik Uyarısı:</strong> Bu bağlantı sadece 15 dakika boyunca geçerlidir. Siz bu isteği yapmadıysanız, bu e-postayı görmezden gelebilirsiniz.
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="text" style="font-size: 14px; color: #999;">
+                <strong>Bağlantı çalışmıyorsa:</strong><br>
+                • E-postayı yenilemek için tarayıcıyı yenileyin<br>
+                • Özel/gizli pencere kullanmayı deneyin<br>
+                • Başka bir tarayıcıda deneyin<br>
+                • Sorunc devam ederse, <a href="mailto:support@tv25.app" style="color: #667eea;">support@tv25.app</a> ile iletişime geçin
+            </div>
+            
+            <div class="text" style="font-size: 14px; margin-top: 20px;">
+                Daha sonra şifreniz ile de giriş yapabileceksiniz. <a href="https://tv25.app/auth/login" style="color: #667eea;">Normal giriş</a> sayfasını ziyaret edebilirsiniz.
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-text">
+                <strong>CanvasFlow - Dijital Canvas Deneyimi</strong><br>
+                İstanbul, Türkiye<br>
+                <a href="mailto:support@tv25.app" style="color: #667eea; text-decoration: none;">support@tv25.app</a>
+            </div>
+            
+            <div class="social-links">
+                <a href="https://twitter.com/tv25app">𝕏</a>
+                <a href="https://instagram.com/tv25app">📷</a>
+                <a href="https://linkedin.com/company/tv25">in</a>
+            </div>
+            
+            <div class="copyright">
+                © 2026 CanvasFlow. Tüm hakları saklıdır.<br>
+                <a href="https://tv25.app">tv25.app</a> - 
+                <a href="https://tv25.app/privacy">Gizlilik Politikası</a> - 
+                <a href="https://tv25.app/terms">Hizmet Şartları</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

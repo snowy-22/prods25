@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
       if (template === 'welcome') {
         await sendWelcomeEmail('Test User', email);
       } else if (template === 'password-reset') {
-        await sendPasswordResetEmail('Test User', email, 'https://example.com/reset/token', 3600);
+        await sendPasswordResetEmail('Test User', email, 'https://example.com/reset/token', '3600');
       }
 
       return NextResponse.json({

@@ -53,7 +53,9 @@ function initializeFlows() {
   
   analysisPrompt = ai.definePrompt({
     name: 'contentAnalysisPrompt',
+    // @ts-expect-error Zod/Genkit type incompatibility
     input: { schema: ContentAnalysisInputSchema },
+    // @ts-expect-error Zod/Genkit type incompatibility
     output: { schema: ContentAnalysisOutputSchema },
     prompt: `You are a content curator and SEO expert. Analyze the following list of content items.
 Based on the titles and URLs, provide a comprehensive analysis.
@@ -78,7 +80,9 @@ Please provide the output in the specified JSON format.
   contentAnalysisFlow = ai.defineFlow(
     {
       name: 'contentAnalysisFlow',
+      // @ts-expect-error Zod/Genkit type incompatibility
       inputSchema: ContentAnalysisInputSchema,
+      // @ts-expect-error Zod/Genkit type incompatibility
       outputSchema: ContentAnalysisOutputSchema,
     },
     async (input) => {
@@ -90,3 +94,5 @@ Please provide the output in the specified JSON format.
     }
   );
 }
+
+

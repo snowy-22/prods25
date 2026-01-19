@@ -1,5 +1,6 @@
 // Utility: Generate 'Tüm Widgetlar' test page with all widget groups as subfolders
 import { v4 as uuidv4 } from 'uuid';
+import type { LayoutMode } from './layout-engine';
 
 /**
  * Creates a 'Tüm Widgetlar' folder with all widget groups as subfolders and all widgets inside.
@@ -113,9 +114,9 @@ export type ReadingStatus = 'to-read' | 'reading' | 'read';
 export type TaskStatus = 'todo' | 'doing' | 'done';
 
 export type DeviceInfo = {
-    type: DeviceType;
-    os: OsType;
-    browser: BrowserType;
+  type?: DeviceType;
+  os: OsType;
+  browser: BrowserType;
 };
 
 export type ItemLayout = 'default' | 'vertical-list' | 'horizontal-strip';
@@ -256,6 +257,23 @@ export type ContentItem = {
   html?: string; // For oEmbed HTML
   provider_name?: string; // For oEmbed provider
 
+  // Common optional fields added for compatibility across usages
+  author_id?: string | number;
+  attachments?: any[];
+  backgroundImage?: string;
+  backgroundColor?: string;
+  iconUrl?: string;
+  targetValue?: number;
+  isClaimed?: boolean;
+  couponCode?: string;
+  rewardValue?: number;
+  rewardType?: string;
+  compareAtPrice?: number;
+  location?: string;
+  minPurchase?: number;
+  maxDiscount?: number;
+  usedAt?: string;
+
   // Award-specific properties
   awardInstanceId?: string; // Unique ID for this specific instance of the award
   awardee?: string; // Username of the person who received the award
@@ -289,7 +307,7 @@ export type ContentItem = {
   commentCount?: number;
   
     // Per-view settings for how this item renders its children
-    layoutMode?: 'grid' | 'studio' | 'presentation' | 'stream' | 'free' | 'carousel';  lockedLayoutMode?: boolean; // Prevents layout mode change by viewers
+    layoutMode?: LayoutMode;  lockedLayoutMode?: boolean; // Prevents layout mode change by viewers
   allowedItemTypes?: ItemType[]; // Which item types can be opened/added  itemLayout?: ItemLayout;
   
   // Flow mode connections

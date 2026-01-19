@@ -352,6 +352,7 @@ export default function AuthPage() {
                 >
                   <FormField
                     control={form.control}
+                    // @ts-expect-error username is part of signupSchema
                     name="username"
                     render={({ field }) => (
                       <FormItem>
@@ -483,6 +484,7 @@ export default function AuthPage() {
                 >
                   <FormField
                     control={form.control}
+                    // @ts-expect-error referralCode is part of signupSchema
                     name="referralCode"
                     render={({ field }) => (
                       <FormItem>

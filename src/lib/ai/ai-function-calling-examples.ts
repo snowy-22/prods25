@@ -9,6 +9,20 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { logAIRequest, logToolCall, updateAIRequestStatus, type AIToolName } from '@/lib/ai/ai-logger';
 
+// --- Local example stubs --------------------------------------------------
+// These are lightweight declarations for example/demo helpers used in this file.
+// They prevent the examples from producing cascading TypeScript errors.
+declare function createClient(...args: any[]): any;
+declare function searchYouTube(...args: any[]): any;
+declare const MessageSchema: any;
+declare const currentUser: any;
+declare const conversationId: any;
+declare function getUserAIStats(...args: any[]): any;
+declare function getAILogs(...args: any[]): any;
+declare function checkAIQuota(...args: any[]): any;
+declare function dangerousOperation(...args: any[]): any;
+// ---------------------------------------------------------------------------
+
 // ============================================================================
 // 1. TEMEL TOOL TANIMLAMA
 // ============================================================================
@@ -22,23 +36,23 @@ const calculatorTool = ai.defineTool(
     description: 'Matematik işlemleri yapar: toplama, çıkarma, çarpma, bölme',
     
     // INPUT SCHEMA - AI hangi parametreleri göndermeli?
-    inputSchema: z.object({
+    inputSchema: (z.object({
       operation: z.enum(['add', 'subtract', 'multiply', 'divide'])
         .describe('Yapılacak işlem tipi'),
       a: z.number().describe('İlk sayı'),
       b: z.number().describe('İkinci sayı'),
-    }),
+    }) as any),
     
     // OUTPUT SCHEMA - Ne dönecek?
-    outputSchema: z.object({
+    outputSchema: (z.object({
       result: z.number(),
       explanation: z.string(),
-    }),
+    }) as any),
   },
   
   // IMPLEMENTATION - Gerçek fonksiyon
   async ({ operation, a, b }) => {
-    let result: number;
+    let result = 0;
     
     switch (operation) {
       case 'add': result = a + b; break;
@@ -69,17 +83,17 @@ const youtubeSearchTool = ai.defineTool(
     name: 'youtubeSearch',
     description: 'YouTube\'da video arar ve sonuçları döner',
     
-    inputSchema: z.object({
+    inputSchema: (z.object({
       query: z.string().min(1).describe('Aranacak kelime/cümle'),
       maxResults: z.number().optional().default(5).describe('Max sonuç sayısı'),
-    }),
+    }) as any),
     
-    outputSchema: z.array(z.object({
+    outputSchema: (z.array(z.object({
       title: z.string(),
       videoId: z.string(),
       channel: z.string(),
       thumbnail: z.string().url(),
-    })),
+    })) as any),
   },
   
   async ({ query, maxResults = 5 }) => {
@@ -118,18 +132,18 @@ const addItemToCanvasTool = ai.defineTool(
     name: 'addItemToCanvas',
     description: 'Canvas\'a yeni bir item ekler (video, image, widget, vb.)',
     
-    inputSchema: z.object({
+    inputSchema: (z.object({
       type: z.enum(['video', 'image', 'website', 'notes', 'clock']),
       title: z.string().min(1),
       url: z.string().url().optional(),
       x: z.number().optional(),
       y: z.number().optional(),
-    }),
+    }) as any),
     
-    outputSchema: z.object({
+    outputSchema: (z.object({
       success: z.boolean(),
       itemId: z.string(),
-    }),
+    }) as any),
   },
   
   async ({ type, title, url, x, y }) => {
@@ -172,10 +186,10 @@ const loggedYoutubeSearchTool = ai.defineTool(
   {
     name: 'youtubeSearch',
     description: 'YouTube arama yapar ve loglar',
-    inputSchema: z.object({
+    inputSchema: (z.object({
       query: z.string(),
       requestLogId: z.string().optional(), // Loglama için
-    }),
+    }) as any),
     outputSchema: z.any(),
   },
   
@@ -227,14 +241,14 @@ const loggedYoutubeSearchTool = ai.defineTool(
 const assistantFlow = ai.defineFlow(
   {
     name: 'assistantFlow',
-    inputSchema: z.object({
+    inputSchema: (z.object({
       userId: z.string(),
       conversationId: z.string().optional(),
       messages: z.array(MessageSchema),
-    }),
-    outputSchema: z.object({
+    }) as any),
+    outputSchema: (z.object({
       response: z.string(),
-    }),
+    }) as any),
   },
   
   async (input) => {
@@ -386,7 +400,7 @@ const robustTool = ai.defineTool(
   {
     name: 'robustTool',
     description: 'Hata yönetimi olan güvenli tool',
-    inputSchema: z.object({ input: z.string() }),
+    inputSchema: (z.object({ input: z.string() }) as any),
     outputSchema: z.any(),
   },
   

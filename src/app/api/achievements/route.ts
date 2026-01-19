@@ -115,13 +115,11 @@ export async function GET(req: NextRequest) {
 }
 
 // ============================================================================
-// PATCH /api/achievements/:id
+// PATCH /api/achievements
 // Update achievement visibility or add note
+// Body: { id: string, is_publicly_displayed?: boolean, custom_message?: string }
 // ============================================================================
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: NextRequest) {
   try {
     const {
       data: { user },
@@ -132,12 +130,19 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { is_publicly_displayed, custom_message } = body;
+    const { id, is_publicly_displayed, custom_message } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Achievement ID required' },
+        { status: 400 }
+      );
+    }
 
     // Update visibility
     if (is_publicly_displayed !== undefined) {
       const success = await updateAchievementVisibility(
-        params.id,
+        id,
         is_publicly_displayed
       );
       if (!success) {
@@ -150,7 +155,7 @@ export async function PATCH(
 
     // Add note
     if (custom_message) {
-      const success = await addAchievementNote(params.id, custom_message);
+      const success = await addAchievementNote(id, custom_message);
       if (!success) {
         return NextResponse.json(
           { error: 'Failed to add note' },
@@ -161,7 +166,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
-    console.error('❌ PATCH /api/achievements/:id error:', error);
+    console.error('❌ PATCH /api/achievements error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

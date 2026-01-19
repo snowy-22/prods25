@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -12,6 +12,7 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: group } = await supabase
       .from('message_groups')
       .select('id, created_by')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!group || group.created_by !== user.id) {
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .from('group_members')
       .insert([
         {
-          group_id: params.id,
+          group_id: id,
           user_id: user_id || null,
           email: email || null,
           role: role || 'member',
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -81,7 +83,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data: group } = await supabase
       .from('message_groups')
       .select('id, created_by')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!group) {
@@ -91,7 +93,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await supabase
       .from('group_members')
       .select('*')
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .order('joined_at', { ascending: true });
 
     if (error) {

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İki Faktörlü Doğrulama Kodu</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .logo {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 10px;
+        }
+        
+        .logo-subtext {
+            font-size: 14px;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .greeting {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+        }
+        
+        .text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        
+        .otp-code {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 30px 0;
+            color: white;
+        }
+        
+        .code-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .code {
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        
+        .code-timer {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            padding-top: 10px;
+        }
+        
+        .security-alert {
+            background-color: #fff3cd;
+            border-left: 4px solid #ff9800;
+            padding: 16px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        .security-alert strong {
+            color: #ff9800;
+        }
+        
+        .danger-box {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 16px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #721c24;
+        }
+        
+        .info-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 16px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #1565c0;
+        }
+        
+        .device-info {
+            background-color: #f5f5f5;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #666;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .divider {
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 30px 0;
+        }
+        
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        
+        .footer-text {
+            font-size: 13px;
+            color: #999;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        
+        .social-links {
+            margin: 15px 0;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            margin: 0 6px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            line-height: 32px;
+            border-radius: 50%;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .copyright {
+            font-size: 12px;
+            color: #bbb;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .copyright a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .copyright a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">TV25</div>
+            <div class="logo-subtext">CanvasFlow - Digital Canvas Experience</div>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <div class="greeting">İki Faktörlü Doğrulama 🔐</div>
+            
+            <div class="text">
+                Merhaba,<br><br>
+                CanvasFlow hesabınıza giriş yaptınız. İşlemi tamamlamak için aşağıdaki doğrulama kodunu kullanın.
+            </div>
+            
+            <div class="otp-code">
+                <div class="code-label">Doğrulama Kodu</div>
+                <div class="code">{{ .OTPCode }}</div>
+                <div class="code-timer">⏱️ Bu kod 10 dakika içinde sona erecektir</div>
+            </div>
+            
+            <div class="security-alert">
+                ⚠️ <strong>Önemli:</strong> Bu kodu hiç kimseyle paylaşmayın. CanvasFlow ekibi asla sizden kod istemeyecektir.
+            </div>
+            
+            <div class="text" style="font-size: 15px;">
+                Giriş ayrıntıları:
+            </div>
+            
+            <div class="device-info">
+                📱 Cihaz: {{ .DeviceType }}<br>
+                🌍 Konum: {{ .Location }}<br>
+                🔗 IP Adresi: {{ .IPAddress }}<br>
+                ⏰ Tarih & Saat: {{ .Timestamp }}
+            </div>
+            
+            <div class="danger-box">
+                🚨 <strong>Siz bu girişi yapmadıysanız:</strong><br>
+                Lütfen hemen hesabınızın güvenliğini kontrol edin. Şüpheli aktivite algılıyorsanız, <a href="https://tv25.app/security" style="color: #721c24; text-decoration: underline;">güvenlik ayarlarına</a> gidin veya <a href="mailto:support@tv25.app" style="color: #721c24; text-decoration: underline;">support@tv25.app</a> ile iletişime geçin.
+            </div>
+            
+            <div class="info-box">
+                ℹ️ <strong>Güvenlik İpucu:</strong> Zayıf parolaları güçlü olanlarla değiştirin. Düzenli olarak erişim geçmişini kontrol edin ve tanımadığınız cihazlardan erişimi hemen kaldırın.
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="text" style="font-size: 14px; color: #999;">
+                <strong>Sorun yaşıyorsanız:</strong><br>
+                • Kodun süresi doldu ise, yeni bir kod talep edebilirsiniz<br>
+                • Telefonunuzu kaybettiyseniz, <a href="https://tv25.app/account/security/backup-codes" style="color: #667eea;">yedek kodlarınızı</a> kullanabilirsiniz<br>
+                • Yardım için <a href="mailto:support@tv25.app" style="color: #667eea;">support@tv25.app</a> ile iletişime geçin
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-text">
+                <strong>CanvasFlow - Dijital Canvas Deneyimi</strong><br>
+                İstanbul, Türkiye<br>
+                <a href="mailto:support@tv25.app" style="color: #667eea; text-decoration: none;">support@tv25.app</a>
+            </div>
+            
+            <div class="social-links">
+                <a href="https://twitter.com/tv25app">𝕏</a>
+                <a href="https://instagram.com/tv25app">📷</a>
+                <a href="https://linkedin.com/company/tv25">in</a>
+            </div>
+            
+            <div class="copyright">
+                © 2026 CanvasFlow. Tüm hakları saklıdır.<br>
+                <a href="https://tv25.app">tv25.app</a> - 
+                <a href="https://tv25.app/privacy">Gizlilik Politikası</a> - 
+                <a href="https://tv25.app/terms">Hizmet Şartları</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

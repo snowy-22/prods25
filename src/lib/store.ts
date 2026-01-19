@@ -310,7 +310,7 @@ interface AppStore {
   isSecondLeftSidebarOpen: boolean;
   secondarySidebarOverlayMode: boolean; // Desktop overlay mode for secondary sidebar
   secondarySidebarWidth: number; // Width in pixels (min: 280, max: 600, default: 320)
-  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | null;
+  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | 'search' | null;
   isStyleSettingsOpen: boolean;
   isViewportEditorOpen: boolean;
   isSpacesPanelOpen: boolean;

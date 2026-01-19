@@ -7,6 +7,7 @@
  * NOT: Bu dosya örnek amaçlıdır, doğrudan çalıştırmayın.
  */
 
+import React from 'react';
 import { useAppStore } from '@/lib/store';
 import type { ContentItem } from '@/lib/initial-content';
 

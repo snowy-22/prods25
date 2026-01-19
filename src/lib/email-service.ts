@@ -3,7 +3,7 @@
  * Handles sending emails via Supabase Auth or Resend email provider
  */
 
-import { createClient } from './supabase/client';
+import { Resend } from 'resend';
 import {
   welcomeEmailTemplate,
   passwordResetEmailTemplate,
@@ -30,25 +30,58 @@ export interface SendEmailOptions {
   from?: string;
 }
 
+const resendApiKey = process.env.RESEND_API_KEY;
+const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'notifications@tv25.app';
+const resendReplyTo = process.env.RESEND_REPLY_TO || 'support@tv25.app';
+
+let resendClient: Resend | null = null;
+
+const getResendClient = (): Resend | null => {
+  if (!resendApiKey) return null;
+  if (!resendClient) {
+    resendClient = new Resend(resendApiKey);
+  }
+  return resendClient;
+};
+
 /**
  * Send email via Supabase
  * Uses Supabase's built-in email service
  */
 export async function sendEmailViaSupabase(options: SendEmailOptions) {
   try {
-    const supabase = createClient();
-    
-    // In production, use Supabase Functions or external email service
-    // For now, we'll log the email
-    console.log(`📧 Email queued: ${options.subject} → ${options.to}`);
-    
-    // TODO: Integrate with actual email service
-    // Option 1: Supabase Edge Functions with Resend
-    // Option 2: SendGrid / Mailgun API
-    // Option 3: AWS SES
-    
+    const resend = getResendClient();
+    const replyTo = options.replyTo || resendReplyTo;
+
+    // Prefer Resend when API key is present
+    if (resend) {
+      const { data, error } = await resend.emails.send({
+        from: options.from || resendFromEmail,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
+        replyTo: replyTo ? [replyTo] : undefined,
+      });
+
+      if (error) {
+        console.error('Resend send failed:', error);
+        throw error instanceof Error ? error : new Error(String(error));
+      }
+
+      return {
+        success: true,
+        provider: 'resend' as const,
+        messageId: data?.id || `resend-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    // Fallback: log-only when Resend is not configured (keeps current behavior)
+    console.log(`📧 [dry-run] Email queued: ${options.subject} → ${options.to}`);
     return {
       success: true,
+      provider: 'noop' as const,
       messageId: `msg-${Date.now()}`,
       timestamp: new Date().toISOString(),
     };

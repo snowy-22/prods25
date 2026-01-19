@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -12,6 +12,7 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: member } = await supabase
       .from('social_group_members')
       .select('id')
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .from('social_group_posts')
       .insert([
         {
-          group_id: params.id,
+          group_id: id,
           user_id: user.id,
           content: content.trim(),
           media: media_urls || [],
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -82,7 +84,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data: group } = await supabase
       .from('social_groups')
       .select('is_private')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!group) {
@@ -94,7 +96,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       const { data: member } = await supabase
         .from('social_group_members')
         .select('id')
-        .eq('group_id', params.id)
+        .eq('group_id', id)
         .eq('user_id', user.id)
         .single();
 
@@ -107,7 +109,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await supabase
       .from('social_group_posts')
       .select('*')
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -129,6 +131,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -157,7 +160,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .from('social_group_posts')
       .select('user_id')
       .eq('id', postId)
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .single();
 
     if (!post || post.user_id !== user.id) {
@@ -194,6 +197,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -215,7 +219,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .from('social_group_posts')
       .select('user_id')
       .eq('id', postId)
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .single();
 
     if (!post) {
@@ -227,7 +231,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { data: admin } = await supabase
       .from('social_group_members')
       .select('role')
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .eq('user_id', user.id)
       .single();
 

@@ -15,7 +15,7 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const { action, email, password, name, confirmPassword } = await request.json();
-    const supabase = createClient();
+    const supabase = await createClient();
 
     switch (action) {
       case 'signup': {
@@ -276,7 +276,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     const { data, error } = await supabase.auth.verifyOtp({

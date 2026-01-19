@@ -143,7 +143,7 @@ const heroWords = [
 	'Eğitim Materyalini',
 	'Marka Sunumunu',
 	'Dijital Sanat Galerini',
-	'Dijital Koleksiyonunu',
+	'Koleksiyonunu',
 	'Müzeni',
 
 	
@@ -393,7 +393,7 @@ export default function LandingPage() {
 						<div className="bg-card/80 border border-border/50 rounded-lg p-8 text-center">
 							<h3 className="text-2xl font-bold mb-4">Kurumsal Müşterilerin Tercih Ettiği</h3>
 							<div className="flex flex-wrap justify-center gap-8 mb-8">
-								{['Fortune 500', 'Teknoloji Başlangıçları', 'Eğitim Kurumları', 'Yayın Şirketleri'].map((type, idx) => (
+								{['Fortune 500', 'Girişim Şirketleri', 'Eğitim Kurumları','Dernekler ve Kamu', 'Yayın Şirketleri'].map((type, idx) => (
 									<div key={idx} className="flex items-center gap-2">
 										<span className="w-2 h-2 bg-primary rounded-full"></span>
 										<span className="font-medium">{type}</span>

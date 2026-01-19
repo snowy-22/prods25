@@ -73,10 +73,11 @@ export async function createNewReservation(req: NextRequest) {
 // ============================================================================
 export async function confirmRes(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const reservation = await confirmReservation(params.id);
+    const { id } = await params;
+    const reservation = await confirmReservation(id);
 
     if (!reservation) {
       return NextResponse.json(
@@ -101,13 +102,14 @@ export async function confirmRes(
 // ============================================================================
 export async function cancelRes(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const { reason } = body;
 
-    const success = await cancelReservation(params.id, reason);
+    const success = await cancelReservation(id, reason);
 
     if (!success) {
       return NextResponse.json(
@@ -246,13 +248,14 @@ export async function createNewPurchase(req: NextRequest) {
 // ============================================================================
 export async function completePay(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const { stripe_payment_id } = body;
 
-    const purchase = await completePurchasePayment(params.id, stripe_payment_id);
+    const purchase = await completePurchasePayment(id, stripe_payment_id);
 
     if (!purchase) {
       return NextResponse.json(
@@ -277,9 +280,10 @@ export async function completePay(
 // ============================================================================
 export async function refundPay(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const { reason } = body;
 
@@ -290,7 +294,7 @@ export async function refundPay(
       );
     }
 
-    const success = await refundPurchase(params.id, reason);
+    const success = await refundPurchase(id, reason);
 
     if (!success) {
       return NextResponse.json(
@@ -315,9 +319,10 @@ export async function refundPay(
 // ============================================================================
 export async function updateStatus(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const { order_status } = body;
 
@@ -329,7 +334,7 @@ export async function updateStatus(
     }
 
     const purchase = await updateOrderStatus(
-      params.id,
+      id,
       order_status
     );
 
@@ -384,10 +389,11 @@ export async function getPurchases(req: NextRequest) {
 // ============================================================================
 export async function getPurchaseByCode(
   req: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
-    const purchase = await getPurchaseByConfirmationCode(params.code);
+    const { code } = await params;
+    const purchase = await getPurchaseByConfirmationCode(code);
 
     if (!purchase) {
       return NextResponse.json(

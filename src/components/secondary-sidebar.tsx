@@ -522,7 +522,7 @@ const WidgetCard = memo(function WidgetCard({
 
 
 type SecondarySidebarProps = {
-  type: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards';
+  type: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | 'search';
   // Library props
   allItems?: ContentItem[];
   onSetView?: (item: ContentItem | null, event?: React.MouseEvent | React.TouchEvent) => void;

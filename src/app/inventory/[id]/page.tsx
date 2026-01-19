@@ -222,11 +222,11 @@ export default function ItemDetailPage() {
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-lg font-semibold capitalize">{lifecycleData.currentStage}</span>
                             <Badge variant="outline">
-                              {lifecycleData.currentStage === 'new' ? 'Yeni' :
-                               lifecycleData.currentStage === 'good' ? 'İyi' :
-                               lifecycleData.currentStage === 'fair' ? 'Orta' :
-                               lifecycleData.currentStage === 'poor' ? 'Kötü' :
-                               lifecycleData.currentStage === 'parts-only' ? 'Yedek Parça' : 'Diğer'}
+                            {lifecycleData.currentStage === 'new' ? 'Yeni' :
+                             lifecycleData.currentStage === 'good' ? 'İyi' :
+                             lifecycleData.currentStage === 'fair' ? 'Orta' :
+                             lifecycleData.currentStage === 'poor' ? 'Kötü' :
+                             lifecycleData.currentStage === 'parts-only' ? 'Yedek Parça' : 'Diğer'}
                             </Badge>
                           </div>
                         </div>

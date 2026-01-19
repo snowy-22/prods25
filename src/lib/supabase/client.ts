@@ -16,3 +16,6 @@ export function createClient() {
     supabaseAnonKey || 'placeholder'
   )
 }
+
+// Export a default client instance for convenience
+export const supabase = createClient();

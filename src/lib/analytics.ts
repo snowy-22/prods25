@@ -419,6 +419,20 @@ export async function getAdminAnalyticsSummary() {
     return acc;
   }, {} as Record<string, number>);
 
+  // Get browser breakdown
+  const browserBreakdown = sessions?.reduce((acc, session) => {
+    const browserType = (session.browser as any) || 'unknown';
+    acc[browserType] = (acc[browserType] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Get recent events with all required fields
+  const { data: recentEventsData } = await supabase
+    .from('analytics_events')
+    .select('id, event_type, event_category, resource_type, created_at, user_id')
+    .order('created_at', { ascending: false })
+    .limit(20);
+
   return {
     totalEvents: totalEvents || 0,
     totalSessions: totalSessions || 0,
@@ -426,5 +440,14 @@ export async function getAdminAnalyticsSummary() {
     userSessions: (totalSessions || 0) - (guestSessions || 0),
     topContent: topContent || [],
     deviceBreakdown: deviceBreakdown || {},
+    browserBreakdown: browserBreakdown || {},
+    recentEvents: (recentEventsData || []).map(event => ({
+      id: event.id || '',
+      event_type: event.event_type || '',
+      event_category: event.event_category || null,
+      resource_type: event.resource_type || null,
+      created_at: event.created_at || '',
+      user_id: event.user_id || null,
+    })),
   };
 }

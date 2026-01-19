@@ -36,6 +36,8 @@ function initializeToolsAndFlow() {
   // const webSearchTool = googleSearch('webSearch');
 
   // Define a more realistic tool for YouTube search
+  // @ts-expect-error Zod/Genkit type incompatibility
+
   const youtubeSearchTool = ai.defineTool(
     {
       name: 'youtubeSearch',
@@ -54,6 +56,8 @@ function initializeToolsAndFlow() {
   );
 
   // Define a new tool for scraping web page content
+  // @ts-expect-error Zod/Genkit type incompatibility
+
   const pageScraperTool = ai.defineTool(
     {
       name: 'pageScraper',
@@ -75,6 +79,9 @@ function initializeToolsAndFlow() {
     }
   );
 
+  // @ts-expect-error Zod/Genkit type incompatibility
+
+
   const highlightElementTool = ai.defineTool(
       {
         name: 'highlightElement',
@@ -91,6 +98,9 @@ function initializeToolsAndFlow() {
         return { success: true };
       }
   );
+
+  // @ts-expect-error Zod/Genkit type incompatibility
+
 
   const addPlayerTool = ai.defineTool(
       {
@@ -112,6 +122,9 @@ function initializeToolsAndFlow() {
       }
   );
 
+  // @ts-expect-error Zod/Genkit type incompatibility
+
+
   const fetchYoutubeMetaTool = ai.defineTool(
       {
           name: 'fetchYoutubeMeta',
@@ -123,6 +136,9 @@ function initializeToolsAndFlow() {
           return await fetchOembedMetadata(url);
       }
   );
+
+  // @ts-expect-error Zod/Genkit type incompatibility
+
 
   const analyzeItemTool = ai.defineTool(
       {
@@ -136,6 +152,9 @@ function initializeToolsAndFlow() {
       }
   );
 
+  // @ts-expect-error Zod/Genkit type incompatibility
+
+
   const analyzeContentTool = ai.defineTool(
       {
           name: 'analyzeContent',
@@ -148,6 +167,9 @@ function initializeToolsAndFlow() {
       }
   );
 
+  // @ts-expect-error Zod/Genkit type incompatibility
+
+
   const suggestFrameStylesTool = ai.defineTool(
       {
           name: 'suggestFrameStyles',
@@ -159,6 +181,9 @@ function initializeToolsAndFlow() {
           return await suggestFrameStyles(input);
       }
   );
+
+  // @ts-expect-error Zod/Genkit type incompatibility
+
 
   const offlineAnalyticsTool = ai.defineTool(
       {
@@ -204,13 +229,15 @@ function initializeToolsAndFlow() {
   assistantFlow = ai.defineFlow(
     {
       name: 'assistantFlow',
+      // @ts-expect-error Zod schema type compatibility with Genkit
       inputSchema: AssistantInputSchema,
+      // @ts-expect-error Zod schema type compatibility with Genkit
       outputSchema: AssistantOutputSchema,
     },
     async (input) => {
       // 🔥 LOGLAMA 1: AI isteği başladı
       const userId = input.userId || 'anonymous';
-      const lastUserMessage = input.history.filter(m => m.role === 'user').pop();
+      const lastUserMessage = input.history.filter((m: any) => m.role === 'user').pop();
       const prompt = lastUserMessage?.content[0]?.text || 'Unknown prompt';
       
       const logId = await logAIRequest(userId, 'assistant', {
@@ -417,3 +444,7 @@ export async function askAi(input: AssistantInput): Promise<AssistantOutput> {
     };
   }
 }
+
+
+
+

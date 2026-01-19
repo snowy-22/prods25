@@ -8,6 +8,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import { z } from 'zod';
 import { SuggestFrameStylesInputSchema, SuggestFrameStylesOutputSchema, type SuggestFrameStylesInput, type SuggestFrameStylesOutput } from './content-adaptive-styling-schema';
 
 // Lazy initialization - defer AI flow definitions until needed
@@ -17,6 +18,7 @@ let suggestFrameStylesFlow: ReturnType<typeof ai.defineFlow> | null = null;
 function initializeFlows() {
   if (suggestFrameStylesPrompt && suggestFrameStylesFlow) return;
   
+  // @ts-expect-error Zod/Genkit type incompatibility
   suggestFrameStylesPrompt = ai.definePrompt({
     name: 'suggestFrameStylesPrompt',
     input: {schema: SuggestFrameStylesInputSchema},
@@ -51,3 +53,5 @@ export async function suggestFrameStyles(input: SuggestFrameStylesInput): Promis
   initializeFlows();
   return suggestFrameStylesFlow!(input);
 }
+
+

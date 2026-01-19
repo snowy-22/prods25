@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 async function verifyGroupAccess(groupId: string, userId: string) {
@@ -34,13 +34,14 @@ async function verifyGroupAccess(groupId: string, userId: string) {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const hasAccess = await verifyGroupAccess(params.id, user.id);
+    const hasAccess = await verifyGroupAccess(id, user.id);
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await supabase
       .from('message_groups')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (error || !data) {
@@ -69,6 +70,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -79,7 +81,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { data: group } = await supabase
       .from('message_groups')
       .select('created_by')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!group || group.created_by !== user.id) {
@@ -98,7 +100,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await supabase
       .from('message_groups')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -121,6 +123,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -131,7 +134,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { data: group } = await supabase
       .from('message_groups')
       .select('created_by')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!group || group.created_by !== user.id) {
@@ -139,13 +142,13 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Delete group members
-    await supabase.from('group_members').delete().eq('group_id', params.id);
+    await supabase.from('group_members').delete().eq('group_id', id);
 
     // Delete group
     const { error } = await supabase
       .from('message_groups')
       .delete()
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (error) {
       console.error('Database error:', error);

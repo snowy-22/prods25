@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -56,6 +56,7 @@ async function canAccessGroup(groupId: string, userId: string): Promise<boolean>
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check access
-    const hasAccess = await canAccessGroup(params.id, user.id);
+    const hasAccess = await canAccessGroup(id, user.id);
     if (!hasAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           created_at
         )`
       )
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!data) {
@@ -112,6 +113,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -119,7 +121,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // Verify admin
-    const admin = await isGroupAdmin(params.id, user.id);
+    const admin = await isGroupAdmin(id, user.id);
     if (!admin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -137,7 +139,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await supabase
       .from('social_groups')
       .update(updates)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -160,6 +162,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -170,7 +173,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { data: group } = await supabase
       .from('social_groups')
       .select('created_by')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!group || group.created_by !== user.id) {
@@ -179,17 +182,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Delete related records
     await Promise.all([
-      supabase.from('social_group_members').delete().eq('group_id', params.id),
-      supabase.from('social_group_posts').delete().eq('group_id', params.id),
-      supabase.from('social_group_invites').delete().eq('group_id', params.id),
-      supabase.from('join_requests').delete().eq('group_id', params.id),
+      supabase.from('social_group_members').delete().eq('group_id', id),
+      supabase.from('social_group_posts').delete().eq('group_id', id),
+      supabase.from('social_group_invites').delete().eq('group_id', id),
+      supabase.from('join_requests').delete().eq('group_id', id),
     ]);
 
     // Delete group
     const { error: deleteError } = await supabase
       .from('social_groups')
       .delete()
-      .eq('id', params.id);
+      .eq('id', id);
 
     if (deleteError) {
       console.error('Delete error:', deleteError);

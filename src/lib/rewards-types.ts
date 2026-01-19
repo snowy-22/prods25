@@ -7,10 +7,10 @@
 // ACHIEVEMENTS SYSTEM
 // ============================================================================
 
-export type AchievementCategory = 'account' | 'social' | 'commerce' | 'engagement';
+export type AchievementCategory = 'account' | 'social' | 'commerce' | 'engagement' | 'content';
 export type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary';
 export type RequirementType = 'count' | 'milestone' | 'unique' | 'streak';
-export type RewardType = 'coupon' | 'badge' | 'points' | 'unlock';
+export type RewardType = 'coupon' | 'badge' | 'points' | 'unlock' | 'feature';
 
 export interface AchievementDefinition {
   id: string;
@@ -93,19 +93,22 @@ export interface AchievementCard {
   description?: string;
   icon?: string;
   badgeImageUrl?: string;
+  iconUrl?: string;
   rarity: AchievementRarity;
   category: AchievementCategory;
   
   // Progress
   currentProgress: number;
   targetProgress: number;
+  targetValue?: number;
   progressPercent: number;
   isCompleted: boolean;
+  isClaimed?: boolean;
   completedAt?: string;
   
   // Reward
   rewardType?: RewardType;
-  rewardValue: number;
+  rewardValue?: number;
   rewardClaimed: boolean;
   canClaimReward: boolean;
   
@@ -194,6 +197,8 @@ export interface CouponCard {
   
   minimumPurchase: number;
   minimumPurchaseDisplay: string;
+  minPurchase?: number; // Alias for minimumPurchase (used in coupon-card.tsx)
+  maxDiscount?: number; // Maximum discount amount (used in coupon-card.tsx)
   
   status: CouponStatus;
   statusDisplay: string;
@@ -204,6 +209,9 @@ export interface CouponCard {
   
   sourceType?: CouponSourceType;
   sourceDisplay?: string;
+  source?: CouponSourceType; // Alias for sourceType (used in coupon-card.tsx)
+  
+  usedAt?: string; // When the coupon was used (used in coupon-card.tsx)
   
   canUse: boolean;
 }

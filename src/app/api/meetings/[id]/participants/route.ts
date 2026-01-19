@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -12,6 +12,7 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: meeting } = await supabase
       .from('scheduled_meetings')
       .select('user_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!meeting || meeting.user_id !== user.id) {
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const query = supabase
       .from('meeting_participants')
       .select('id')
-      .eq('meeting_id', params.id);
+      .eq('meeting_id', id);
 
     if (user_id) {
       const { data: existing } = await query.eq('user_id', user_id).single();
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .from('meeting_participants')
       .insert([
         {
-          meeting_id: params.id,
+          meeting_id: id,
           user_id: user_id || null,
           email: email || null,
           rsvp_status: 'pending',
@@ -96,6 +97,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -139,7 +141,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { data: meeting } = await supabase
       .from('scheduled_meetings')
       .select('user_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!meeting || meeting.user_id !== user.id && participant.user_id !== user.id) {
@@ -176,6 +178,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -196,7 +199,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { data: meeting } = await supabase
       .from('scheduled_meetings')
       .select('user_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!meeting || meeting.user_id !== user.id) {

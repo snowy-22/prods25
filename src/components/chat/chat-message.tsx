@@ -9,6 +9,7 @@ import {
   Copy, ThumbsDown, ThumbsUp, MoreVertical, Code, 
   Heart, Star, Eye, ExternalLink, Save 
 } from 'lucide-react';
+import { Play, Box, Puzzle, Grid } from 'lucide-react';
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import {
@@ -195,11 +196,11 @@ export function ChatMessageComponent({
             <div className="space-y-3">
               <div className="flex items-center gap-3 p-3 bg-primary/20 rounded-lg border border-primary/30">
                 <div className="w-12 h-12 rounded bg-primary/20 flex items-center justify-center flex-shrink-0">
-                  {message.sharedItem.type === 'video' || message.sharedItem.type === 'youtube' ? (
+                  {(message.sharedItem.type as any) === 'video' || (message.sharedItem.type as any) === 'youtube' ? (
                     <Play className="h-6 w-6 text-primary" />
-                  ) : message.sharedItem.type === '3d' ? (
+                  ) : (message.sharedItem.type as any) === '3d' ? (
                     <Box className="h-6 w-6 text-primary" />
-                  ) : message.sharedItem.type === 'widget' ? (
+                  ) : (message.sharedItem.type as any) === 'widget' ? (
                     <Puzzle className="h-6 w-6 text-primary" />
                   ) : (
                     <Grid className="h-6 w-6 text-primary" />
@@ -209,10 +210,10 @@ export function ChatMessageComponent({
                   <p className="font-bold text-sm truncate">{message.sharedItem.title}</p>
                   <p className="text-[10px] text-muted-foreground uppercase opacity-70">Paylaşılan {message.sharedItem.type}</p>
                   <div className="flex gap-2 mt-1">
-                    <Button size="xs" variant="secondary" className="h-5 text-[9px] px-2 py-0">
+                    <Button size="sm" variant="secondary" className="h-5 text-[9px] px-2 py-0">
                       Kitaplığa Ekle
                     </Button>
-                    <Button size="xs" variant="secondary" className="h-5 text-[9px] px-2 py-0">
+                    <Button size="sm" variant="secondary" className="h-5 text-[9px] px-2 py-0">
                       Önizle
                     </Button>
                   </div>

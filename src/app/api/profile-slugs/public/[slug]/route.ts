@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 /**
@@ -12,11 +12,12 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { slug } = await params;
 
     const { data, error } = await supabase
       .from('profile_slugs')
       .select('id, slug, display_name, bio, profile_image_url, created_at, public')
-      .eq('slug', params.slug)
+      .eq('slug', slug)
       .eq('public', true)
       .single();
 

@@ -80,7 +80,7 @@ export interface ProductLifecycleTracking {
   purchasePrice?: number;
   currentValue?: number;
   depreciationRate?: number;
-  currentStage: 'new' | 'good' | 'aging' | 'needs-repair' | 'end-of-life';
+  currentStage: 'new' | 'good' | 'fair' | 'poor' | 'aging' | 'needs-repair' | 'end-of-life' | 'parts-only';
   maintenanceHistory: MaintenanceRecord[];
   condition: {
     overall: number; // 0-100
@@ -139,6 +139,8 @@ export interface Appraisal {
   itemId: string;
   appraiser: string;
   appraisalDate: string;
+  // Backwards-compatible alias used in some UI places
+  date?: string;
   estimatedValue: number;
   marketValue: number;
   replacementValue: number;
@@ -155,6 +157,8 @@ export interface FinancingOption {
   provider: string;
   type: 'installment' | 'lease' | 'rent-to-own';
   termMonths: number;
+  // Backwards-compatible alias for templates expecting `term`
+  term?: number;
   monthlyPayment: number;
   downPayment: number;
   interestRate: number;
@@ -182,8 +186,11 @@ export interface WishlistItem {
   description?: string;
   targetPrice?: number;
   priority: 'low' | 'medium' | 'high';
-  status: 'interested' | 'watching' | 'negotiating' | 'purchased';
+  status: 'interested' | 'watching' | 'negotiating' | 'purchased' | 'researching' | 'ready-to-buy';
   images?: string[];
+  // Backwards-compatible fields used elsewhere in the UI
+  productName?: string;
+  imageUrl?: string;
   url?: string;
   notes?: string;
   createdAt: string;

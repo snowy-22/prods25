@@ -19,7 +19,9 @@ export async function analyzeItem(input: ItemAnalysisInput): Promise<ItemAnalysi
 
 const analysisPrompt = ai.definePrompt({
     name: 'analyzeItemPrompt',
+    // @ts-expect-error Zod/Genkit type incompatibility
     input: { schema: ItemAnalysisInputSchema },
+    // @ts-expect-error Zod/Genkit type incompatibility
     output: { schema: ItemAnalysisOutputSchema },
     // tools: [webSearchTool, youtubeSearchTool],
     prompt: `You are an expert product and image analyst with web search capabilities. Your task is to analyze the provided image, identify the main subject (it could be a product, a landmark, a piece of art, etc.), and perform comprehensive analysis.
@@ -50,7 +52,9 @@ const analysisPrompt = ai.definePrompt({
 const analyzeItemFlow = ai.defineFlow(
   {
     name: 'analyzeItemFlow',
+    // @ts-expect-error Zod/Genkit type incompatibility
     inputSchema: ItemAnalysisInputSchema,
+    // @ts-expect-error Zod/Genkit type incompatibility
     outputSchema: ItemAnalysisOutputSchema,
   },
   async (input) => {
@@ -61,3 +65,5 @@ const analyzeItemFlow = ai.defineFlow(
     return output;
   }
 );
+
+

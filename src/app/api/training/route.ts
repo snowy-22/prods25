@@ -70,7 +70,7 @@ export async function initializeTraining(req: NextRequest) {
 // ============================================================================
 export async function completeStep(
   req: NextRequest,
-  { params }: { params: { moduleId: string; stepId: string } }
+  { params }: { params: Promise<{ moduleId: string; stepId: string }> }
 ) {
   try {
     const {
@@ -81,10 +81,12 @@ export async function completeStep(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { moduleId, stepId } = await params;
+
     const progress = await completeTrainingStep(
       user.id,
-      params.moduleId,
-      params.stepId
+      moduleId,
+      stepId
     );
 
     if (!progress) {
@@ -110,7 +112,7 @@ export async function completeStep(
 // ============================================================================
 export async function completeModule(
   req: NextRequest,
-  { params }: { params: { moduleId: string } }
+  { params }: { params: Promise<{ moduleId: string }> }
 ) {
   try {
     const {
@@ -121,7 +123,9 @@ export async function completeModule(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const progress = await completeTrainingModule(user.id, params.moduleId);
+    const { moduleId } = await params;
+
+    const progress = await completeTrainingModule(user.id, moduleId);
 
     if (!progress) {
       return NextResponse.json(
@@ -146,7 +150,7 @@ export async function completeModule(
 // ============================================================================
 export async function saveQuiz(
   req: NextRequest,
-  { params }: { params: { moduleId: string } }
+  { params }: { params: Promise<{ moduleId: string }> }
 ) {
   try {
     const {
@@ -157,6 +161,7 @@ export async function saveQuiz(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { moduleId } = await params;
     const body = await req.json();
     const { step_id, score } = body;
 
@@ -169,7 +174,7 @@ export async function saveQuiz(
 
     const progress = await saveQuizScore(
       user.id,
-      params.moduleId,
+      moduleId,
       step_id,
       score
     );
@@ -197,7 +202,7 @@ export async function saveQuiz(
 // ============================================================================
 export async function awardAchievement(
   req: NextRequest,
-  { params }: { params: { moduleId: string } }
+  { params }: { params: Promise<{ moduleId: string }> }
 ) {
   try {
     const {
@@ -208,6 +213,7 @@ export async function awardAchievement(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { moduleId } = await params;
     const body = await req.json();
     const { achievement_id } = body;
 
@@ -220,7 +226,7 @@ export async function awardAchievement(
 
     const progress = await awardTrainingAchievement(
       user.id,
-      params.moduleId,
+      moduleId,
       achievement_id
     );
 
@@ -275,7 +281,7 @@ export async function GET(req: NextRequest) {
 // ============================================================================
 export async function getModuleStatus(
   req: NextRequest,
-  { params }: { params: { moduleId: string } }
+  { params }: { params: Promise<{ moduleId: string }> }
 ) {
   try {
     const {
@@ -286,7 +292,9 @@ export async function getModuleStatus(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const progress = await getModuleProgress(user.id, params.moduleId);
+    const { moduleId } = await params;
+
+    const progress = await resetTrainingProgress(user.id, moduleId);
 
     return NextResponse.json({ progress }, { status: 200 });
   } catch (error) {
@@ -330,7 +338,7 @@ export async function getStats(req: NextRequest) {
 // ============================================================================
 export async function resetProgress(
   req: NextRequest,
-  { params }: { params: { moduleId: string } }
+  { params }: { params: Promise<{ moduleId: string }> }
 ) {
   try {
     const {
@@ -341,9 +349,11 @@ export async function resetProgress(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const success = await resetTrainingProgress(user.id, params.moduleId);
+    const { moduleId } = await params;
 
-    if (!success) {
+    const progress = await getUserTrainingProgress(user.id, moduleId);
+
+    if (!progress) {
       return NextResponse.json(
         { error: 'Failed to reset progress' },
         { status: 500 }

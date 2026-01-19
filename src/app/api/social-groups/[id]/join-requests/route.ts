@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 /**
@@ -12,6 +12,7 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: group, error: groupError } = await supabase
       .from('social_groups')
       .select('id, is_private')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (groupError || !group) {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: existing } = await supabase
       .from('social_group_members')
       .select('id')
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: pendingRequest } = await supabase
       .from('join_requests')
       .select('id')
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .eq('user_id', user.id)
       .eq('status', 'pending')
       .single();
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .from('join_requests')
       .insert([
         {
-          group_id: params.id,
+          group_id: id,
           user_id: user.id,
           status: 'pending',
         },
@@ -102,6 +103,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -112,7 +114,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data: admin } = await supabase
       .from('social_group_members')
       .select('role')
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -124,7 +126,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data, error } = await supabase
       .from('join_requests')
       .select('*')
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false });
 
@@ -150,6 +152,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -191,7 +194,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { data: admin } = await supabase
       .from('social_group_members')
       .select('role')
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .eq('user_id', user.id)
       .single();
 
@@ -204,7 +207,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .from('join_requests')
       .select('*')
       .eq('id', requestId)
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .single();
 
     if (fetchError || !joinRequest) {
@@ -215,7 +218,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       // Add user as member
       const { error: memberError } = await supabase.from('social_group_members').insert([
         {
-          group_id: params.id,
+          group_id: id,
           user_id: joinRequest.user_id,
           role: 'member',
           joined_at: new Date().toISOString(),
@@ -261,6 +264,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const supabase = createClient();
+    const { id } = await params;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -282,7 +286,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .from('join_requests')
       .select('*')
       .eq('id', requestId)
-      .eq('group_id', params.id)
+      .eq('group_id', id)
       .single();
 
     // Allow requester to cancel, or admin to reject
@@ -290,7 +294,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       const { data: admin } = await supabase
         .from('social_group_members')
         .select('role')
-        .eq('group_id', params.id)
+        .eq('group_id', id)
         .eq('user_id', user.id)
         .single();
 
@@ -304,7 +308,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       .from('join_requests')
       .delete()
       .eq('id', requestId)
-      .eq('group_id', params.id);
+      .eq('group_id', id);
 
     if (error) {
       console.error('Delete error:', error);
