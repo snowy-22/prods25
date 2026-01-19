@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 const MOCK_LOGS = [
   {
     ts: "2025-12-24 10:30:00",
-    user: "Doruk Karlıkaya",
+    user: "Ali Yılmaz",
     event: "Uygulama Başlatıldı",
     load: 1240,
     openFolder: 456,

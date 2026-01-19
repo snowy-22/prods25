@@ -761,9 +761,9 @@ export const initialContent: ContentItem[] = [
   { id: 'award-ux', type: 'award', title: 'UX Case Study', icon: 'award', content: 'Kullanıcı odaklı vaka çalışması ödülü.', createdAt: now, updatedAt: now, parentId: 'awards-folder', order: 2, url: 'https://uxdesign.cc/' },
   { id: 'award-motion', type: 'award', title: 'Motion Design', icon: 'award', content: 'Animasyon ve mikro etkileşimlerde mansiyon.', createdAt: now, updatedAt: now, parentId: 'awards-folder', order: 3, url: 'https://www.awwwards.com/' },
     { 
-        id: 'user-profile-doruk', 
+        id: 'user-profile-demo', 
         type: 'user-profile', 
-        title: 'Doruk Karlıkaya', 
+        title: 'Demo Kullanıcı', 
         icon: 'user', 
         createdAt: now, 
         updatedAt: now, 
@@ -771,7 +771,7 @@ export const initialContent: ContentItem[] = [
         content: "Dijital Deneyim Tasarımcısı", 
         isDeletable: false, 
         order: 1,
-        itemImageUrl: 'https://pbs.twimg.com/profile_images/1782015034379399168/k2s7i0-6_400x400.jpg',
+        itemImageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=tv25demo',
         styles: { width: '300px', height: '400px' }
     },
     { id: 'welcome-folder', type: 'folder', title: 'Hoş Geldiniz', icon: 'folder', createdAt: now, updatedAt: now, parentId: 'root', content: "tv25.app'e hoş geldiniz!", order: 2, styles: { width: '400px', height: '300px' } },

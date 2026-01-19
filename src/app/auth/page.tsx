@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -25,9 +25,114 @@ import {
   Sparkles,
   Shield,
   Zap,
-  Globe
+  Globe,
+  Play
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// ============================================================================
+// ANIMATED PLAYER GRID STRIPS - Hero Section için Player Demo Şeritleri
+// ============================================================================
+
+// Demo video thumbnails with colorful gradients
+const DEMO_PLAYERS = [
+  { id: 1, color: 'from-red-500 to-orange-500', title: 'Canlı Yayın', icon: '🔴' },
+  { id: 2, color: 'from-blue-500 to-cyan-500', title: 'Eğitim', icon: '📚' },
+  { id: 3, color: 'from-purple-500 to-pink-500', title: 'Müzik', icon: '🎵' },
+  { id: 4, color: 'from-green-500 to-emerald-500', title: 'Doğa', icon: '🌿' },
+  { id: 5, color: 'from-yellow-500 to-amber-500', title: 'Podcast', icon: '🎙️' },
+  { id: 6, color: 'from-indigo-500 to-violet-500', title: 'Teknoloji', icon: '💻' },
+  { id: 7, color: 'from-pink-500 to-rose-500', title: 'Sanat', icon: '🎨' },
+  { id: 8, color: 'from-teal-500 to-cyan-500', title: 'Spor', icon: '⚽' },
+  { id: 9, color: 'from-orange-500 to-red-500', title: 'Yemek', icon: '🍳' },
+  { id: 10, color: 'from-violet-500 to-purple-500', title: 'Film', icon: '🎬' },
+  { id: 11, color: 'from-cyan-500 to-blue-500', title: 'Oyun', icon: '🎮' },
+  { id: 12, color: 'from-emerald-500 to-green-500', title: 'Sağlık', icon: '💪' },
+];
+
+// Demo player card component - non-interactive
+function DemoPlayerCard({ player, size = 'md' }: { player: typeof DEMO_PLAYERS[0]; size?: 'sm' | 'md' | 'lg' }) {
+  const sizeClasses = {
+    sm: 'w-24 h-14',
+    md: 'w-32 h-20',
+    lg: 'w-40 h-24',
+  };
+  
+  return (
+    <div 
+      className={cn(
+        sizeClasses[size],
+        "relative rounded-xl overflow-hidden shadow-lg flex-shrink-0 pointer-events-none select-none",
+        "bg-gradient-to-br",
+        player.color
+      )}
+    >
+      {/* Fake video overlay */}
+      <div className="absolute inset-0 bg-black/20" />
+      
+      {/* Play button overlay */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center">
+          <Play className="w-4 h-4 text-white fill-white ml-0.5" />
+        </div>
+      </div>
+      
+      {/* Title bar */}
+      <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/40 backdrop-blur-sm">
+        <div className="flex items-center gap-1">
+          <span className="text-xs">{player.icon}</span>
+          <span className="text-[10px] text-white/90 font-medium truncate">{player.title}</span>
+        </div>
+      </div>
+      
+      {/* Live indicator for some */}
+      {player.id % 3 === 1 && (
+        <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-red-500 rounded text-[8px] text-white font-bold flex items-center gap-1">
+          <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+          CANLI
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Animated strip of players
+function AnimatedPlayerStrip({ 
+  players, 
+  speed = 30, 
+  direction = 'left',
+  size = 'md'
+}: { 
+  players: typeof DEMO_PLAYERS; 
+  speed?: number; 
+  direction?: 'left' | 'right';
+  size?: 'sm' | 'md' | 'lg';
+}) {
+  // Double the players for seamless loop
+  const doubledPlayers = [...players, ...players];
+  
+  return (
+    <div className="relative overflow-hidden w-full pointer-events-none">
+      <motion.div
+        className="flex gap-3"
+        animate={{
+          x: direction === 'left' ? [0, -50 * players.length] : [-50 * players.length, 0]
+        }}
+        transition={{
+          x: {
+            duration: speed,
+            repeat: Infinity,
+            ease: "linear",
+          }
+        }}
+      >
+        {doubledPlayers.map((player, idx) => (
+          <DemoPlayerCard key={`${player.id}-${idx}`} player={player} size={size} />
+        ))}
+      </motion.div>
+    </div>
+  );
+}
 
 // Password validation schema
 const loginSchema = z.object({
@@ -222,12 +327,15 @@ export default function AuthPage() {
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2"
+              className="flex items-center gap-3"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                <Sparkles className="w-5 h-5 text-white" />
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 ring-2 ring-white/20">
+                <span className="text-xl font-black text-white">25</span>
               </div>
-              <span className="text-xl font-bold text-slate-800">tv25.app</span>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold text-slate-800">tv25</span>
+                <span className="text-[10px] text-slate-500 -mt-1">CanvasFlow</span>
+              </div>
             </motion.div>
             
             {/* Toggle link */}
@@ -500,6 +608,7 @@ export default function AuthPage() {
                           />
                         </FormControl>
                         <p className="text-xs text-slate-500">Arkadaşından referans kodun varsa, ikiniz de ödül kazanın!</p>
+                        <p className="text-xs text-slate-400 mt-1">💡 Referansınızı daha sonra da ekleyebilirsiniz.</p>
                         <FormMessage className="text-red-400" />
                       </FormItem>
                     )}
@@ -554,91 +663,124 @@ export default function AuthPage() {
         )}
       </div>
       
-      {/* Right Side - Decorative */}
-      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600">
-        {/* Floating shapes */}
-        <div className="absolute inset-0">
-          <motion.div
-            animate={{ 
-              y: [0, -20, 0],
-              rotate: [0, 5, 0]
-            }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-20 left-20 w-32 h-32 bg-white/10 rounded-3xl backdrop-blur-sm"
-          />
-          <motion.div
-            animate={{ 
-              y: [0, 20, 0],
-              rotate: [0, -5, 0]
-            }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-40 right-32 w-48 h-48 bg-white/10 rounded-full backdrop-blur-sm"
-          />
-          <motion.div
-            animate={{ 
-              y: [0, -30, 0],
-              x: [0, 10, 0]
-            }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute bottom-32 left-1/3 w-40 h-40 bg-white/10 rounded-2xl backdrop-blur-sm rotate-12"
-          />
-          <motion.div
-            animate={{ 
-              scale: [1, 1.1, 1],
-              rotate: [0, 10, 0]
-            }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute bottom-20 right-20 w-24 h-24 bg-white/10 rounded-xl backdrop-blur-sm"
-          />
+      {/* Right Side - Animated Player Grid Demo */}
+      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950">
+        {/* Background glow effects */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl" />
         </div>
         
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center items-center p-16 text-white text-center">
+        {/* Animated Player Strips - Different speeds */}
+        <div className="absolute inset-0 flex flex-col justify-center gap-4 py-8 pointer-events-none select-none">
+          {/* Header */}
+          <div className="px-8 mb-4 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-center"
+            >
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-2">
+                Dijital Canvas&apos;ını Oluştur
+              </h2>
+              <p className="text-white/60 text-sm max-w-xs mx-auto">
+                Video, resim, widget ve daha fazlasını kendi düzeninde organize et
+              </p>
+            </motion.div>
+          </div>
+          
+          {/* Strip 1 - Slow, left direction */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mb-8"
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
           >
-            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Sparkles className="w-10 h-10" />
-            </div>
-            <h2 className="text-3xl font-bold mb-4">
-              Dijital Canvas&apos;ını Oluştur
-            </h2>
-            <p className="text-white/80 text-lg max-w-md">
-              Video, resim, widget ve daha fazlasını organize et. 
-              Kendi dijital evrenini tasarla.
-            </p>
+            <AnimatedPlayerStrip 
+              players={DEMO_PLAYERS.slice(0, 6)} 
+              speed={45} 
+              direction="left" 
+              size="md"
+            />
           </motion.div>
           
-          {/* Features */}
+          {/* Strip 2 - Medium, right direction */}
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <AnimatedPlayerStrip 
+              players={DEMO_PLAYERS.slice(3, 9)} 
+              speed={35} 
+              direction="right" 
+              size="lg"
+            />
+          </motion.div>
+          
+          {/* Strip 3 - Fast, left direction */}
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <AnimatedPlayerStrip 
+              players={DEMO_PLAYERS.slice(6, 12)} 
+              speed={25} 
+              direction="left" 
+              size="sm"
+            />
+          </motion.div>
+          
+          {/* Strip 4 - Slowest, right direction */}
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <AnimatedPlayerStrip 
+              players={[...DEMO_PLAYERS.slice(9, 12), ...DEMO_PLAYERS.slice(0, 3)]} 
+              speed={55} 
+              direction="right" 
+              size="md"
+            />
+          </motion.div>
+          
+          {/* Features at bottom */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="grid grid-cols-1 gap-4 mt-8"
+            transition={{ delay: 0.8 }}
+            className="px-8 mt-6 relative z-10"
           >
-            {[
-              { icon: Shield, text: "Güvenli ve hızlı kimlik doğrulama" },
-              { icon: Globe, text: "Tüm cihazlarda senkronize" },
-              { icon: Zap, text: "Yapay zeka destekli asistan" },
-            ].map((feature, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6 + i * 0.1 }}
-                className="flex items-center gap-3 text-left"
-              >
-                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                  <feature.icon className="w-5 h-5" />
-                </div>
-                <span className="text-white/90">{feature.text}</span>
-              </motion.div>
-            ))}
+            <div className="flex flex-wrap justify-center gap-3">
+              {[
+                { icon: Shield, text: "Güvenli" },
+                { icon: Globe, text: "Senkron" },
+                { icon: Zap, text: "AI Destekli" },
+              ].map((feature, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.9 + i * 0.1 }}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-full"
+                >
+                  <feature.icon className="w-3.5 h-3.5 text-white/80" />
+                  <span className="text-xs text-white/80 font-medium">{feature.text}</span>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         </div>
+        
+        {/* Overlay gradient at edges for seamless scroll */}
+        <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-slate-900 to-transparent pointer-events-none z-20" />
+        <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-purple-950 to-transparent pointer-events-none z-20" />
       </div>
     </div>
   );
