@@ -6,8 +6,26 @@
 
 import { Resend } from 'resend';
 
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resendClient: Resend | null = null;
+let hasLoggedMissingKey = false;
+
+const getResendClient = (): Resend | null => {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    if (!hasLoggedMissingKey) {
+      // Log once to avoid noisy console spam during builds
+      console.warn('[EmailNotifications] RESEND_API_KEY not configured; emails disabled');
+      hasLoggedMissingKey = true;
+    }
+    return null;
+  }
+
+  if (!resendClient) {
+    resendClient = new Resend(apiKey);
+  }
+
+  return resendClient;
+};
 
 /**
  * Email configuration with centralized sender addresses
@@ -35,6 +53,11 @@ export async function sendTransactionalEmail(
   htmlContent: string,
   metadata?: EmailMetadata
 ): Promise<{ success: boolean; error?: string; messageId?: string }> {
+  const resend = getResendClient();
+  if (!resend) {
+    return { success: false, error: 'Resend API key not configured' };
+  }
+
   try {
     const response = await resend.emails.send({
       from: EMAIL_CONFIG.from,
@@ -109,6 +132,11 @@ export async function sendAdminNotification(
   type: 'signup' | 'payment' | 'error' | 'alert' = 'alert',
   metadata?: EmailMetadata
 ): Promise<{ success: boolean; error?: string }> {
+  const resend = getResendClient();
+  if (!resend) {
+    return { success: false, error: 'Resend API key not configured' };
+  }
+
   try {
     const response = await resend.emails.send({
       from: EMAIL_CONFIG.from,
