@@ -13,7 +13,30 @@ export function createClient() {
 
   return createBrowserClient(
     supabaseUrl || 'https://placeholder.supabase.co',
-    supabaseAnonKey || 'placeholder'
+    supabaseAnonKey || 'placeholder',
+    {
+      cookies: {
+        get(name: string) {
+          // Read cookie from document.cookie
+          const cookies = document.cookie.split('; ');
+          const cookie = cookies.find(c => c.startsWith(`${name}=`));
+          return cookie?.substring(name.length + 1) ?? '';
+        },
+        set(name: string, value: string, options: any) {
+          // Set cookie in document.cookie
+          let cookie = `${name}=${value}`;
+          if (options?.maxAge) cookie += `; max-age=${options.maxAge}`;
+          if (options?.path) cookie += `; path=${options.path}`;
+          if (options?.sameSite) cookie += `; samesite=${options.sameSite}`;
+          if (options?.secure) cookie += '; secure';
+          document.cookie = cookie;
+        },
+        remove(name: string, options: any) {
+          // Remove cookie by setting expiry to past
+          document.cookie = `${name}=; path=${options?.path ?? '/'}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        },
+      },
+    }
   )
 }
 

@@ -394,6 +394,15 @@ interface AppStore {
   virtualizerMode: boolean;
   visualizerMode: 'off' | 'bars' | 'wave' | 'circular' | 'particles';
 
+  // Micro Clock Widget Settings
+  microClockEnabled: boolean;
+  microClockStyle: 'digital' | 'analog';
+  microClockShowSeconds: boolean;
+  microClockShow24Hour: boolean;
+  microClockShowDate: boolean;
+  microClockShowDay: boolean;
+  microClockPosition: number; // 0-100 percentage in header
+
   // Grid Mode State (Izgara Modu)
   gridModeState: GridModeState;
 
@@ -568,6 +577,15 @@ interface AppStore {
   setMouseTrackerEnabled: (enabled: boolean) => void;
   setVirtualizerMode: (enabled: boolean) => void;
   setVisualizerMode: (mode: 'off' | 'bars' | 'wave' | 'circular' | 'particles') => void;
+  
+  // Micro Clock Actions
+  setMicroClockEnabled: (enabled: boolean) => void;
+  setMicroClockStyle: (style: 'digital' | 'analog') => void;
+  setMicroClockShowSeconds: (show: boolean) => void;
+  setMicroClockShow24Hour: (show: boolean) => void;
+  setMicroClockShowDate: (show: boolean) => void;
+  setMicroClockShowDay: (show: boolean) => void;
+  setMicroClockPosition: (position: number) => void;
   
   // Grid Mode Actions
   setGridModeEnabled: (enabled: boolean) => void;
@@ -1056,6 +1074,15 @@ export const useAppStore = create<AppStore>()(
       mouseTrackerEnabled: false,
       virtualizerMode: false,
       visualizerMode: 'off',
+
+      // Micro Clock Widget defaults
+      microClockEnabled: false,
+      microClockStyle: 'digital',
+      microClockShowSeconds: false,
+      microClockShow24Hour: true,
+      microClockShowDate: false,
+      microClockShowDay: false,
+      microClockPosition: 50, // Centered
 
       // Grid Mode defaults
       gridModeState: {
@@ -1720,6 +1747,15 @@ export const useAppStore = create<AppStore>()(
       setMouseTrackerEnabled: (mouseTrackerEnabled) => set({ mouseTrackerEnabled }),
       setVirtualizerMode: (virtualizerMode) => set({ virtualizerMode }),
       setVisualizerMode: (visualizerMode) => set({ visualizerMode }),
+      
+      // Micro Clock Actions
+      setMicroClockEnabled: (microClockEnabled) => set({ microClockEnabled }),
+      setMicroClockStyle: (microClockStyle) => set({ microClockStyle }),
+      setMicroClockShowSeconds: (microClockShowSeconds) => set({ microClockShowSeconds }),
+      setMicroClockShow24Hour: (microClockShow24Hour) => set({ microClockShow24Hour }),
+      setMicroClockShowDate: (microClockShowDate) => set({ microClockShowDate }),
+      setMicroClockShowDay: (microClockShowDay) => set({ microClockShowDay }),
+      setMicroClockPosition: (microClockPosition) => set({ microClockPosition }),
       
       // Grid Mode Actions
       setGridModeEnabled: (enabled) => set({ gridModeState: { ...get().gridModeState, enabled } }),
@@ -5238,7 +5274,10 @@ export const useAppStore = create<AppStore>()(
       // Cloud Storage Actions
       initializeCloudStorage: async () => {
         const { user } = get();
-        if (!user) return;
+        if (!user) {
+          console.log('Skipping cloud storage init - no user authenticated');
+          return;
+        }
 
         try {
           const { initializeUserStorageQuota, getStorageAnalytics } = await import('./cloud-storage-manager');
@@ -5493,6 +5532,14 @@ export const useAppStore = create<AppStore>()(
         secondarySidebarWidth: state.secondarySidebarWidth,
         gridModeState: state.gridModeState,
         expandedItems: state.expandedItems,
+        // Micro Clock Settings (persisted locally and synced to cloud)
+        microClockEnabled: state.microClockEnabled,
+        microClockStyle: state.microClockStyle,
+        microClockShowSeconds: state.microClockShowSeconds,
+        microClockShow24Hour: state.microClockShow24Hour,
+        microClockShowDate: state.microClockShowDate,
+        microClockShowDay: state.microClockShowDay,
+        microClockPosition: state.microClockPosition,
         // API Keys (persisted for user convenience and privacy)
         youtubeApiKey: state.youtubeApiKey,
         googleApiKey: state.googleApiKey,

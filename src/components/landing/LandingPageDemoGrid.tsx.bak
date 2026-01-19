@@ -1,0 +1,476 @@
+// LandingPageDemoGrid.tsx
+// Demo grid carousel for landing page with swipe, peek effect, and mini AI chat
+'use client';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ChevronLeft, ChevronRight, Send, Bot, Sparkles, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+
+// Mini AI Chat component for the AI Asistan demo card
+const MiniAIChat: React.FC = () => {
+  const [messages, setMessages] = useState<{role: 'user' | 'ai'; text: string}[]>([
+    { role: 'ai', text: 'Merhaba! 👋 TV25 hakkında sorularınızı yanıtlayabilirim. Size nasıl yardımcı olabilirim?' }
+  ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const quickReplies = [
+    'TV25 nedir?',
+    'Ücretsiz mi?',
+    'Nasıl başlarım?'
+  ];
+
+  const getAIResponse = (question: string): string => {
+    const q = question.toLowerCase();
+    if (q.includes('nedir') || q.includes('ne işe yarar')) {
+      return 'TV25, videolarınızı, web içeriklerinizi ve widget\'larınızı tek bir dijital tuval üzerinde organize etmenizi sağlayan güçlü bir platformdur. 🎬 Hemen kayıt olup deneyebilirsiniz!';
+    }
+    if (q.includes('ücretsiz') || q.includes('fiyat') || q.includes('ücret')) {
+      return 'Evet! TV25\'in ücretsiz planı bulunuyor. Başlamak için hemen kayıt olabilirsiniz. Pro ve Kurumsal planlarımız da mevcut. 💰';
+    }
+    if (q.includes('başla') || q.includes('kayıt') || q.includes('nasıl')) {
+      return 'Başlamak çok kolay! Sadece "Ücretsiz Başla" butonuna tıklayın ve birkaç saniyede hesabınızı oluşturun. 🚀';
+    }
+    if (q.includes('youtube') || q.includes('video')) {
+      return 'YouTube videolarını, canlı yayınları ve kendi video dosyalarınızı kolayca ekleyebilirsiniz. Tümünü tek panelden yönetin! 📺';
+    }
+    if (q.includes('sunum') || q.includes('slides') || q.includes('powerpoint')) {
+      return 'Google Slides, PowerPoint ve diğer sunum formatlarını doğrudan embed edebilirsiniz. Eğitim ve sunumlar için ideal! 📊';
+    }
+    return 'Harika bir soru! Tüm detayları öğrenmek için hemen ücretsiz kayıt olun ve platformumuzu keşfedin. Size yardımcı olmaktan mutluluk duyarım! ✨';
+  };
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    const userMsg = input.trim();
+    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setInput('');
+    setIsTyping(true);
+    
+    setTimeout(() => {
+      setMessages(prev => [...prev, { role: 'ai', text: getAIResponse(userMsg) }]);
+      setIsTyping(false);
+    }, 800);
+  };
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  return (
+    <div className="flex flex-col h-full bg-gradient-to-b from-gray-900/50 to-gray-900/80 rounded-lg overflow-hidden">
+      {/* Chat Header */}
+      <div className="flex items-center gap-2 px-3 py-2 bg-emerald-600/20 border-b border-emerald-500/30">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center">
+          <Bot className="w-4 h-4 text-white" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-white">TV25 AI Asistan</p>
+          <p className="text-xs text-emerald-300 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+            Çevrimiçi
+          </p>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 min-h-[120px] max-h-[180px]">
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm ${
+              msg.role === 'user' 
+                ? 'bg-emerald-600 text-white rounded-br-md' 
+                : 'bg-white/10 text-white/90 rounded-bl-md'
+            }`}>
+              {msg.text}
+            </div>
+          </div>
+        ))}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-white/10 px-3 py-2 rounded-2xl rounded-bl-md">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 bg-white/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Quick Replies */}
+      <div className="px-3 pb-2">
+        <div className="flex flex-wrap gap-1">
+          {quickReplies.map((reply) => (
+            <button
+              key={reply}
+              onClick={() => { setInput(reply); }}
+              className="text-xs px-2 py-1 rounded-full bg-emerald-600/30 text-emerald-200 hover:bg-emerald-600/50 transition-colors"
+            >
+              {reply}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Input */}
+      <div className="p-2 border-t border-white/10">
+        <div className="flex gap-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Bir soru sorun..."
+            className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/40 text-sm h-9"
+          />
+          <Button size="sm" onClick={handleSend} className="bg-emerald-600 hover:bg-emerald-700 h-9 w-9 p-0">
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+        <Link href="/auth" className="mt-2 flex items-center justify-center gap-1 text-xs text-emerald-300 hover:text-emerald-200 transition-colors">
+          <Sparkles className="w-3 h-3" />
+          Ücretsiz Hesap Oluştur
+          <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+// Demo card size constant - all cards same size
+const CARD_SIZE = 'aspect-[4/3]';
+
+// Single demo card component
+const DemoCard: React.FC<{
+  title: string;
+  type: 'video' | 'iframe' | 'ai' | 'slides';
+  url?: string;
+  gradient: string;
+}> = ({ title, type, url, gradient }) => {
+  return (
+    <Card className={`${CARD_SIZE} ${gradient} p-0 overflow-hidden relative group`}>
+      <div className="absolute inset-0 z-10 flex flex-col">
+        {/* Title Bar */}
+        <div className="px-3 py-2 bg-black/40 backdrop-blur-sm border-b border-white/10">
+          <h4 className="text-white font-medium text-sm truncate">{title}</h4>
+        </div>
+        
+        {/* Content */}
+        <div className="flex-1 p-2">
+          {type === 'video' && url && (
+            <iframe
+              src={url}
+              title={title}
+              className="w-full h-full rounded-md border border-white/20 shadow-lg"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          )}
+          {type === 'iframe' && url && (
+            <iframe
+              src={url}
+              title={title}
+              className="w-full h-full rounded-md border border-white/20 shadow-lg bg-white"
+              sandbox="allow-scripts allow-same-origin"
+            />
+          )}
+          {type === 'slides' && url && (
+            <iframe
+              src={url}
+              title={title}
+              className="w-full h-full rounded-md border border-white/20 shadow-lg bg-white"
+              allowFullScreen
+            />
+          )}
+          {type === 'ai' && (
+            <MiniAIChat />
+          )}
+        </div>
+      </div>
+      <div className="absolute inset-0 bg-black/20 z-0" />
+    </Card>
+  );
+};
+
+// Demo page groups - 7 pages total (current + 6 more)
+const demoPages = [
+  {
+    id: 1,
+    title: 'Medya & Yapay Zeka',
+    cards: [
+      { title: 'YouTube Canlı', type: 'video' as const, url: 'https://www.youtube.com/embed/jfKfPfyJRdk', gradient: 'bg-gradient-to-br from-red-600 to-orange-500' },
+      { title: 'Web Görünümü', type: 'iframe' as const, url: 'https://en.wikipedia.org/wiki/Main_Page', gradient: 'bg-gradient-to-br from-blue-600 to-cyan-500' },
+      { title: 'Google Slides', type: 'slides' as const, url: 'https://docs.google.com/presentation/d/e/2PACX-1vQxkq3j6aDt2FZ_Rpe7FdaYCQPXlJzqFN1qqLMqKQylqAWR9qlZQC0Pg8d9w7s6lg/embed?start=false&loop=false&delayms=3000', gradient: 'bg-gradient-to-br from-purple-600 to-pink-500' },
+      { title: 'AI Asistan', type: 'ai' as const, gradient: 'bg-gradient-to-br from-emerald-600 to-teal-500' },
+    ]
+  },
+  {
+    id: 2,
+    title: 'Eğitim & Sunum',
+    cards: [
+      { title: 'Eğitim Videosu', type: 'video' as const, url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', gradient: 'bg-gradient-to-br from-indigo-600 to-purple-500' },
+      { title: 'Online Kurs', type: 'iframe' as const, url: 'https://www.khanacademy.org', gradient: 'bg-gradient-to-br from-teal-600 to-green-500' },
+      { title: 'Ders Sunumu', type: 'slides' as const, url: 'https://docs.google.com/presentation/d/e/2PACX-1vRK35qQdT3LwX3ckN9kOHkS3Tk7xjTz1KmL9Vw2BFaJJWqB7Rm4JVfTMiTYC3xGHA/embed?start=false&loop=true&delayms=5000', gradient: 'bg-gradient-to-br from-amber-600 to-yellow-500' },
+      { title: 'AI Öğretmen', type: 'ai' as const, gradient: 'bg-gradient-to-br from-rose-600 to-pink-500' },
+    ]
+  },
+  {
+    id: 3,
+    title: 'Kurumsal Çözümler',
+    cards: [
+      { title: 'Toplantı Kaydı', type: 'video' as const, url: 'https://www.youtube.com/embed/ysz5S6PUM-U', gradient: 'bg-gradient-to-br from-slate-600 to-gray-500' },
+      { title: 'Dashboard', type: 'iframe' as const, url: 'https://grafana.com', gradient: 'bg-gradient-to-br from-orange-600 to-red-500' },
+      { title: 'İş Planı', type: 'slides' as const, url: 'https://docs.google.com/presentation/d/e/2PACX-1vQxkq3j6aDt2FZ_Rpe7FdaYCQPXlJzqFN1qqLMqKQylqAWR9qlZQC0Pg8d9w7s6lg/embed?start=true&loop=true&delayms=3000', gradient: 'bg-gradient-to-br from-cyan-600 to-blue-500' },
+      { title: 'Kurumsal AI', type: 'ai' as const, gradient: 'bg-gradient-to-br from-violet-600 to-purple-500' },
+    ]
+  },
+  {
+    id: 4,
+    title: 'Yaratıcı İçerik',
+    cards: [
+      { title: 'Müzik Videosu', type: 'video' as const, url: 'https://www.youtube.com/embed/kJQP7kiw5Fk', gradient: 'bg-gradient-to-br from-pink-600 to-rose-500' },
+      { title: 'Portföy', type: 'iframe' as const, url: 'https://dribbble.com', gradient: 'bg-gradient-to-br from-fuchsia-600 to-pink-500' },
+      { title: 'Mood Board', type: 'slides' as const, url: 'https://docs.google.com/presentation/d/e/2PACX-1vRK35qQdT3LwX3ckN9kOHkS3Tk7xjTz1KmL9Vw2BFaJJWqB7Rm4JVfTMiTYC3xGHA/embed?start=true&loop=true&delayms=2000', gradient: 'bg-gradient-to-br from-lime-600 to-green-500' },
+      { title: 'Yaratıcı AI', type: 'ai' as const, gradient: 'bg-gradient-to-br from-sky-600 to-cyan-500' },
+    ]
+  },
+  {
+    id: 5,
+    title: 'Finans & Analitik',
+    cards: [
+      { title: 'Piyasa Analizi', type: 'video' as const, url: 'https://www.youtube.com/embed/Xn676-fLq7I', gradient: 'bg-gradient-to-br from-green-600 to-emerald-500' },
+      { title: 'Borsa Takibi', type: 'iframe' as const, url: 'https://tradingview.com', gradient: 'bg-gradient-to-br from-blue-700 to-indigo-500' },
+      { title: 'Finansal Rapor', type: 'slides' as const, url: 'https://docs.google.com/presentation/d/e/2PACX-1vQxkq3j6aDt2FZ_Rpe7FdaYCQPXlJzqFN1qqLMqKQylqAWR9qlZQC0Pg8d9w7s6lg/embed?start=false&loop=false&delayms=5000', gradient: 'bg-gradient-to-br from-yellow-600 to-amber-500' },
+      { title: 'Finans AI', type: 'ai' as const, gradient: 'bg-gradient-to-br from-teal-600 to-cyan-500' },
+    ]
+  },
+  {
+    id: 6,
+    title: 'Sağlık & Wellness',
+    cards: [
+      { title: 'Yoga Dersi', type: 'video' as const, url: 'https://www.youtube.com/embed/v7AYKMP6rOE', gradient: 'bg-gradient-to-br from-teal-500 to-green-400' },
+      { title: 'Sağlık Portalı', type: 'iframe' as const, url: 'https://www.webmd.com', gradient: 'bg-gradient-to-br from-rose-500 to-red-400' },
+      { title: 'Beslenme Planı', type: 'slides' as const, url: 'https://docs.google.com/presentation/d/e/2PACX-1vRK35qQdT3LwX3ckN9kOHkS3Tk7xjTz1KmL9Vw2BFaJJWqB7Rm4JVfTMiTYC3xGHA/embed?start=false&loop=true&delayms=4000', gradient: 'bg-gradient-to-br from-purple-500 to-violet-400' },
+      { title: 'Sağlık AI', type: 'ai' as const, gradient: 'bg-gradient-to-br from-cyan-500 to-blue-400' },
+    ]
+  },
+  {
+    id: 7,
+    title: 'Oyun & Eğlence',
+    cards: [
+      { title: 'Game Stream', type: 'video' as const, url: 'https://www.youtube.com/embed/M4KC3rhEHf4', gradient: 'bg-gradient-to-br from-violet-600 to-indigo-500' },
+      { title: 'Oyun Haberleri', type: 'iframe' as const, url: 'https://ign.com', gradient: 'bg-gradient-to-br from-red-600 to-orange-500' },
+      { title: 'Oyun İnceleme', type: 'slides' as const, url: 'https://docs.google.com/presentation/d/e/2PACX-1vQxkq3j6aDt2FZ_Rpe7FdaYCQPXlJzqFN1qqLMqKQylqAWR9qlZQC0Pg8d9w7s6lg/embed?start=true&loop=true&delayms=3000', gradient: 'bg-gradient-to-br from-blue-600 to-purple-500' },
+      { title: 'Gaming AI', type: 'ai' as const, gradient: 'bg-gradient-to-br from-green-600 to-lime-500' },
+    ]
+  },
+];
+
+export const LandingPageDemoGrid: React.FC<{
+  onHeroWordChange?: (word: string) => void;
+  isHeaderVisible?: boolean;
+  onToggleHeader?: () => void;
+}> = ({ onHeroWordChange }) => {
+  const [currentPage, setCurrentPage] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [translateX, setTranslateX] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const totalPages = demoPages.length;
+
+  const goToPage = useCallback((page: number) => {
+    if (page < 0) page = 0;
+    if (page >= totalPages) page = totalPages - 1;
+    setCurrentPage(page);
+    setTranslateX(0);
+    
+    // Trigger hero word change based on page
+    const heroWords = [
+      'Medya Akışını',
+      'Eğitim İçeriklerini',
+      'Kurumsal Süreçleri',
+      'Yaratıcı Projeleri',
+      'Finansal Verileri',
+      'Sağlık Bilgilerini',
+      'Oyun Deneyimini'
+    ];
+    onHeroWordChange?.(heroWords[page] || 'Dijital Dünyayı');
+  }, [totalPages, onHeroWordChange]);
+
+  const nextPage = () => goToPage(currentPage + 1);
+  const prevPage = () => goToPage(currentPage - 1);
+
+  // Touch/Mouse handlers for swipe
+  const handleStart = (clientX: number) => {
+    setIsDragging(true);
+    setStartX(clientX);
+  };
+
+  const handleMove = (clientX: number) => {
+    if (!isDragging) return;
+    const diff = clientX - startX;
+    // Limit drag distance
+    const maxDrag = 150;
+    setTranslateX(Math.max(-maxDrag, Math.min(maxDrag, diff)));
+  };
+
+  const handleEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    
+    const threshold = 50;
+    if (translateX > threshold && currentPage > 0) {
+      goToPage(currentPage - 1);
+    } else if (translateX < -threshold && currentPage < totalPages - 1) {
+      goToPage(currentPage + 1);
+    } else {
+      setTranslateX(0);
+    }
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') prevPage();
+      if (e.key === 'ArrowRight') nextPage();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentPage]);
+
+  return (
+    <div className="relative w-full overflow-hidden">
+      {/* Page Indicators - Top */}
+      <div className="flex items-center justify-center gap-2 mb-6">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={prevPage}
+          disabled={currentPage === 0}
+          className="text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-30"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </Button>
+        
+        <div className="flex items-center gap-2">
+          {demoPages.map((page, idx) => (
+            <button
+              key={page.id}
+              onClick={() => goToPage(idx)}
+              className={`transition-all duration-300 ${
+                idx === currentPage 
+                  ? 'w-8 h-2 bg-white rounded-full' 
+                  : 'w-2 h-2 bg-white/40 hover:bg-white/60 rounded-full'
+              }`}
+              aria-label={`Sayfa ${idx + 1}: ${page.title}`}
+            />
+          ))}
+        </div>
+        
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={nextPage}
+          disabled={currentPage === totalPages - 1}
+          className="text-white/70 hover:text-white hover:bg-white/10 disabled:opacity-30"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </Button>
+      </div>
+
+      {/* Page Title */}
+      <h3 className="text-center text-2xl font-bold text-white mb-6">
+        {demoPages[currentPage].title}
+      </h3>
+
+      {/* Carousel Container */}
+      <div 
+        ref={containerRef}
+        className="relative"
+        onMouseDown={(e) => handleStart(e.clientX)}
+        onMouseMove={(e) => handleMove(e.clientX)}
+        onMouseUp={handleEnd}
+        onMouseLeave={handleEnd}
+        onTouchStart={(e) => handleStart(e.touches[0].clientX)}
+        onTouchMove={(e) => handleMove(e.touches[0].clientX)}
+        onTouchEnd={handleEnd}
+      >
+        {/* Side Peek - Left */}
+        {currentPage > 0 && (
+          <div className="hidden xl:block absolute left-0 top-0 bottom-0 w-24 z-10 pointer-events-none">
+            <div className="h-full opacity-40 blur-[2px] scale-95 transform -translate-x-16">
+              <div className="grid grid-cols-2 gap-2 p-2">
+                {demoPages[currentPage - 1].cards.slice(0, 2).map((card, idx) => (
+                  <div key={idx} className={`${CARD_SIZE} ${card.gradient} rounded-lg`} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Side Peek - Right */}
+        {currentPage < totalPages - 1 && (
+          <div className="hidden xl:block absolute right-0 top-0 bottom-0 w-24 z-10 pointer-events-none">
+            <div className="h-full opacity-40 blur-[2px] scale-95 transform translate-x-16">
+              <div className="grid grid-cols-2 gap-2 p-2">
+                {demoPages[currentPage + 1].cards.slice(0, 2).map((card, idx) => (
+                  <div key={idx} className={`${CARD_SIZE} ${card.gradient} rounded-lg`} />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div 
+          className="transition-transform duration-300 ease-out cursor-grab active:cursor-grabbing"
+          style={{ 
+            transform: `translateX(${translateX}px)`,
+            userSelect: 'none'
+          }}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto px-4">
+            {demoPages[currentPage].cards.map((card, idx) => (
+              <DemoCard
+                key={`${currentPage}-${idx}`}
+                title={card.title}
+                type={card.type}
+                url={card.url}
+                gradient={card.gradient}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Page Indicators - Bottom */}
+      <div className="flex items-center justify-center gap-4 mt-6">
+        <span className="text-white/60 text-sm">
+          {currentPage + 1} / {totalPages}
+        </span>
+        <div className="flex gap-1">
+          {demoPages.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => goToPage(idx)}
+              className={`w-10 h-1 rounded-full transition-all duration-300 ${
+                idx === currentPage ? 'bg-white' : 'bg-white/30 hover:bg-white/50'
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Swipe Hint */}
+      <p className="text-center text-white/40 text-xs mt-4">
+        ← Kaydırarak veya ok tuşlarıyla gezinin →
+      </p>
+    </div>
+  );
+};

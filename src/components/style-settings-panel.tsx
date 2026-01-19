@@ -5,7 +5,7 @@
 import { ContentItem } from '@/lib/initial-content';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
-import { Palette, X, ImageUp, SlidersHorizontal, Sun, Moon, Monitor, Minus, Plus, Wand2, ChevronsDown, ChevronsUp, Save, Trash2, StretchHorizontal, StretchVertical, Minimize, Maximize, ZoomIn, ZoomOut, Ban, Square } from 'lucide-react';
+import { Palette, X, ImageUp, SlidersHorizontal, Sun, Moon, Monitor, Minus, Plus, Wand2, ChevronsDown, ChevronsUp, Save, Trash2, StretchHorizontal, StretchVertical, Minimize, Maximize, ZoomIn, ZoomOut, Ban, Square, Clock } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Label } from './ui/label';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -21,6 +21,7 @@ import { Separator } from './ui/separator';
 import { Slider } from './ui/slider';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import WebGLBackground from './webgl-background';
+import { useAppStore } from '@/lib/store';
 
 type ThemePreset = {
   name: string;
@@ -73,10 +74,25 @@ export default function StyleSettingsPanel({
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [customThemes, setCustomThemes] = useState<ThemePreset[]>([]);
-    const accordionItems = useMemo(() => ['view', 'theme', 'frame', 'background', 'pattern', 'webgl'], []);
+    const accordionItems = useMemo(() => ['view', 'clock', 'theme', 'frame', 'background', 'pattern', 'webgl'], []);
   const [openAccordions, setOpenAccordions] = useState<string[]>(accordionItems);
   const scale = activeView.scale || 100;
   const setScale = (newScale: number) => onUpdate({ scale: newScale });
+  
+  // Micro Clock Widget State
+  const microClockEnabled = useAppStore(s => s.microClockEnabled);
+  const microClockStyle = useAppStore(s => s.microClockStyle);
+  const microClockShowSeconds = useAppStore(s => s.microClockShowSeconds);
+  const microClockShow24Hour = useAppStore(s => s.microClockShow24Hour);
+  const microClockShowDate = useAppStore(s => s.microClockShowDate);
+  const microClockShowDay = useAppStore(s => s.microClockShowDay);
+  const setMicroClockEnabled = useAppStore(s => s.setMicroClockEnabled);
+  const setMicroClockStyle = useAppStore(s => s.setMicroClockStyle);
+  const setMicroClockShowSeconds = useAppStore(s => s.setMicroClockShowSeconds);
+  const setMicroClockShow24Hour = useAppStore(s => s.setMicroClockShow24Hour);
+  const setMicroClockShowDate = useAppStore(s => s.setMicroClockShowDate);
+  const setMicroClockShowDay = useAppStore(s => s.setMicroClockShowDay);
+  
     // Removed coverPreset and coverMaxItems settings
     const coverBlurFallback = (activeView as any)?.coverBlurFallback ?? false;
     const coverBoldTitle = (activeView as any)?.coverBoldTitle ?? false;
@@ -269,30 +285,254 @@ export default function StyleSettingsPanel({
                                     </div>
                                     <Switch checked={coverBoldTitle} onCheckedChange={(val) => onUpdate({ coverBoldTitle: val })} />
                                 </div>
-                                <Separator />
-                                <div className="space-y-1">
-                                    <Label>Mini Map Boyutu</Label>
-                                    <ToggleGroup type="single" value={minimapSize} onValueChange={(val) => val && onUpdate({ minimapSize: val })} className="grid grid-cols-4 gap-1">
-                                        <ToggleGroupItem value="s">S</ToggleGroupItem>
-                                        <ToggleGroupItem value="m">M</ToggleGroupItem>
-                                        <ToggleGroupItem value="l">L</ToggleGroupItem>
-                                        <ToggleGroupItem value="xl">XL</ToggleGroupItem>
-                                    </ToggleGroup>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                        <Label>Mini Map Varsayılan Açık</Label>
-                                        <p className="text-xs text-muted-foreground">Bu görünüm açıldığında mini map otomatik açılsın.</p>
-                                    </div>
-                                    <Switch checked={minimapDefaultOpen} onCheckedChange={(val) => onUpdate({ minimapDefaultOpen: val })} />
-                                </div>
                             </div>
                         </div>
                     </AccordionContent>
                 </AccordionItem>
+                
+                {/* Mikro Saat Widget Ayarları */}
+                <AccordionItem value="clock" className='px-4'>
+                    <AccordionTrigger className="py-3 text-sm font-medium">
+                        <div className='flex items-center gap-2'>
+                            <Clock className='h-4 w-4'/>
+                            <span>Mikro Saat</span>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                                <Label>Mikro Saat Widget</Label>
+                                <p className="text-xs text-muted-foreground">Üst menü çubuğunda minimal saat göster.</p>
+                            </div>
+                            <Switch checked={microClockEnabled} onCheckedChange={setMicroClockEnabled} />
+                        </div>
+                        
+                        {microClockEnabled && (
+                            <>
+                                <Separator />
+                                <div className="space-y-3">
+                                    <Label className="text-xs font-semibold text-muted-foreground uppercase">Saat Stili</Label>
+                                    <ToggleGroup 
+                                        type="single" 
+                                        value={microClockStyle} 
+                                        onValueChange={(val) => val && setMicroClockStyle(val as 'digital' | 'analog')}
+                                        className="grid grid-cols-2 gap-2"
+                                    >
+                                        <ToggleGroupItem value="digital" className="text-xs">
+                                            <span className="font-mono">12:34</span>
+                                            <span className="ml-1">Dijital</span>
+                                        </ToggleGroupItem>
+                                        <ToggleGroupItem value="analog" className="text-xs">
+                                            <Clock className="h-3 w-3 mr-1" />
+                                            <span>Analog</span>
+                                        </ToggleGroupItem>
+                                    </ToggleGroup>
+                                </div>
+                                
+                                <div className="space-y-3">
+                                    <Label className="text-xs font-semibold text-muted-foreground uppercase">Seçenekler</Label>
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label>Saniye Göster</Label>
+                                            <p className="text-xs text-muted-foreground">Saniye bilgisini de görüntüle.</p>
+                                        </div>
+                                        <Switch checked={microClockShowSeconds} onCheckedChange={setMicroClockShowSeconds} />
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label>24 Saat Formatı</Label>
+                                            <p className="text-xs text-muted-foreground">12 saat yerine 24 saat formatı kullan.</p>
+                                        </div>
+                                        <Switch checked={microClockShow24Hour} onCheckedChange={setMicroClockShow24Hour} />
+                                    </div>
+                                </div>
+                                
+                                <Separator />
+                                
+                                <div className="space-y-3">
+                                    <Label className="text-xs font-semibold text-muted-foreground uppercase">Alt Satır Bilgileri</Label>
+                                    <p className="text-xs text-muted-foreground mb-2">Saatin altında gün ve/veya tarih göster.</p>
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label>Gün Göster</Label>
+                                            <p className="text-xs text-muted-foreground">Pazartesi, Salı... gibi gün adını göster.</p>
+                                        </div>
+                                        <Switch checked={microClockShowDay} onCheckedChange={setMicroClockShowDay} />
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label>Tarih Göster</Label>
+                                            <p className="text-xs text-muted-foreground">19 Ocak 2026 gibi tarih bilgisini göster.</p>
+                                        </div>
+                                        <Switch checked={microClockShowDate} onCheckedChange={setMicroClockShowDate} />
+                                    </div>
+                                </div>
+                                
+                                <div className="p-3 bg-muted/50 rounded-lg">
+                                    <p className="text-xs text-muted-foreground">
+                                        💡 <strong>İpucu:</strong> Saati üst menü çubuğunda sürükleyerek istediğiniz konuma taşıyabilirsiniz.
+                                    </p>
+                                </div>
+                            </>
+                        )}
+                    </AccordionContent>
+                </AccordionItem>
+                
                 <AccordionItem value="frame" className='px-4'>
                     <AccordionTrigger className="py-3 text-sm font-medium"><div className='flex items-center gap-2'><Square className='h-4 w-4'/> <span>Çerçeve</span></div></AccordionTrigger>
                     <AccordionContent className="pb-4 space-y-4">
+                        {/* Preset Colors Section - TOP */}
+                        <div className="space-y-2">
+                            <Label className="text-xs font-medium">Ön Tanımlı Renkler</Label>
+                            <div className="grid grid-cols-5 gap-1.5">
+                                {/* Basic Presets */}
+                                <button 
+                                    className="w-full aspect-square rounded-md border-2 transition-all hover:scale-110"
+                                    style={{ background: 'linear-gradient(135deg, #ff00ff, #00ffff)', borderColor: activeView.frameColor === '#ff00ff' ? 'white' : 'transparent' }}
+                                    onClick={() => onUpdate({ frameColor: '#ff00ff' })}
+                                    title="Neon"
+                                />
+                                <button 
+                                    className="w-full aspect-square rounded-md border-2 transition-all hover:scale-110"
+                                    style={{ background: '#50c878', borderColor: activeView.frameColor === '#50c878' ? 'white' : 'transparent' }}
+                                    onClick={() => onUpdate({ frameColor: '#50c878' })}
+                                    title="Zümrüt"
+                                />
+                                <button 
+                                    className="w-full aspect-square rounded-md border-2 transition-all hover:scale-110"
+                                    style={{ background: 'linear-gradient(135deg, #ffd700, #ffb6c1)', borderColor: activeView.frameColor === '#ffd700' ? 'white' : 'transparent' }}
+                                    onClick={() => onUpdate({ frameColor: '#ffd700' })}
+                                    title="Gold Blush"
+                                />
+                                <button 
+                                    className="w-full aspect-square rounded-md border-2 transition-all hover:scale-110"
+                                    style={{ background: 'linear-gradient(135deg, #c0c0c0, #e8e8e8)', borderColor: activeView.frameColor === '#c0c0c0' ? 'white' : 'transparent' }}
+                                    onClick={() => onUpdate({ frameColor: '#c0c0c0' })}
+                                    title="Silver"
+                                />
+                                <button 
+                                    className="w-full aspect-square rounded-md border-2 transition-all hover:scale-110"
+                                    style={{ background: '#000000', borderColor: activeView.frameColor === '#000000' ? 'white' : 'transparent' }}
+                                    onClick={() => onUpdate({ frameColor: '#000000' })}
+                                    title="Siyah"
+                                />
+                            </div>
+                            
+                            <Label className="text-xs font-medium mt-3 block">Takım Renkleri</Label>
+                            <div className="grid grid-cols-6 gap-1.5">
+                                {/* Team Colors */}
+                                <button 
+                                    className="w-full aspect-square rounded-md border-2 transition-all hover:scale-110 flex items-center justify-center text-[8px] font-bold text-white"
+                                    style={{ background: 'linear-gradient(135deg, #1c3b73, #ffcc00)', borderColor: activeView.frameColor === '#1c3b73' ? 'white' : 'transparent' }}
+                                    onClick={() => onUpdate({ frameColor: '#1c3b73', secondaryFrameColor: '#ffcc00' })}
+                                    title="Fenerbahçe"
+                                >FB</button>
+                                <button 
+                                    className="w-full aspect-square rounded-md border-2 transition-all hover:scale-110 flex items-center justify-center text-[8px] font-bold text-white"
+                                    style={{ background: 'linear-gradient(135deg, #ffd100, #c8102e)', borderColor: activeView.frameColor === '#ffd100' ? 'white' : 'transparent' }}
+                                    onClick={() => onUpdate({ frameColor: '#ffd100', secondaryFrameColor: '#c8102e' })}
+                                    title="Galatasaray"
+                                >GS</button>
+                                <button 
+                                    className="w-full aspect-square rounded-md border-2 transition-all hover:scale-110 flex items-center justify-center text-[8px] font-bold text-white"
+                                    style={{ background: 'linear-gradient(135deg, #000000, #ffffff)', borderColor: activeView.frameColor === '#000000' && activeView.secondaryFrameColor === '#ffffff' ? 'white' : 'transparent' }}
+                                    onClick={() => onUpdate({ frameColor: '#000000', secondaryFrameColor: '#ffffff' })}
+                                    title="Beşiktaş"
+                                >BJK</button>
+                                <button 
+                                    className="w-full aspect-square rounded-md border-2 transition-all hover:scale-110 flex items-center justify-center text-[8px] font-bold text-white"
+                                    style={{ background: 'linear-gradient(135deg, #800020, #1e90ff)', borderColor: activeView.frameColor === '#800020' ? 'white' : 'transparent' }}
+                                    onClick={() => onUpdate({ frameColor: '#800020', secondaryFrameColor: '#1e90ff' })}
+                                    title="Trabzonspor"
+                                >TS</button>
+                                <button 
+                                    className="w-full aspect-square rounded-md border-2 transition-all hover:scale-110 flex items-center justify-center text-[8px] font-bold text-white"
+                                    style={{ background: 'linear-gradient(135deg, #ff6600, #000000)', borderColor: activeView.frameColor === '#ff6600' ? 'white' : 'transparent' }}
+                                    onClick={() => onUpdate({ frameColor: '#ff6600', secondaryFrameColor: '#000000' })}
+                                    title="Başakşehir"
+                                >BS</button>
+                                <button 
+                                    className="w-full aspect-square rounded-md border-2 transition-all hover:scale-110 flex items-center justify-center text-[8px] font-bold text-white"
+                                    style={{ background: 'linear-gradient(135deg, #e30a17, #ffffff)', borderColor: activeView.frameColor === '#e30a17' ? 'white' : 'transparent' }}
+                                    onClick={() => onUpdate({ frameColor: '#e30a17', secondaryFrameColor: '#ffffff' })}
+                                    title="Türkiye"
+                                >TR</button>
+                            </div>
+                        </div>
+                        
+                        <Separator />
+                        
+                        {/* Frame Color & Width - MIDDLE */}
+                        <div className="space-y-2">
+                            <Label className="text-xs">Birincil Çerçeve Rengi</Label>
+                            <div className="flex gap-2 items-center">
+                                <div 
+                                    className="w-8 h-8 rounded border cursor-pointer flex-shrink-0" 
+                                    style={{ backgroundColor: activeView.frameColor || 'hsl(var(--primary))' }}
+                                    onClick={() => document.getElementById('frame-color-input')?.click()}
+                                />
+                                <Input 
+                                    id="frame-color-input"
+                                    type="color" 
+                                    value={activeView.frameColor || '#3b82f6'} 
+                                    onChange={(e) => onUpdate({ frameColor: e.target.value })}
+                                    className="h-8"
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label className="text-xs">İkincil Çerçeve Rengi (Çift Renkli/Burgulu için)</Label>
+                            <div className="flex gap-2 items-center">
+                                <div 
+                                    className="w-8 h-8 rounded border cursor-pointer flex-shrink-0" 
+                                    style={{ backgroundColor: activeView.secondaryFrameColor || '#ffffff' }}
+                                    onClick={() => document.getElementById('secondary-frame-color-input')?.click()}
+                                />
+                                <Input 
+                                    id="secondary-frame-color-input"
+                                    type="color" 
+                                    value={activeView.secondaryFrameColor || '#ffffff'} 
+                                    onChange={(e) => onUpdate({ secondaryFrameColor: e.target.value })}
+                                    className="h-8"
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label className="text-xs">Çerçeve Kalınlığı ({activeView.frameWidth || 1}px)</Label>
+                            <Slider 
+                                value={[activeView.frameWidth || 1]} 
+                                onValueChange={(v) => onUpdate({ frameWidth: v[0] })} 
+                                min={0} max={20} step={1} 
+                            />
+                        </div>
+                        
+                        <Separator />
+                        
+                        {/* Frame Style */}
+                        <div className="space-y-2">
+                            <Label className="text-xs">Çerçeve Stili</Label>
+                            <ToggleGroup 
+                                type="single" 
+                                value={activeView.frameStyle || 'solid'} 
+                                onValueChange={(value) => onUpdate({ frameStyle: value as any })} 
+                                className="grid grid-cols-4 gap-2"
+                            >
+                                <ToggleGroupItem value="solid" className="text-xs">Düz</ToggleGroupItem>
+                                <ToggleGroupItem value="dashed" className="text-xs">Kesikli</ToggleGroupItem>
+                                <ToggleGroupItem value="dotted" className="text-xs">Noktalı</ToggleGroupItem>
+                                <ToggleGroupItem value="double" className="text-xs">Çift</ToggleGroupItem>
+                                <ToggleGroupItem value="dual-color" className="text-xs">Çift Renkli</ToggleGroupItem>
+                                <ToggleGroupItem value="twisted" className="text-xs">Burgulu</ToggleGroupItem>
+                                <ToggleGroupItem value="neon" className="text-xs">Neon ✨</ToggleGroupItem>
+                                <ToggleGroupItem value="shimmer" className="text-xs">Işın ✨</ToggleGroupItem>
+                            </ToggleGroup>
+                        </div>
+                        
+                        <Separator />
+                        
+                        {/* Frame Effects */}
                         <div className="space-y-2">
                             <Label className="text-xs">Çerçeve Efekti</Label>
                             <ToggleGroup 
@@ -309,6 +549,10 @@ export default function StyleSettingsPanel({
                                 <ToggleGroupItem value="braided" className="text-xs">Örgülü</ToggleGroupItem>
                             </ToggleGroup>
                         </div>
+                        
+                        <Separator />
+                        
+                        {/* Special Frame Features */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label className="text-xs">İşaretçi Çerçevesi</Label>
@@ -354,46 +598,6 @@ export default function StyleSettingsPanel({
                                 <ToggleGroupItem value="particles" className="text-xs">Parçacık</ToggleGroupItem>
                             </ToggleGroup>
                             <p className="text-xs text-muted-foreground">🎵 Ekolyzer görselleştirmeleri (Easter Egg)</p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-2">
-                            <Label className="text-xs">Çerçeve Rengi</Label>
-                            <div className="flex gap-2 items-center">
-                                <div 
-                                    className="w-8 h-8 rounded border cursor-pointer flex-shrink-0" 
-                                    style={{ backgroundColor: activeView.frameColor || 'hsl(var(--primary))' }}
-                                    onClick={() => document.getElementById('frame-color-input')?.click()}
-                                />
-                                <Input 
-                                    id="frame-color-input"
-                                    type="color" 
-                                    value={activeView.frameColor || '#3b82f6'} 
-                                    onChange={(e) => onUpdate({ frameColor: e.target.value })}
-                                    className="h-8"
-                                />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-xs">Çerçeve Kalınlığı ({activeView.frameWidth || 1}px)</Label>
-                            <Slider 
-                                value={[activeView.frameWidth || 1]} 
-                                onValueChange={(v) => onUpdate({ frameWidth: v[0] })} 
-                                min={0} max={20} step={1} 
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label className="text-xs">Çerçeve Stili</Label>
-                            <ToggleGroup 
-                                type="single" 
-                                value={activeView.frameStyle || 'solid'} 
-                                onValueChange={(value) => onUpdate({ frameStyle: value as any })} 
-                                className="grid grid-cols-2 gap-2"
-                            >
-                                <ToggleGroupItem value="solid" className="text-xs">Düz</ToggleGroupItem>
-                                <ToggleGroupItem value="dashed" className="text-xs">Kesikli</ToggleGroupItem>
-                                <ToggleGroupItem value="dotted" className="text-xs">Noktalı</ToggleGroupItem>
-                                <ToggleGroupItem value="double" className="text-xs">Çift</ToggleGroupItem>
-                            </ToggleGroup>
                         </div>
                     </AccordionContent>
                 </AccordionItem>

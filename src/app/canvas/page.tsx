@@ -58,6 +58,7 @@ import TabBar from '@/components/tab-bar';
 import { useAppStore } from '@/lib/store';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import HeaderControlsMobile from '@/components/header-controls-mobile';
+import { MicroClockWidget } from '@/components/ui/micro-clock-widget';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import MiniGridPreview from '@/components/mini-grid-preview';
 import dynamic from 'next/dynamic';
@@ -1831,6 +1832,23 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                             }
                                         }}
                                     />
+                                    
+                                    {/* Micro Clock Widget - Draggable in header */}
+                                    {state.microClockEnabled && (
+                                      <div className="flex-1 relative h-8 mx-2">
+                                        <MicroClockWidget
+                                          style={state.microClockStyle}
+                                          showSeconds={state.microClockShowSeconds}
+                                          show24Hour={state.microClockShow24Hour}
+                                          showDate={state.microClockShowDate}
+                                          showDay={state.microClockShowDay}
+                                          draggable
+                                          initialX={state.microClockPosition}
+                                          onPositionChange={(x) => state.setMicroClockPosition(x)}
+                                        />
+                                      </div>
+                                    )}
+                                    
                                     {/* Desktop Header Controls */}
                                     {responsive.isDesktop && (
                                       <HeaderControls

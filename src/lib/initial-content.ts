@@ -352,8 +352,9 @@ export type ContentItem = {
   // Frame Effects
   frameEffect?: 'none' | 'glowing' | 'neon' | 'pulsing' | 'patterned' | 'braided';
   frameColor?: string;
+  secondaryFrameColor?: string; // For dual-color and twisted frame styles
   frameWidth?: number;
-  frameStyle?: 'solid' | 'dashed' | 'dotted' | 'double';
+  frameStyle?: 'solid' | 'dashed' | 'dotted' | 'double' | 'dual-color' | 'twisted' | 'neon' | 'shimmer';
   
   // Dynamic Frame Features
   pointerFrameEnabled?: boolean; // Pointer-tracking frame

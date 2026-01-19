@@ -180,6 +180,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithOAuth = async (provider: 'google' | 'github' | 'facebook' | 'apple') => {
     try {
+      console.log(`🔐 Initiating ${provider} OAuth...`);
+      console.log(`📍 Redirect URL: ${window.location.origin}/auth/callback`);
+      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -187,16 +190,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           queryParams: {
             prompt: 'consent',
           },
+          skipBrowserRedirect: false, // Let Supabase handle redirect
+          flowType: 'pkce', // Explicitly use PKCE flow
         },
       });
 
       if (error) {
-        console.error(`${provider} OAuth error:`, error);
+        console.error(`❌ ${provider} OAuth error:`, error);
         throw error;
       }
+      
+      console.log(`✅ ${provider} OAuth initiated:`, data);
       // Browser will be redirected to OAuth provider
     } catch (error) {
-      console.error(`Error signing in with ${provider}:`, error);
+      console.error(`❌ Error signing in with ${provider}:`, error);
       throw error;
     }
   };

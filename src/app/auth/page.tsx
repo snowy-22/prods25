@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/providers/auth-provider';
 import { createClient } from '@/lib/supabase/client';
+import { createFirstFolderFromDemo } from '@/lib/create-first-folder';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Mail, 
@@ -228,7 +229,35 @@ export default function AuthPage() {
     try {
       if (isSignup) {
         const signupValues = values as z.infer<typeof signupSchema>;
-        await signUp(signupValues.email, signupValues.password, signupValues.username);
+        const result = await signUp(signupValues.email, signupValues.password, signupValues.username);
+        
+        // Get user ID
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id;
+        
+        // Check if user has demo data to save (from landing page)
+        const demoRandomCount = localStorage.getItem('demo-random-count');
+        const hasDemoData = localStorage.getItem('create-first-folder-from-demo') === 'true';
+        
+        // Show saving message if demo data exists
+        if (hasDemoData) {
+          const randomCount = demoRandomCount ? parseInt(demoRandomCount) : 0;
+          toast({
+            title: "🎬 Oynatıcılarınız kaydediliyor...",
+            description: randomCount > 0 
+              ? `Demo klasörü ve ${randomCount} rastgele klasörünüz hesabınıza aktarılıyor.`
+              : "Demo içerikleriniz hesabınıza aktarılıyor.",
+          });
+        }
+        
+        // Create first folder from demo if applicable
+        let folderCreated = false;
+        if (userId) {
+          folderCreated = await createFirstFolderFromDemo(userId);
+        }
+        
+        // Cleanup demo storage flags
+        localStorage.removeItem('demo-random-count');
         
         // Apply referral code if provided
         if (signupValues.referralCode) {
@@ -252,10 +281,49 @@ export default function AuthPage() {
           }
         }
         
+        // Show success message with achievements info
+        const successMessage = folderCreated 
+          ? "Hesap oluşturuldu! İlk klasörünüz hazır. 🎉" 
+          : "Hesap oluşturuldu! 🎉";
+        
         toast({ 
-          title: "Hesap oluşturuldu! 🎉", 
+          title: successMessage, 
           description: "E-postanızı kontrol edip doğrulayın." 
         });
+        
+        // Store achievements to show on next page
+        if (folderCreated) {
+          localStorage.setItem('pending-achievements', JSON.stringify([
+            {
+              id: `achievement-${Date.now()}-1`,
+              title: 'Hoş Geldin!',
+              description: 'Başarıyla üye oldun ve ilk adımını attın.',
+              icon: 'star',
+              rarity: 'rare',
+              timestamp: Date.now()
+            },
+            {
+              id: `achievement-${Date.now()}-2`,
+              title: 'İlk Klasörünü Oluşturdun',
+              description: 'Demo içeriğinle ilk klasörünüz hazır!',
+              icon: 'folder',
+              rarity: 'epic',
+              timestamp: Date.now()
+            }
+          ]));
+        } else {
+          localStorage.setItem('pending-achievements', JSON.stringify([
+            {
+              id: `achievement-${Date.now()}`,
+              title: 'Hoş Geldin!',
+              description: 'Başarıyla üye oldun ve ilk adımını attın.',
+              icon: 'star',
+              rarity: 'rare',
+              timestamp: Date.now()
+            }
+          ]));
+        }
+        
         router.push('/');
       } else {
         const loginValues = values as z.infer<typeof loginSchema>;

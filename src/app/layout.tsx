@@ -7,6 +7,8 @@ import { CloudSyncProvider } from '@/components/cloud-sync-provider';
 import { LogTracker } from '@/components/log-tracker';
 import { VercelAnalytics } from '@/components/vercel-analytics';
 import { MobileFullscreenHandler } from '@/components/mobile-fullscreen-handler';
+import { AchievementProvider, AchievementNotification } from '@/components/ui/achievement-notification';
+import { AchievementLoader } from '@/components/achievement-loader';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -120,10 +122,14 @@ export default function RootLayout({
         <AuthProvider>
           <CloudSyncProvider>
             <AppProvider>
-              <MobileFullscreenHandler />
-              <LogTracker />
-              {children}
-              <VercelAnalytics />
+              <AchievementProvider>
+                <MobileFullscreenHandler />
+                <LogTracker />
+                <AchievementLoader />
+                <AchievementNotification />
+                {children}
+                <VercelAnalytics />
+              </AchievementProvider>
             </AppProvider>
           </CloudSyncProvider>
         </AuthProvider>

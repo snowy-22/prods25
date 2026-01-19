@@ -15,6 +15,7 @@ export default function CorporatePage() {
 		email: '',
 		phone: '',
 		employees: '',
+		sector: '',
 		message: ''
 	});
 
@@ -23,7 +24,7 @@ export default function CorporatePage() {
 		// In a real application, this would send data to your backend
 		console.log('Form submitted:', formData);
 		alert('Talebiniz alındı! Kısa sürede sizinle iletişime geçeceğiz.');
-		setFormData({ company: '', name: '', email: '', phone: '', employees: '', message: '' });
+		setFormData({ company: '', name: '', email: '', phone: '', employees: '', sector: '', message: '' });
 	};
 
 	return (
@@ -251,9 +252,45 @@ export default function CorporatePage() {
 								required
 							>
 								<option value="">Seçiniz...</option>
+								<option value="1-10">1-10 çalışan</option>
+								<option value="10-50">10-50 çalışan</option>
+								<option value="50-100">50-100 çalışan</option>
 								<option value="100-500">100-500 çalışan</option>
 								<option value="500-1000">500-1000 çalışan</option>
-								<option value="1000+">1000+ çalışan</option>
+								<option value="1000-5000">1000-5000 çalışan</option>
+								<option value="5000+">5000+ çalışan</option>
+							</select>
+						</div>
+
+						<div>
+							<label className="block text-sm font-medium mb-2">Sektörünüz</label>
+							<select
+								value={formData.sector}
+								onChange={(e) => setFormData({...formData, sector: e.target.value})}
+								className="w-full px-3 py-2 bg-background border border-border/50 rounded-md text-sm"
+								required
+							>
+								<option value="">Sektör Seçiniz...</option>
+								<option value="teknoloji">Teknoloji / Yazılım</option>
+								<option value="finans">Finans / Bankacılık</option>
+								<option value="saglik">Sağlık / İlaç</option>
+								<option value="egitim">Eğitim / Akademi</option>
+								<option value="medya">Medya / Yayıncılık</option>
+								<option value="perakende">Perakende / E-Ticaret</option>
+								<option value="uretim">Üretim / Sanayi</option>
+								<option value="lojistik">Lojistik / Nakliye</option>
+								<option value="enerji">Enerji / Altyapı</option>
+								<option value="insaat">İnşaat / Gayrimenkul</option>
+								<option value="turizm">Turizm / Otelcilik</option>
+								<option value="danismanlik">Danışmanlık / Hizmet</option>
+								<option value="telekom">Telekom / İletişim</option>
+								<option value="otomotiv">Otomotiv</option>
+								<option value="tarim">Tarım / Gıda</option>
+								<option value="sigorta">Sigorta</option>
+								<option value="kamu">Kamu / Devlet</option>
+								<option value="sivil-toplum">Sivil Toplum / STK</option>
+								<option value="hukuk">Hukuk</option>
+								<option value="diger">Diğer</option>
 							</select>
 						</div>
 

@@ -169,22 +169,42 @@ export default function LandingPage() {
   const [heroWordIndex, setHeroWordIndex] = useState(0);
   const heroWord = heroWords[heroWordIndex];
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const router = useRouter();
-	const { user } = useAuth();
+	const { user, loading } = useAuth();
 	const isAuthenticated = !!user;
 
+	// Hero word carousel effect - MUST run unconditionally before any conditional returns
 	useEffect(() => {
-		if (isAuthenticated && user) {
-			router.replace('/canvas');
-		}
-	}, [isAuthenticated, user, router]);
-
-  useEffect(() => {
     const timer = setInterval(() => {
       setHeroWordIndex(prevIndex => (prevIndex + 1) % heroWords.length);
     }, 6000);
     return () => clearInterval(timer);
   }, []);
+
+	// Auth redirect effect - MUST run unconditionally
+	useEffect(() => {
+		if (!loading && isAuthenticated && user) {
+			console.log('✅ User authenticated, redirecting to canvas...');
+			setIsRedirecting(true);
+			router.replace('/canvas');
+		}
+	}, [loading, isAuthenticated, user, router]);
+	
+	// Show loading screen while auth is loading or redirecting
+	if (loading || isRedirecting) {
+		return (
+			<div className="flex h-screen w-full items-center justify-center bg-background">
+				<div className="flex flex-col items-center gap-4">
+					<Tv className="h-16 w-16 text-primary animate-pulse" />
+					<div className="flex flex-col items-center gap-2">
+						<p className="text-lg font-medium">Yükleniyor...</p>
+						<p className="text-sm text-muted-foreground">Canvas hazırlanıyor</p>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
   const getWordStyle = (word: string) => {
     const baseStyle = 'inline-block px-4 py-1 rounded-md text-white -rotate-2 shadow-lg transition-all duration-300';

@@ -71,11 +71,26 @@ export async function initializeUserStorageQuota(userId: string): Promise<UserSt
     const supabase = createClient();
 
     // Check if quota already exists
-    const { data: existing } = await supabase
+    const { data: existing, error: selectError } = await supabase
       .from('user_storage_quotas')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
+
+    // Table might not exist yet - return default quota
+    if (selectError) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Storage quota table not available yet:', selectError.message || 'Unknown error');
+      }
+      return {
+        id: 'local-default',
+        user_id: userId,
+        quota_bytes: 1073741824, // 1 GB
+        used_bytes: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    }
 
     if (existing) return existing;
 
@@ -90,11 +105,33 @@ export async function initializeUserStorageQuota(userId: string): Promise<UserSt
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Could not create storage quota:', error.message || 'Unknown error');
+      }
+      return {
+        id: 'local-default',
+        user_id: userId,
+        quota_bytes: 1073741824, // 1 GB
+        used_bytes: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    }
     return data;
   } catch (error) {
-    console.error('Failed to initialize storage quota:', error);
-    throw error;
+    // Gracefully handle when table doesn't exist
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Storage quota unavailable, using defaults');
+    }
+    return {
+      id: 'local-default',
+      user_id: userId,
+      quota_bytes: 1073741824, // 1 GB
+      used_bytes: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
   }
 }
 
@@ -109,20 +146,33 @@ export async function getUserStorageQuota(userId: string): Promise<UserStorageQu
       .from('user_storage_quotas')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle(); // Use maybeSingle instead of single to handle no rows
 
     if (error) {
-      // Initialize if doesn't exist
-      if (error.code === 'PGRST116') {
-        return await initializeUserStorageQuota(userId);
-      }
+      console.error('Error fetching storage quota:', error);
       throw error;
+    }
+
+    // Initialize if doesn't exist
+    if (!data) {
+      console.log('No storage quota found, initializing...');
+      return await initializeUserStorageQuota(userId);
     }
 
     return data;
   } catch (error) {
-    console.error('Failed to get storage quota:', error);
-    throw error;
+    // Return default quota when table doesn't exist
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Storage quota unavailable, using defaults');
+    }
+    return {
+      id: 'local-default',
+      user_id: userId,
+      quota_bytes: 1073741824, // 1 GB
+      used_bytes: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
   }
 }
 
@@ -382,11 +432,20 @@ export async function getStorageDistribution(userId: string): Promise<StorageDis
       .eq('user_id', userId)
       .order('used_bytes', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      // Table might not exist yet
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Storage distribution table unavailable');
+      }
+      return [];
+    }
     return data || [];
   } catch (error) {
-    console.error('Failed to get storage distribution:', error);
-    throw error;
+    // Return empty array when table doesn't exist
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Storage distribution unavailable');
+    }
+    return [];
   }
 }
 
@@ -444,11 +503,20 @@ export async function getSyncStatus(userId: string): Promise<StorageSyncStatus[]
       .eq('user_id', userId)
       .order('last_sync_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      // Table might not exist yet
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Sync status table unavailable');
+      }
+      return [];
+    }
     return data || [];
   } catch (error) {
-    console.error('Failed to get sync status:', error);
-    throw error;
+    // Return empty array when table doesn't exist
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Sync status unavailable');
+    }
+    return [];
   }
 }
 
@@ -480,8 +548,25 @@ export async function getStorageAnalytics(
       availableBytes,
     };
   } catch (error) {
-    console.error('Failed to get storage analytics:', error);
-    throw error;
+    // Return default analytics when tables don't exist
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Storage analytics unavailable, using defaults');
+    }
+    const defaultQuota: UserStorageQuota = {
+      id: 'local-default',
+      user_id: userId,
+      quota_bytes: 1073741824, // 1 GB
+      used_bytes: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    return {
+      quota: defaultQuota,
+      distribution: [],
+      syncStatus: [],
+      usagePercent: 0,
+      availableBytes: 1073741824,
+    };
   }
 }
 

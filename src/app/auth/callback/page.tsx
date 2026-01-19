@@ -26,6 +26,16 @@ function AuthCallbackContent() {
             console.log('Using exchangeCodeForSession method...');
             const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
             
+            // Handle PKCE error specifically
+            if (exchangeError?.message?.includes('PKCE')) {
+              console.warn('⚠️ PKCE verifier missing, trying signInWithOAuth flow restart...');
+              // Clear any stale auth state
+              await supabase.auth.signOut();
+              // Redirect to auth page to restart flow
+              router.push('/auth?error=pkce_missing');
+              return;
+            }
+            
             if (exchangeError) {
               console.error('❌ Code exchange error:', exchangeError);
               // Don't return, try to get session anyway
@@ -37,8 +47,8 @@ function AuthCallbackContent() {
           }
         }
         
-        // Wait a moment for Supabase to process the code
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait longer for Supabase to process the code and establish session
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         // Get the session (either from exchange or existing)
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -51,7 +61,7 @@ function AuthCallbackContent() {
 
         if (session?.user) {
           // Successfully authenticated
-          console.log('OAuth login successful:', session.user.email);
+          console.log('✅ OAuth login successful:', session.user.email);
           
           // Create profile if it doesn't exist
           const { error: profileError } = await supabase
@@ -74,8 +84,13 @@ function AuthCallbackContent() {
             console.error('Profile creation error:', profileError);
           }
 
-          router.replace('/');
+          // Additional wait to ensure auth state is propagated
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          console.log('🚀 Redirecting to canvas...');
+          router.replace('/canvas');
         } else {
+          console.log('⚠️ No session found, redirecting to auth...');
           router.replace('/auth');
         }
       } catch (err) {
@@ -91,7 +106,15 @@ function AuthCallbackContent() {
     <div className="flex h-screen w-full items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-4">
         <AppLogo className="h-24 w-24 text-primary animate-pulse" />
-        <p className="text-muted-foreground">Giriş yapılıyor...</p>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-lg font-medium">Giriş yapılıyor...</p>
+          <p className="text-sm text-muted-foreground">Lütfen bekleyin, hesabınız hazırlanıyor</p>
+        </div>
+        <div className="flex gap-1 mt-4">
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+        </div>
       </div>
     </div>
   );

@@ -711,14 +711,17 @@ const PlayerFrameComponent = ({
         <ContextMenu>
             <ContextMenuTrigger asChild>
                 <Card
-                    className={cn("relative w-full h-full overflow-hidden flex flex-col glass-effect", frameEffectClass)}
+                    className={cn("relative w-full h-full overflow-hidden flex flex-col glass-effect", frameEffectClass, {
+                      "shadow-[0_0_10px_rgba(0,255,127,0.5)]": item.frameStyle === 'neon',
+                      "animate-pulse shadow-[0_0_20px_rgba(100,200,255,0.4)]": item.frameStyle === 'shimmer',
+                    })}
                     style={{ 
                         ...globalStyles, 
                         ...item.styles, 
                         borderRadius: globalStyles?.borderRadius,
                         borderColor: item.frameColor || (globalStyles as any)?.frameColor,
                         borderWidth: (item.frameWidth || (globalStyles as any)?.frameWidth) ? `${item.frameWidth || (globalStyles as any)?.frameWidth}px` : undefined,
-                        borderStyle: item.frameStyle || (globalStyles as any)?.frameStyle,
+                        borderStyle: (item.frameStyle === 'neon' || item.frameStyle === 'shimmer') ? 'solid' : (item.frameStyle || (globalStyles as any)?.frameStyle),
                         ...frameStyles,
                         minHeight: '160px',
                         maxHeight: '600px',
