@@ -212,6 +212,13 @@ export default function AuthPage() {
       const errorMessage = params.get('message');
       
       if (errorCode) {
+        // Clear auth cookies on any error from callback
+        const cookies = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token', 'sb-auth-token'];
+        cookies.forEach(name => {
+          document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+        });
+        console.log('🧹 Auth cookies cleared on error:', errorCode);
+        
         const errorMessages: Record<string, { title: string; description: string }> = {
           'pkce_missing': {
             title: '⚠️ Oturum Süresi Doldu',

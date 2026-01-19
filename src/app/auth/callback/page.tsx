@@ -23,6 +23,14 @@ function AuthCallbackContent() {
         // Handle OAuth errors from provider
         if (errorParam) {
           console.error('OAuth provider error:', errorParam, errorDescription);
+          // Clear auth cookies on provider error
+          if (typeof document !== 'undefined') {
+            const cookies = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token', 'sb-auth-token'];
+            cookies.forEach(name => {
+              document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+            });
+            console.log('🧹 Auth cookies cleared on provider error');
+          }
           router.replace(`/auth?error=${errorParam}`);
           return;
         }
@@ -37,18 +45,31 @@ function AuthCallbackContent() {
             if (exchangeError) {
               console.error('❌ Code exchange error:', exchangeError.message);
               
+              // Clear all auth cookies on any exchange error
+              const clearAuthCookies = () => {
+                if (typeof document !== 'undefined') {
+                  const cookies = ['sb-access-token', 'sb-refresh-token', 'supabase-auth-token', 'sb-auth-token'];
+                  cookies.forEach(name => {
+                    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+                  });
+                  console.log('🧹 Auth cookies cleared');
+                }
+              };
+              
               // Handle PKCE error - code verifier missing from storage
               if (exchangeError.message?.includes('PKCE') || 
                   exchangeError.message?.includes('code verifier') ||
                   exchangeError.message?.includes('both auth code and code verifier')) {
-                console.warn('⚠️ PKCE verifier expired or missing. Please try logging in again.');
-                // Clear any stale auth state
+                console.warn('⚠️ PKCE verifier expired or missing. Clearing cookies and redirecting...');
+                clearAuthCookies();
                 await supabase.auth.signOut();
                 router.replace('/auth?error=session_expired&message=Oturum süresi doldu. Lütfen tekrar giriş yapın.');
                 return;
               }
               
               // Other exchange errors
+              clearAuthCookies();
+              await supabase.auth.signOut();
               router.replace(`/auth?error=exchange_failed`);
               return;
             }

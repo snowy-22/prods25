@@ -12,27 +12,12 @@ export function createClient() {
     supabaseUrl || 'https://placeholder.supabase.co',
     supabaseAnonKey || 'placeholder',
     {
+      // Rely on @supabase/ssr cookie-backed storage to persist PKCE verifier across redirects.
       auth: {
         flowType: 'pkce',
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: true,
-        // Storage key for PKCE code verifier
-        storageKey: 'supabase.auth.token',
-        storage: {
-          getItem: (key: string) => {
-            if (typeof window === 'undefined') return null;
-            return window.localStorage.getItem(key);
-          },
-          setItem: (key: string, value: string) => {
-            if (typeof window === 'undefined') return;
-            window.localStorage.setItem(key, value);
-          },
-          removeItem: (key: string) => {
-            if (typeof window === 'undefined') return;
-            window.localStorage.removeItem(key);
-          },
-        },
       },
       cookies: {
         get(name: string) {
@@ -46,10 +31,10 @@ export function createClient() {
           let cookie = `${name}=${value}`;
           if (options?.maxAge) cookie += `; max-age=${options.maxAge}`;
           cookie += `; path=${options?.path ?? '/'}`;
-          // Use Lax for OAuth redirects to work properly
+          // Use Lax for OAuth redirects to work properly; SDK will override when needed.
           cookie += `; samesite=${options?.sameSite ?? 'Lax'}`;
           // Only add secure flag in production (HTTPS)
-          if (window.location.protocol === 'https:') {
+          if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
             cookie += '; secure';
           }
           document.cookie = cookie;
