@@ -7,10 +7,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
   sendWelcomeEmail,
-  sendPasswordResetEmail,
+  sendPasswordResetEmail as sendPasswordResetEmailService,
   sendAccountActivationEmail,
   queueEmail,
 } from '@/lib/email-service';
+import {
+  sendSignupConfirmationEmail,
+  notifyAdminNewSignup,
+} from '@/lib/email-notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,7 +86,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create profile
-        await supabase.from('profiles').insert({
+        const profile = await supabase.from('profiles').insert({
           id: authData.user.id,
           email,
           full_name: name,
@@ -90,7 +94,18 @@ export async function POST(request: NextRequest) {
           created_at: new Date().toISOString(),
         });
 
-        // Send welcome email
+        // Send signup confirmation email via new system
+        await sendSignupConfirmationEmail(
+          email,
+          `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?token_hash=${authData.session?.access_token}`,
+          name.split(' ')[0]
+        ).catch(err => console.error('[Auth] Signup confirmation email failed:', err));
+
+        // Notify admin about new signup
+        await notifyAdminNewSignup(email, name, new Date())
+          .catch(err => console.error('[Auth] Admin notification failed:', err));
+
+        // Send welcome email (legacy)
         try {
           await sendWelcomeEmail(name, email);
         } catch (emailError) {
