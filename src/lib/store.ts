@@ -270,6 +270,18 @@ import {
   AnalyticsManager,
   analyticsManager
 } from './advanced-analytics';
+import {
+  FolderCollaborator,
+  CollaboratorInvite,
+  PresenceUser,
+  PresenceState,
+  CollaborationEvent,
+  FolderCollaborationSettings,
+  FolderEngagementStats,
+  FolderActivityLog,
+  FolderPermissionLevel,
+  FolderAccessType,
+} from './collaboration-types';
 
 export type SearchPanelState = {
   isOpen: boolean;
@@ -520,6 +532,16 @@ interface AppStore {
   contentAnalyticsMetrics: Record<string, ContentMetrics>;
   engagementMetrics: EngagementMetrics | null;
   isAnalyticsLoading: boolean;
+
+  // Collaboration System
+  folderCollaborators: Record<string, FolderCollaborator[]>;
+  folderCollaborationSettings: Record<string, FolderCollaborationSettings>;
+  folderEngagementStats: Record<string, FolderEngagementStats>;
+  activePresence: Record<string, PresenceState>;
+  collaborationEvents: CollaborationEvent[];
+  pendingInvites: CollaboratorInvite[];
+  activityLogs: FolderActivityLog[];
+  isCollaborationLoading: boolean;
 
   // Actions
   setUser: (user: User | null) => void;
@@ -855,6 +877,24 @@ interface AppStore {
   getEngagementMetrics: () => Promise<EngagementMetrics | null>;
   generateAnalyticsReport: (startDate: string, endDate: string) => Promise<any>;
   loadAnalyticsMetrics: () => Promise<void>;
+
+  // Collaboration Actions
+  loadFolderCollaborators: (folderId: string) => Promise<void>;
+  inviteFolderCollaborator: (folderId: string, email: string, permission: FolderPermissionLevel) => Promise<void>;
+  removeFolderCollaborator: (folderId: string, collaboratorId: string) => Promise<void>;
+  updateFolderCollaboratorPermission: (folderId: string, collaboratorId: string, permission: FolderPermissionLevel) => Promise<void>;
+  acceptFolderInvite: (inviteToken: string) => Promise<void>;
+  joinFolderPresence: (folderId: string) => Promise<void>;
+  leaveFolderPresence: (folderId: string) => void;
+  updateFolderPresence: (folderId: string, cursorPosition?: { x: number; y: number }, selectedItems?: string[]) => void;
+  updateFolderCollaborationSettings: (folderId: string, settings: Partial<FolderCollaborationSettings>) => Promise<void>;
+  loadFolderEngagementStats: (folderId: string) => Promise<void>;
+  toggleFolderLike: (folderId: string) => Promise<void>;
+  rateFolderItem: (folderId: string, rating: number, review?: string) => Promise<void>;
+  saveFolderToLibrary: (folderId: string) => Promise<void>;
+  unsaveFolderFromLibrary: (folderId: string) => Promise<void>;
+  subscribeFolderCollaborationEvents: (folderId: string) => () => void;
+  broadcastCollaborationEvent: (folderId: string, event: Omit<CollaborationEvent, 'id' | 'timestamp'>) => Promise<void>;
 
   // Cloud Storage Management (Personal Folders & Players)
   cloudStorageQuota?: import('./cloud-storage-manager').UserStorageQuota;
@@ -1553,6 +1593,16 @@ export const useAppStore = create<AppStore>()(
       contentAnalyticsMetrics: {},
       engagementMetrics: null,
       isAnalyticsLoading: false,
+
+      // Collaboration System defaults
+      folderCollaborators: {},
+      folderCollaborationSettings: {},
+      folderEngagementStats: {},
+      activePresence: {},
+      collaborationEvents: [],
+      pendingInvites: [],
+      activityLogs: [],
+      isCollaborationLoading: false,
 
       // Cloud Storage defaults
       cloudFolderItems: [],
@@ -4564,6 +4614,249 @@ export const useAppStore = create<AppStore>()(
         } catch (error) {
           console.error('Failed to load analytics:', error);
           set({ isAnalyticsLoading: false });
+        }
+      },
+
+      // Collaboration Actions
+      loadFolderCollaborators: async (folderId) => {
+        set({ isCollaborationLoading: true });
+        try {
+          const { getFolderCollaborators } = await import('./collaboration-manager');
+          const collaborators = await getFolderCollaborators(folderId);
+          set((state) => ({
+            folderCollaborators: {
+              ...state.folderCollaborators,
+              [folderId]: collaborators
+            },
+            isCollaborationLoading: false
+          }));
+        } catch (error) {
+          console.error('Failed to load folder collaborators:', error);
+          set({ isCollaborationLoading: false });
+        }
+      },
+
+      inviteFolderCollaborator: async (folderId, email, permission) => {
+        const { user, username } = get();
+        if (!user) return;
+        try {
+          const { inviteCollaborator } = await import('./collaboration-manager');
+          await inviteCollaborator(folderId, user.id, username || 'User', undefined, email, permission);
+          await get().loadFolderCollaborators(folderId);
+        } catch (error) {
+          console.error('Failed to invite collaborator:', error);
+        }
+      },
+
+      removeFolderCollaborator: async (folderId, collaboratorId) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { removeCollaborator } = await import('./collaboration-manager');
+          await removeCollaborator(folderId, collaboratorId, user.id);
+          await get().loadFolderCollaborators(folderId);
+        } catch (error) {
+          console.error('Failed to remove collaborator:', error);
+        }
+      },
+
+      updateFolderCollaboratorPermission: async (folderId, collaboratorId, permission) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { updateCollaboratorPermission } = await import('./collaboration-manager');
+          await updateCollaboratorPermission(folderId, collaboratorId, permission);
+          await get().loadFolderCollaborators(folderId);
+        } catch (error) {
+          console.error('Failed to update collaborator permission:', error);
+        }
+      },
+
+      acceptFolderInvite: async (inviteToken) => {
+        const { user, username } = get();
+        if (!user) return;
+        try {
+          const { acceptInvite } = await import('./collaboration-manager');
+          await acceptInvite(inviteToken, user.id, username || user.email || 'User', undefined);
+        } catch (error) {
+          console.error('Failed to accept invite:', error);
+        }
+      },
+
+      joinFolderPresence: async (folderId) => {
+        const { user, username } = get();
+        if (!user) return;
+        try {
+          const { presenceManager } = await import('./collaboration-manager');
+          presenceManager.joinFolder(folderId, user.id, {
+            displayName: username || user.email?.split('@')[0] || 'User',
+            avatarUrl: undefined,
+            permissionLevel: 'viewer',
+          }, {
+            onPresenceSync: (presenceState: PresenceState) => {
+              set((state) => ({
+                activePresence: {
+                  ...state.activePresence,
+                  [folderId]: presenceState
+                }
+              }));
+            },
+          });
+        } catch (error) {
+          console.error('Failed to join folder presence:', error);
+        }
+      },
+
+      leaveFolderPresence: (folderId) => {
+        import('./collaboration-manager').then(({ presenceManager }) => {
+          presenceManager.leaveFolder(folderId);
+          set((state) => {
+            const newPresence = { ...state.activePresence };
+            delete newPresence[folderId];
+            return { activePresence: newPresence };
+          });
+        });
+      },
+
+      updateFolderPresence: (folderId, cursorPosition, selectedItems) => {
+        import('./collaboration-manager').then(({ presenceManager }) => {
+          if (cursorPosition) {
+            presenceManager.broadcastCursor(folderId, cursorPosition);
+          }
+          if (selectedItems) {
+            presenceManager.broadcastSelection(folderId, selectedItems);
+          }
+        });
+      },
+
+      updateFolderCollaborationSettings: async (folderId, settings) => {
+        set((state) => ({
+          folderCollaborationSettings: {
+            ...state.folderCollaborationSettings,
+            [folderId]: {
+              ...(state.folderCollaborationSettings[folderId] || {}),
+              ...settings
+            }
+          }
+        }));
+      },
+
+      loadFolderEngagementStats: async (folderId) => {
+        try {
+          const { getFolderEngagementStats } = await import('./collaboration-manager');
+          const stats = await getFolderEngagementStats(folderId);
+          if (stats) {
+            set((state) => ({
+              folderEngagementStats: {
+                ...state.folderEngagementStats,
+                [folderId]: stats
+              }
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to load folder engagement stats:', error);
+        }
+      },
+
+      toggleFolderLike: async (folderId) => {
+        const { user, username } = get();
+        if (!user) return;
+        try {
+          const { toggleFolderLike } = await import('./collaboration-manager');
+          const result = await toggleFolderLike(folderId, user.id, username || 'User', undefined);
+          await get().loadFolderEngagementStats(folderId);
+        } catch (error) {
+          console.error('Failed to toggle folder like:', error);
+        }
+      },
+
+      rateFolderItem: async (folderId, rating, review) => {
+        const { user, username } = get();
+        if (!user) return;
+        try {
+          const { rateFolder } = await import('./collaboration-manager');
+          await rateFolder(folderId, user.id, username || 'User', undefined, rating, review);
+          await get().loadFolderEngagementStats(folderId);
+        } catch (error) {
+          console.error('Failed to rate folder:', error);
+        }
+      },
+
+      saveFolderToLibrary: async (folderId) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { saveFolder } = await import('./collaboration-manager');
+          await saveFolder(folderId, user.id);
+          await get().loadFolderEngagementStats(folderId);
+        } catch (error) {
+          console.error('Failed to save folder:', error);
+        }
+      },
+
+      unsaveFolderFromLibrary: async (folderId) => {
+        const { user } = get();
+        if (!user) return;
+        try {
+          const { unsaveFolder } = await import('./collaboration-manager');
+          await unsaveFolder(folderId, user.id);
+          await get().loadFolderEngagementStats(folderId);
+        } catch (error) {
+          console.error('Failed to unsave folder:', error);
+        }
+      },
+
+      subscribeFolderCollaborationEvents: (folderId) => {
+        const { user } = get();
+        if (!user) return () => {};
+        
+        import('./collaboration-manager').then(({ collaborationEventManager }) => {
+          collaborationEventManager.subscribeToFolderEvents(folderId, user.id, {
+            onItemCreated: (event) => {
+              set((state) => ({
+                collaborationEvents: [...state.collaborationEvents, event]
+              }));
+            },
+            onItemUpdated: (event) => {
+              set((state) => ({
+                collaborationEvents: [...state.collaborationEvents, event]
+              }));
+            },
+            onItemDeleted: (event) => {
+              set((state) => ({
+                collaborationEvents: [...state.collaborationEvents, event]
+              }));
+            },
+            onItemMoved: (event) => {
+              set((state) => ({
+                collaborationEvents: [...state.collaborationEvents, event]
+              }));
+            },
+          });
+        });
+        
+        return () => {
+          // Cleanup subscription
+        };
+      },
+
+      broadcastCollaborationEvent: async (folderId, event) => {
+        const { user, username } = get();
+        if (!user) return;
+        try {
+          const { collaborationEventManager } = await import('./collaboration-manager');
+          await collaborationEventManager.broadcastEvent(
+            folderId,
+            user.id,
+            username || 'User',
+            undefined,
+            event.eventType,
+            event.targetItemId,
+            event.targetItemName,
+            { previousValue: event.previousValue, newValue: event.newValue }
+          );
+        } catch (error) {
+          console.error('Failed to broadcast collaboration event:', error);
         }
       },
 
