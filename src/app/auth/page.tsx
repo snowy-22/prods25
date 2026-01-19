@@ -197,7 +197,7 @@ export default function AuthPage() {
   const password = form.watch('password') || '';
   const passwordStrength = useMemo(() => getPasswordStrength(password), [password]);
   
-  // Check for referral code in URL
+  // Check for referral code and error messages in URL
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -206,8 +206,51 @@ export default function AuthPage() {
         setReferralCodeInput(refCode);
         form.setValue('referralCode', refCode);
       }
+      
+      // Handle OAuth errors from callback
+      const errorCode = params.get('error');
+      const errorMessage = params.get('message');
+      
+      if (errorCode) {
+        const errorMessages: Record<string, { title: string; description: string }> = {
+          'pkce_missing': {
+            title: '⚠️ Oturum Süresi Doldu',
+            description: 'Güvenlik doğrulaması süresi doldu. Lütfen tekrar giriş yapın.',
+          },
+          'session_expired': {
+            title: '⏰ Oturum Süresi Doldu',
+            description: errorMessage || 'Oturumunuz sona erdi. Lütfen tekrar giriş yapın.',
+          },
+          'auth_failed': {
+            title: '❌ Giriş Başarısız',
+            description: 'Kimlik doğrulama başarısız oldu. Lütfen tekrar deneyin.',
+          },
+          'exchange_failed': {
+            title: '❌ Bağlantı Hatası',
+            description: 'OAuth bağlantısı kurulamadı. Lütfen tekrar deneyin.',
+          },
+          'access_denied': {
+            title: '🚫 Erişim Reddedildi',
+            description: 'Google hesabı erişimi reddedildi.',
+          },
+        };
+        
+        const toastInfo = errorMessages[errorCode] || {
+          title: '⚠️ Hata Oluştu',
+          description: `Hata kodu: ${errorCode}`,
+        };
+        
+        toast({
+          title: toastInfo.title,
+          description: toastInfo.description,
+          variant: 'destructive',
+        });
+        
+        // Clean URL without refreshing
+        window.history.replaceState({}, '', '/auth');
+      }
     }
-  }, [form]);
+  }, [form, toast]);
   
   // Reset form when mode changes
   useEffect(() => {

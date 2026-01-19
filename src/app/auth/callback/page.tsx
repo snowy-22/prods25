@@ -17,40 +17,56 @@ function AuthCallbackContent() {
         
         // Check for authorization code in URL (OAuth callback)
         const code = searchParams.get('code');
+        const errorParam = searchParams.get('error');
+        const errorDescription = searchParams.get('error_description');
+        
+        // Handle OAuth errors from provider
+        if (errorParam) {
+          console.error('OAuth provider error:', errorParam, errorDescription);
+          router.replace(`/auth?error=${errorParam}`);
+          return;
+        }
         
         if (code) {
           console.log('🔐 OAuth code detected:', code.substring(0, 8) + '...');
           
-          // Try to exchange the code if method exists (newer Supabase versions)
-          if (supabase.auth.exchangeCodeForSession) {
-            console.log('Using exchangeCodeForSession method...');
+          // Exchange code for session using PKCE
+          try {
             const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
             
-            // Handle PKCE error specifically
-            if (exchangeError?.message?.includes('PKCE')) {
-              console.warn('⚠️ PKCE verifier missing, trying signInWithOAuth flow restart...');
-              // Clear any stale auth state
-              await supabase.auth.signOut();
-              // Redirect to auth page to restart flow
-              router.push('/auth?error=pkce_missing');
+            if (exchangeError) {
+              console.error('❌ Code exchange error:', exchangeError.message);
+              
+              // Handle PKCE error - code verifier missing from storage
+              if (exchangeError.message?.includes('PKCE') || 
+                  exchangeError.message?.includes('code verifier') ||
+                  exchangeError.message?.includes('both auth code and code verifier')) {
+                console.warn('⚠️ PKCE verifier expired or missing. Please try logging in again.');
+                // Clear any stale auth state
+                await supabase.auth.signOut();
+                router.replace('/auth?error=session_expired&message=Oturum süresi doldu. Lütfen tekrar giriş yapın.');
+                return;
+              }
+              
+              // Other exchange errors
+              router.replace(`/auth?error=exchange_failed`);
               return;
             }
             
-            if (exchangeError) {
-              console.error('❌ Code exchange error:', exchangeError);
-              // Don't return, try to get session anyway
-            } else if (data?.session) {
+            if (data?.session) {
               console.log('✅ OAuth session established:', data.session.user.email);
             }
-          } else {
-            console.log('⚠️ exchangeCodeForSession not available, relying on Supabase auto-handling');
+          } catch (exchangeErr: any) {
+            console.error('❌ Exchange exception:', exchangeErr);
+            router.replace('/auth?error=exchange_exception');
+            return;
           }
         }
         
-        // Wait longer for Supabase to process the code and establish session
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Wait for session to be fully established
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Get the session (either from exchange or existing)
+        // Get the session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
