@@ -268,12 +268,25 @@ export const TrashPanel: React.FC<TrashPanelProps> = ({ isOpen, onClose }) => {
 
               {/* Items List */}
               {filteredItems.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-center">
-                  <div>
-                    <Trash className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-                    <p className="text-sm text-slate-500">
-                      {searchQuery ? 'Sonuç bulunamadı' : 'Çöp kutusu boş'}
-                    </p>
+                <div className="flex-1 flex items-center justify-center text-center p-8">
+                  <div className="flex flex-col items-center gap-4">
+                    {/* Büyük Çöp Kutusu İkonu */}
+                    <div className="relative">
+                      <div className="absolute -inset-4 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 rounded-full blur-2xl opacity-60" />
+                      <div className="relative p-6 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-600">
+                        <Trash2 className="h-20 w-20 text-slate-400 dark:text-slate-500" />
+                      </div>
+                    </div>
+                    <div className="space-y-1 mt-2">
+                      <p className="text-lg font-medium text-slate-600 dark:text-slate-400">
+                        {searchQuery ? 'Sonuç bulunamadı' : 'Çöp Kutusu Boş'}
+                      </p>
+                      <p className="text-sm text-slate-400 dark:text-slate-500 max-w-[200px]">
+                        {searchQuery 
+                          ? 'Farklı bir arama terimi deneyin' 
+                          : 'Silinen öğeler burada görünecek'}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ) : (

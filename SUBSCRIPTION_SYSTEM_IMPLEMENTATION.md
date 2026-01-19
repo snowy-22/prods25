@@ -100,6 +100,36 @@ Three main tabs in Settings → Abonelik:
 
 ## 🔧 Technical Details
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ### Type Definitions
 
 ```typescript

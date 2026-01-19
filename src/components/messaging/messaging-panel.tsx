@@ -7,6 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
 import {
   Message,
@@ -17,9 +25,9 @@ import {
   Call,
   CallStatus,
 } from '@/lib/messaging-types';
-import { MessageCircle, Users, Search, Phone, Video, Clock, Send, X, Share2, Box } from 'lucide-react';
+import { MessageCircle, Users, Search, Phone, Video, Clock, Send, X, Share2, Box, Pin, PinOff, Sparkles, Bot, VolumeX, Archive, Trash2 } from 'lucide-react';
 import { GroupManagement } from './group-management';
-import { useAppStore } from '@/lib/store';
+import { useAppStore, Conversation as StoreConversation } from '@/lib/store';
 import { ContentItem } from '@/lib/initial-content';
 
 interface MessagingPanelProps {
@@ -59,7 +67,7 @@ export function MessagingPanel({
   onSetCurrentConversation,
   onSetCurrentGroup,
 }: MessagingPanelProps) {
-  const { itemToMessage, setItemToMessage } = useAppStore();
+  const { itemToMessage, setItemToMessage, conversations: storeConversations } = useAppStore();
   const [messageInput, setMessageInput] = useState('');
   const [attachedItem, setAttachedItem] = useState<ContentItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,6 +82,37 @@ export function MessagingPanel({
       setItemToMessage(null);
     }
   }, [itemToMessage, setItemToMessage]);
+
+  // Sort conversations: pinned first (AI chat at top), then by last message time
+  const sortedDirectConversations = useMemo(() => {
+    const direct = conversations.filter((c) => c.type === 'direct');
+    
+    // Find corresponding store conversations for pin status
+    const withPinStatus = direct.map(conv => {
+      const storeConv = storeConversations.find(sc => sc.id === conv.id);
+      return {
+        ...conv,
+        isPinnedStore: storeConv?.isPinned ?? conv.isPinned,
+        isAI: conv.id === 'conv-ai-assistant' || storeConv?.userId === 'ai-assistant',
+        userName: storeConv?.userName,
+        userAvatar: storeConv?.userAvatar,
+      };
+    });
+    
+    // Sort: AI first, then pinned, then by date
+    return withPinStatus.sort((a, b) => {
+      // AI chat always first
+      if (a.isAI && !b.isAI) return -1;
+      if (!a.isAI && b.isAI) return 1;
+      // Then pinned
+      if (a.isPinnedStore && !b.isPinnedStore) return -1;
+      if (!a.isPinnedStore && b.isPinnedStore) return 1;
+      // Then by last message time
+      const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+      const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+      return bTime - aTime;
+    });
+  }, [conversations, storeConversations]);
 
   const directConversations = useMemo(
     () => conversations.filter((c) => c.type === 'direct'),
@@ -150,37 +189,94 @@ export function MessagingPanel({
         <TabsContent value="direct" className="flex-1 flex flex-col min-h-0 p-3">
           <ScrollArea className="flex-1 mb-3">
             <div className="space-y-2 pr-4">
-              {directConversations.length === 0 ? (
+              {sortedDirectConversations.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8">
                   Henüz sohbet yok
                 </p>
               ) : (
-                directConversations.map((conv) => (
-                  <button
-                    key={conv.id}
-                    onClick={() => onSetCurrentConversation(conv.id)}
-                    className={cn(
-                      'w-full text-left p-2 rounded-lg border text-sm transition-colors',
-                      currentConversationId === conv.id
-                        ? 'bg-primary/10 border-primary'
-                        : 'hover:bg-muted/50'
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate font-medium">
-                        {conv.id}
-                      </span>
-                      {conv.unreadCount > 0 && (
-                        <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                          {conv.unreadCount}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {conv.lastMessage?.content || 'Mesaj yok'}
-                    </p>
-                  </button>
-                ))
+                sortedDirectConversations.map((conv) => {
+                  const isAI = conv.isAI;
+                  const isPinned = conv.isPinnedStore;
+                  
+                  return (
+                    <ContextMenu key={conv.id}>
+                      <ContextMenuTrigger asChild>
+                        <button
+                          onClick={() => onSetCurrentConversation(conv.id)}
+                          className={cn(
+                            'w-full text-left p-2 rounded-lg border text-sm transition-colors',
+                            currentConversationId === conv.id
+                              ? 'bg-primary/10 border-primary'
+                              : 'hover:bg-muted/50',
+                            isAI && 'bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/30'
+                          )}
+                        >
+                          <div className="flex items-center gap-2">
+                            {/* Avatar */}
+                            <Avatar className="h-8 w-8 shrink-0">
+                              {conv.userAvatar ? (
+                                <AvatarImage src={conv.userAvatar} />
+                              ) : null}
+                              <AvatarFallback className={cn(
+                                isAI && 'bg-gradient-to-br from-purple-500 to-blue-500 text-white'
+                              )}>
+                                {isAI ? <Bot className="h-4 w-4" /> : (conv.userName?.charAt(0) || '?')}
+                              </AvatarFallback>
+                            </Avatar>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="truncate font-medium flex items-center gap-1">
+                                  {isAI && <Sparkles className="h-3 w-3 text-purple-500" />}
+                                  {conv.userName || conv.id}
+                                  {isPinned && <Pin className="h-3 w-3 text-muted-foreground" />}
+                                </span>
+                                {conv.unreadCount > 0 && (
+                                  <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                                    {conv.unreadCount}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {conv.lastMessage?.content || 'Mesaj yok'}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      </ContextMenuTrigger>
+                      <ContextMenuContent>
+                        <ContextMenuItem>
+                          {isPinned ? (
+                            <>
+                              <PinOff className="h-4 w-4 mr-2" />
+                              Sabitlemeyi Kaldır
+                            </>
+                          ) : (
+                            <>
+                              <Pin className="h-4 w-4 mr-2" />
+                              Sabitle
+                            </>
+                          )}
+                        </ContextMenuItem>
+                        <ContextMenuItem>
+                          <VolumeX className="h-4 w-4 mr-2" />
+                          Sessize Al
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem>
+                          <Archive className="h-4 w-4 mr-2" />
+                          Arşivle
+                        </ContextMenuItem>
+                        {!isAI && (
+                          <ContextMenuItem className="text-destructive">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Sil
+                          </ContextMenuItem>
+                        )}
+                      </ContextMenuContent>
+                    </ContextMenu>
+                  );
+                })
               )}
             </div>
           </ScrollArea>

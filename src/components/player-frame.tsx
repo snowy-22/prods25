@@ -990,7 +990,7 @@ const PlayerFrameComponent = ({
                                 </div>
                                 <div className="flex flex-wrap items-center justify-center gap-0.5 bg-background/70 backdrop-blur-xl border border-border/60 px-2 py-1.5 rounded-xl text-[10px] shadow-xl max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg hover:shadow-2xl transition-all duration-300 hover:border-primary/30">
                                     <span className="w-full text-center text-[10px] font-semibold text-muted-foreground mb-0.5 sm:mb-0 sm:w-auto">Oynatıcı Ekle:</span>
-                                    {[{ icon: Play, label: 'Oynatıcı' }, { icon: Puzzle, label: 'Araç' }, { icon: List, label: 'Liste' }, { icon: Folder, label: 'Klasör' }, { icon: Upload, label: 'Yükle' }, { icon: Camera, label: 'Tarama' }].map(({ icon: IconComp, label }) => (
+                                    {[{ icon: Play, label: 'Oynatıcı' }, { icon: Puzzle, label: 'Araç' }, { icon: Folder, label: 'Klasör' }, { icon: Upload, label: 'Yükle' }, { icon: Camera, label: 'Tarama' }].map(({ icon: IconComp, label }) => (
                                         <Button
                                             key={label}
                                             variant="ghost"
