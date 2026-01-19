@@ -189,9 +189,9 @@ export class LikesManager {
     const reactionBreakdown: Record<Reaction, number> = {} as any;
     let totalReactions = 0;
 
-    (likes || []).forEach(like => {
+    (likes || []).forEach((like: any) => {
       if (like.reaction) {
-        reactionBreakdown[like.reaction] = (reactionBreakdown[like.reaction] || 0) + 1;
+        (reactionBreakdown as any)[like.reaction] = ((reactionBreakdown as any)[like.reaction] || 0) + 1;
         totalReactions++;
       }
     });
@@ -228,9 +228,9 @@ export class LikesManager {
     if (error) throw error;
 
     const breakdown: Record<Reaction, number> = {} as any;
-    (data || []).forEach(like => {
+    (data || []).forEach((like: any) => {
       if (like.reaction) {
-        breakdown[like.reaction] = (breakdown[like.reaction] || 0) + 1;
+        (breakdown as any)[like.reaction] = ((breakdown as any)[like.reaction] || 0) + 1;
       }
     });
 
@@ -281,8 +281,8 @@ export class LikesManager {
 
     // Calculate stats
     const typeCounts: Record<LikeableType, number> = {} as any;
-    (likes || []).forEach(like => {
-      typeCounts[like.targetType] = (typeCounts[like.targetType] || 0) + 1;
+    (likes || []).forEach((like: any) => {
+      (typeCounts as any)[like.targetType] = ((typeCounts as any)[like.targetType] || 0) + 1;
     });
 
     const favoriteTypes = Object.entries(typeCounts)

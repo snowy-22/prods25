@@ -208,9 +208,9 @@ export class AnalyticsManager {
     const sessionIds = new Set<string>();
     let totalDuration = 0;
 
-    events.forEach(event => {
-      eventCounts[event.eventType] = (eventCounts[event.eventType] || 0) + 1;
-      entityTypeCounts[event.entityType] = (entityTypeCounts[event.entityType] || 0) + 1;
+    (events || []).forEach((event: any) => {
+      (eventCounts as any)[event.eventType] = ((eventCounts as any)[event.eventType] || 0) + 1;
+      (entityTypeCounts as any)[event.entityType] = ((entityTypeCounts as any)[event.entityType] || 0) + 1;
       sessionIds.add(event.sessionId);
       if (event.durationMs) totalDuration += event.durationMs;
     });
@@ -267,7 +267,8 @@ export class AnalyticsManager {
         totalShares: 0,
         avgTimeSpent: 0,
         engagementRate: 0,
-        topReferrers: []
+        topReferrers: [],
+        trending: false
       };
     }
 
@@ -275,8 +276,8 @@ export class AnalyticsManager {
     const eventCounts: Record<EventType, number> = {} as any;
     let totalDuration = 0;
 
-    events.forEach(event => {
-      eventCounts[event.eventType] = (eventCounts[event.eventType] || 0) + 1;
+    (events || []).forEach((event: any) => {
+      (eventCounts as any)[event.eventType] = ((eventCounts as any)[event.eventType] || 0) + 1;
       if (event.durationMs) totalDuration += event.durationMs;
     });
 
@@ -292,10 +293,10 @@ export class AnalyticsManager {
       totalLikes: eventCounts['like'] || 0,
       totalComments: eventCounts['comment'] || 0,
       totalShares: eventCounts['share'] || 0,
-      totalDownloads: eventCounts['download'] || 0,
       avgTimeSpent: events.length > 0 ? totalDuration / events.length : 0,
       engagementRate,
-      topReferrers: []
+      topReferrers: [],
+      trending: false
     };
   }
 
@@ -429,10 +430,11 @@ export class AnalyticsManager {
         totalShares: 0,
         avgTimeSpent: 0,
         engagementRate: 0,
-        topReferrers: []
+        topReferrers: [],
+        trending: true
       }));
 
-    return trending;
+    return trending as unknown as ContentMetrics[];
   }
 
   /**

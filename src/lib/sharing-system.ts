@@ -379,7 +379,12 @@ export class SharingManager {
         totalLinks: 0,
         totalAccesses: 0,
         uniqueViewers: 0,
-        permissions: {}
+        permissions: {
+          view: 0,
+          comment: 0,
+          edit: 0,
+          admin: 0
+        }
       };
     }
 
@@ -409,19 +414,19 @@ export class SharingManager {
       admin: 0
     };
 
-    (permissions || []).forEach(p => {
-      permissionBreakdown[p.permission]++;
+    (permissions || []).forEach((p: any) => {
+      (permissionBreakdown as any)[p.permission]++;
     });
 
     return {
       itemId,
       totalShares: (permissions || []).length,
-      totalPeople: new Set((permissions || []).map(p => p.grantedTo)).size,
+      totalPeople: new Set((permissions || []).map((p: any) => p.grantedTo)).size,
       totalLinks: (links || []).length,
       totalAccesses,
       uniqueViewers,
       permissions: permissionBreakdown,
-      lastSharedAt: shared.updatedAt
+      lastSharedAt: (shared as any).updatedAt
     };
   }
 }
