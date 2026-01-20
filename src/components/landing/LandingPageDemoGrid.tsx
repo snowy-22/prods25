@@ -764,195 +764,26 @@ export const LandingPageDemoGrid: React.FC<{
 
   return (
     <div className="relative w-full">
-      {/* Achievement Notifications */}
-      {/* <AchievementNotification 
-        achievements={achievements} 
-        onClose={removeAchievement}
-      /> */}
-
-      {/* Page Title */}
-      <h3 className="text-center text-xl font-bold text-white mb-4">
-        {activeRandomTabId !== null 
-          ? `🎲 Rastgele ${randomTabs.findIndex(t => t.id === activeRandomTabId) + 1}` 
-          : demoPages[currentPage].title}
-      </h3>
-
-      {/* Membership Message */}
-      {showMembershipMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-3 rounded-lg shadow-lg animate-bounce">
-          <p className="font-semibold">🎲 5 rastgele slot dolu!</p>
-          <p className="text-sm opacity-90">Daha fazlası için üye olun veya mevcut rastgeleleri değiştirin</p>
-        </div>
-      )}
-
-      {/* Carousel Container with Side Navigation */}
-      <div 
-        className="relative group"
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
+      {/* Section Snap Scroll Container */}
+      <div
+        className="snap-y snap-mandatory overflow-y-auto h-[calc(100vh-120px)]"
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        {/* Left Side Peek + Navigation */}
-        <div className="hidden xl:flex absolute left-0 top-0 bottom-0 w-40 z-20 items-center">
-          {/* Peek Preview - bigger */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-32 opacity-40 blur-[2px] scale-95 pointer-events-none">
-            <div className="grid grid-cols-2 gap-1.5">
-              {demoPages[prevPageIdx].cards.slice(0, 4).map((card, idx) => (
-                <div key={idx} className={`aspect-[4/3] ${card.gradient} rounded-md`} />
-              ))}
-            </div>
-          </div>
-          {/* Left Nav Button */}
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); prevPage(); }}
-            className={`absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white transition-all duration-300 hover:bg-black/70 hover:scale-110 ${
-              isHovering ? 'opacity-100' : 'opacity-0'
-            }`}
+        {/* Each demo page as a snap section */}
+        {demoPages.map((page, idx) => (
+          <section
+            key={idx}
+            className="snap-start min-h-[80vh] flex flex-col justify-center items-center"
           >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Right Side Peek + Navigation */}
-        <div className="hidden xl:flex absolute right-0 top-0 bottom-0 w-40 z-20 items-center justify-end">
-          {/* Peek Preview - bigger */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-32 opacity-40 blur-[2px] scale-95 pointer-events-none">
-            <div className="grid grid-cols-2 gap-1.5">
-              {demoPages[nextPageIdx].cards.slice(0, 4).map((card, idx) => (
-                <div key={idx} className={`aspect-[4/3] ${card.gradient} rounded-md`} />
-              ))}
-            </div>
-          </div>
-          {/* Right Nav Button */}
-          <button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); nextPage(); }}
-            className={`absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white transition-all duration-300 hover:bg-black/70 hover:scale-110 ${
-              isHovering ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Main Content */}
-        <div 
-          ref={containerRef}
-          className="relative overflow-hidden xl:mx-40"
-          style={{ touchAction: 'pan-y pinch-zoom' }}
-          onMouseDown={(e) => handleStart(e.clientX, e.clientY, e)}
-          onMouseMove={(e) => handleMove(e.clientX, e.clientY, e)}
-          onMouseUp={(e) => handleEnd(e)}
-          onMouseLeave={(e) => handleEnd(e)}
-          onTouchStart={(e) => handleStart(e.touches[0].clientX, e.touches[0].clientY, e)}
-          onTouchMove={(e) => handleMove(e.touches[0].clientX, e.touches[0].clientY, e)}
-          onTouchEnd={(e) => handleEnd(e)}
-        >
-          <div 
-            className="transition-transform duration-300 ease-out cursor-grab active:cursor-grabbing"
-            style={{ transform: `translateX(${translateX}px)`, userSelect: 'none' }}
-          >
+            <h3 className="text-center text-xl font-bold text-white mb-4">{page.title}</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-5xl mx-auto px-4">
-              {currentCards.map((card, idx) => (
-                <DemoCard key={`${activeRandomTabId ?? currentPage}-${idx}-${activeRandomTabId !== null ? 'random' : 'page'}`} card={card} />
+              {page.cards.map((card, cidx) => (
+                <DemoCard key={`${idx}-${cidx}`} card={card} />
               ))}
             </div>
-          </div>
-        </div>
+          </section>
+        ))}
       </div>
-
-      {/* Bottom Controls - Navigation + Buttons */}
-      <div className="mt-6 flex flex-col items-center gap-4">
-        {/* Navigation Bar */}
-        <div className="flex items-center justify-center gap-3 flex-wrap">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); prevPage(); }}
-            className="text-white/70 hover:text-white hover:bg-white/10"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-          
-          {/* Regular Page Indicators */}
-          <div className="flex items-center gap-1.5">
-            {demoPages.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); goToRegularPage(idx); }}
-                className={`transition-all duration-300 rounded-full ${
-                  activeRandomTabId === null && idx === currentPage 
-                    ? 'w-6 h-2 bg-white' 
-                    : 'w-2 h-2 bg-white/40 hover:bg-white/60'
-                }`}
-                aria-label={`Sayfa ${idx + 1}`}
-              />
-            ))}
-          </div>
-          
-          {/* Random Tab Indicators */}
-          {randomTabs.length > 0 && (
-            <>
-              <div className="w-px h-4 bg-white/30 mx-1" />
-              <div className="flex items-center gap-1.5">
-                {randomTabs.map((tab, idx) => (
-                  <button
-                    key={tab.id}
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); goToRandomTab(tab.id); }}
-                    className={`transition-all duration-300 rounded-full ${
-                      activeRandomTabId === tab.id 
-                        ? 'w-6 h-2 bg-gradient-to-r from-amber-400 to-orange-400' 
-                        : 'w-2 h-2 bg-amber-400/50 hover:bg-amber-400/80'
-                    }`}
-                    aria-label={`Rastgele ${idx + 1}`}
-                    title={`🎲 Rastgele ${idx + 1}`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); nextPage(); }}
-            className="text-white/70 hover:text-white hover:bg-white/10"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </Button>
-
-          <div className="w-px h-6 bg-white/20 mx-2" />
-
-          {/* Random Button - Shows count and status */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={shuffleCards}
-            className={`text-white border-white/30 hover:bg-white/10 hover:border-white/50 gap-1.5 ${
-              randomTabs.length >= MAX_RANDOM_TABS ? 'border-amber-400/50' : ''
-            }`}
-            title={randomTabs.length >= MAX_RANDOM_TABS 
-              ? 'Aktif rastgele seçimi değiştir' 
-              : `${MAX_RANDOM_TABS - randomTabs.length} rastgele slot kaldı`}
-          >
-            <Dice5 className="w-4 h-4" />
-            Rastgele {randomTabs.length > 0 && `(${randomTabs.length}/${MAX_RANDOM_TABS})`}
-          </Button>
-
-          <div className="w-px h-6 bg-white/20 mx-1" />
-
-          {/* Easter Egg - Save Demo Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={saveCurrentDemo}
-            className="text-white/50 hover:text-white hover:bg-white/10 transition-all"
-            title={randomTabs.length > 0 ? `Demoyu ve ${randomTabs.length} rastgele klasörü kaydet` : 'Demoyu Kaydet'}
-          >
-            <Save className="w-4 h-4" />
-          </Button>
-        </div>
-
-      </div>
-
       {/* Bottom CTA */}
       <div className="mt-4 flex flex-col items-center gap-3">
         <Link href="/auth" onClick={handleSignUpWithDemo}>
