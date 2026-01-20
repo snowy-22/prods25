@@ -1,0 +1,36 @@
+#!/usr/bin/env node
+
+import { readFileSync } from 'fs';
+import fetch from 'node-fetch';
+
+const SUPABASE_URL = 'https://qukzepteomenikeelzno.supabase.co';
+const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1a3plcHRlb21lbmlrZWVsem5vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzEyNTU3NCwiZXhwIjoyMDgyNzAxNTc0fQ.m6MmqRhGaJHRUOdO_NzOVdXx50KSkm4SgT2mppOhNpI';
+
+console.log('🚀 Supabase SQL Migration Uploader\n');
+console.log('📖 Reading migrations-combined.sql...');
+
+const sql = readFileSync('./migrations-combined.sql', 'utf8');
+console.log(`✅ Loaded ${(sql.length / 1024).toFixed(2)} KB of SQL\n`);
+
+console.log('📋 MIGRATION READY TO UPLOAD');
+console.log('=' .repeat(60));
+console.log('\n⚠️  AUTOMATED UPLOAD NOT AVAILABLE');
+console.log('    Supabase requires SQL to be executed via Dashboard SQL Editor\n');
+console.log('📌 MANUAL STEPS:');
+console.log('   1. Open: https://supabase.com/dashboard/project/qukzepteomenikeelzno/sql/new');
+console.log('   2. Copy the entire content of: migrations-combined.sql');
+console.log('   3. Paste into the SQL Editor');
+console.log('   4. Click "RUN" button');
+console.log('   5. Wait for completion (may take 30-60 seconds)\n');
+console.log('=' .repeat(60));
+console.log('\n💡 TIP: The SQL file is already open in VS Code for easy copying!\n');
+
+// Alternative: Show first few lines
+const preview = sql.split('\n').slice(0, 10).join('\n');
+console.log('📄 SQL Preview (first 10 lines):');
+console.log('-'.repeat(60));
+console.log(preview);
+console.log('-'.repeat(60));
+console.log(`\n... and ${sql.split('\n').length - 10} more lines\n`);
+
+console.log('✨ After uploading, restart: npm run dev\n');

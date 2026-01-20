@@ -2515,8 +2515,21 @@ export const useAppStore = create<AppStore>()(
         if (!user) return;
 
         try {
+          // Verify the user's session is valid before attempting sync
+          const supabase = createClient();
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+          if (!authUser) {
+            console.warn('⚠️ Cloud sync aborted: User session not valid');
+            return;
+          }
+
           // Migrate local storage to cloud if needed
-          await migrateLocalStorageToCloud(user.id);
+          const migrationResult = await migrateLocalStorageToCloud(user.id);
+          if (!migrationResult) {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('⚠️ Local storage migration deferred (auth state transitional)');
+            }
+          }
 
           // Load data from cloud
           await get().loadFromCloud();

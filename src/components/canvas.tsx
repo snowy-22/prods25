@@ -551,25 +551,28 @@ const Canvas = memo(function Canvas({
     e.preventDefault();
     e.stopPropagation();
     
-    // Check if drag data is available
-    const hasData = e.dataTransfer.types.includes('application/json');
-    if (hasData) {
-      setIsDropZoneActive(true);
-      e.dataTransfer.dropEffect = 'copy';
+    const types = e.dataTransfer?.types;
+    const allowDrop = !types || types.length === 0 || types.includes('application/json') || types.includes('text/plain');
+    if (!allowDrop) {
+      e.dataTransfer.dropEffect = 'none';
+      return;
+    }
+
+    setIsDropZoneActive(true);
+    e.dataTransfer.dropEffect = 'copy';
+    
+    // Calculate drop position indicator for canvas mode
+    if (containerRef.current && layoutMode === 'canvas') {
+      const rect = containerRef.current.getBoundingClientRect();
+      let dropX = e.clientX - rect.left + containerRef.current.scrollLeft;
+      let dropY = e.clientY - rect.top + containerRef.current.scrollTop;
       
-      // Calculate drop position indicator for canvas mode
-      if (containerRef.current && layoutMode === 'canvas') {
-        const rect = containerRef.current.getBoundingClientRect();
-        let dropX = e.clientX - rect.left + containerRef.current.scrollLeft;
-        let dropY = e.clientY - rect.top + containerRef.current.scrollTop;
-        
-        // Snap to grid
-        const snappedX = snapToGrid(dropX, 20);
-        const snappedY = snapToGrid(dropY, 20);
-        
-        setDropIndicatorPosition({ x: snappedX, y: snappedY });
-        setDropGridLines({ vertical: snappedX, horizontal: snappedY });
-      }
+      // Snap to grid
+      const snappedX = snapToGrid(dropX, 20);
+      const snappedY = snapToGrid(dropY, 20);
+      
+      setDropIndicatorPosition({ x: snappedX, y: snappedY });
+      setDropGridLines({ vertical: snappedX, horizontal: snappedY });
     }
   }, [isPreviewMode, layoutMode]);
 
@@ -593,49 +596,49 @@ const Canvas = memo(function Canvas({
     setIsDropZoneActive(false);
     
     try {
-      const data = e.dataTransfer.getData('application/json');
-      if (data) {
-        const itemData = JSON.parse(data);
-        
-        // Calculate drop position in canvas
-        let dropX = e.clientX;
-        let dropY = e.clientY;
-        
-        // If container exists, calculate relative position
-        if (containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
-          dropX = e.clientX - rect.left + containerRef.current.scrollLeft;
-          dropY = e.clientY - rect.top + containerRef.current.scrollTop;
-          
-          // Snap to grid if in canvas mode
-          if (layoutMode === 'canvas') {
-            dropX = snapToGrid(dropX, 20);
-            dropY = snapToGrid(dropY, 20);
-          }
-        }
-        
-        // Add item with calculated position
-        const itemWithPosition = {
-          ...itemData,
-          x: dropX,
-          y: dropY,
-          width: itemData.width || 300,
-          height: itemData.height || 200,
-          isNew: true
-        };
+      const rawData = e.dataTransfer.getData('application/json') || e.dataTransfer.getData('text/plain');
+      if (!rawData) return;
 
-        // In grid mode, append to the end of the current page items
-        const dropIndex = layoutMode === 'grid' ? paginatedItems.length : undefined;
-        onAddItem(itemWithPosition, activeViewId, dropIndex);
-        setDragFeedback({
-          isDragging: false,
-          draggedItemId: null,
-          dropTarget: null,
-          dropPosition: null,
-        });
-        setDropIndicatorPosition(null);
-        setDropGridLines({ vertical: null, horizontal: null });
+      const itemData = JSON.parse(rawData);
+      
+      // Calculate drop position in canvas
+      let dropX = e.clientX;
+      let dropY = e.clientY;
+      
+      // If container exists, calculate relative position
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        dropX = e.clientX - rect.left + containerRef.current.scrollLeft;
+        dropY = e.clientY - rect.top + containerRef.current.scrollTop;
+        
+        // Snap to grid if in canvas mode
+        if (layoutMode === 'canvas') {
+          dropX = snapToGrid(dropX, 20);
+          dropY = snapToGrid(dropY, 20);
+        }
       }
+      
+      // Add item with calculated position
+      const itemWithPosition = {
+        ...itemData,
+        x: dropX,
+        y: dropY,
+        width: itemData.width || 300,
+        height: itemData.height || 200,
+        isNew: true
+      };
+
+      // In grid mode, append to the end of the current page items
+      const dropIndex = layoutMode === 'grid' ? paginatedItems.length : undefined;
+      onAddItem(itemWithPosition, activeViewId, dropIndex);
+      setDragFeedback({
+        isDragging: false,
+        draggedItemId: null,
+        dropTarget: null,
+        dropPosition: null,
+      });
+      setDropIndicatorPosition(null);
+      setDropGridLines({ vertical: null, horizontal: null });
     } catch (err) {
       canvasLogger.error('Drop error', err);
     }

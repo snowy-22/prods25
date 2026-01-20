@@ -108,7 +108,7 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
           }
         }
         toast({ 
-          title: "Hesap oluşturuldu!", 
+          title: "Kayıt başarılı!", 
           description: "E-postanızı kontrol edip doğrulayın." 
         });
         onAuthSuccess(signupValues.username);
@@ -191,7 +191,7 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
     <Dialog open={!!action} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isSignup ? 'Yeni Hesap Oluştur' : 'Giriş Yap'}</DialogTitle>
+          <DialogTitle>{isSignup ? 'Yeni Kayıt' : 'Giriş Yap'}</DialogTitle>
           <DialogDescription>
             {isSignup ? 'tv25.app dünyasına katılın.' : 'tv25.app hesabınıza erişmek için giriş yapın.'}
           </DialogDescription>
@@ -252,7 +252,7 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting
                         ? 'İşleniyor...' 
-                        : isSignup ? 'Hesap Oluştur' : 'Giriş Yap'
+                        : isSignup ? 'Kayıt Ol' : 'Giriş Yap'
                     }
                   </Button>
               </div>

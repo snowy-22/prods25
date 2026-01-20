@@ -218,10 +218,10 @@ export async function POST(request: NextRequest) {
 
         // Send email (optional - Supabase already sends one)
         try {
-          await sendPasswordResetEmail(
-            existingUser.full_name || 'Kullanıcı',
+          await sendPasswordResetEmailService(
             email,
-            `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`
+            `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password`,
+            email || 'Kullanıcı'
           );
         } catch (emailError) {
           console.error('Password reset email send failed:', emailError);

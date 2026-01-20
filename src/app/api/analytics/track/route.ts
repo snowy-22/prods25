@@ -99,27 +99,31 @@ export async function POST(request: NextRequest) {
     }
 
     // Update user metrics asynchronously (fire and forget)
-    supabase
-      .from('user_metrics')
-      .upsert({
-        user_id: user.id,
-        last_active_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'user_id',
-      })
-      .then(() => {})
-      .catch((err) => console.error('Error updating user metrics:', err));
+    try {
+      await supabase
+        .from('user_metrics')
+        .upsert({
+          user_id: user.id,
+          last_active_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+        });
+    } catch (err: any) {
+      console.error('Error updating user metrics:', err);
+    }
 
     // Update content metrics if view event
     if (eventType === 'view') {
-      supabase
-        .rpc('increment_content_view', {
-          p_content_id: entityId,
-          p_content_type: entityType,
-        })
-        .then(() => {})
-        .catch((err) => console.error('Error updating content metrics:', err));
+      try {
+        await supabase
+          .rpc('increment_content_view', {
+            p_content_id: entityId,
+            p_content_type: entityType,
+          });
+      } catch (err: any) {
+        console.error('Error updating content metrics:', err);
+      }
     }
 
     return NextResponse.json({

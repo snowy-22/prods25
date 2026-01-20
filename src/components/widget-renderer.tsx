@@ -55,6 +55,10 @@ const RecordingStudioWidget = dynamic(() => import('./widgets/recording-studio')
 const QRCodeWidget = dynamic(() => import('./widgets/qrcode-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const ColorPickerWidget = dynamic(() => import('./widgets/color-picker-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 
+// Audio & Sync Widgets
+const AudioControlWidget = dynamic(() => import('./widgets/audio-control-widget'), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+const FrameDanceControllerWidget = dynamic(() => import('./frame-dance-controller').then(m => ({ default: m.DanceController })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
+
 // E-Commerce Widgets
 const ProductCatalogWidget = dynamic(() => import('./widgets/ecommerce/product-catalog-widget').then(mod => ({ default: mod.ProductCatalogWidget })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
 const StockManagementWidget = dynamic(() => import('./widgets/ecommerce/stock-management-widget').then(mod => ({ default: mod.StockManagementWidget })), { ssr: false, loading: () => <Skeleton className="w-full h-full" /> });
@@ -193,6 +197,12 @@ const WIDGET_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'feed-widget': FeedWidget,
   'my-feed': FeedWidget,
   'discover-feed': FeedWidget,
+  
+  // Audio & Sync Widgets
+  'audio-control': AudioControlWidget,
+  'audio-studio': AudioControlWidget,
+  'frame-dance': FrameDanceControllerWidget,
+  'frame-dance-controller': FrameDanceControllerWidget,
 };
 
 const WidgetRendererBase = ({ item, allItems, activeViewId, ...props }: { item: ContentItem, allItems?: ContentItem[], activeViewId?: string | null } & any) => {

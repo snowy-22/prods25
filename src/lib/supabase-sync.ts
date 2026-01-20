@@ -87,6 +87,16 @@ export async function saveCanvasData(
       return false;
     }
     const supabase = createClient();
+    
+    // Check if user is actually authenticated before attempting write
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Skip saveCanvasData: User not authenticated. Skipping sync.');
+      }
+      return false;
+    }
+    
     const currentDeviceId = getDeviceId();
 
     const { error } = await supabase
@@ -223,13 +233,24 @@ export async function saveUserPreferences(
     }
     const supabase = createClient();
 
+    // Check if user is actually authenticated before attempting write
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Skip saveUserPreferences: User not authenticated. Skipping sync.');
+      }
+      return false;
+    }
+
     const { error } = await supabase
       .from('user_preferences')
       .upsert({
         user_id: userId,
         ...preferences,
+        updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id',
+        ignoreDuplicates: false,
       });
 
     if (error) {
@@ -405,6 +426,17 @@ export async function migrateLocalStorageToCloud(userId: string): Promise<boolea
       }
       localStorage.setItem(migrationKey, 'true');
       return true;
+    }
+
+    // Check if user is authenticated before attempting cloud operations
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Skip migration: User not authenticated. Deferring cloud sync.');
+      }
+      // Don't mark as complete - try again when user logs in
+      return false;
     }
 
     // STEP 1: Load existing data from cloud

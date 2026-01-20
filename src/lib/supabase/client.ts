@@ -12,36 +12,25 @@ export function createClient() {
     supabaseUrl || 'https://placeholder.supabase.co',
     supabaseAnonKey || 'placeholder',
     {
-      // Rely on @supabase/ssr cookie-backed storage to persist PKCE verifier across redirects.
-      auth: {
-        flowType: 'pkce',
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true,
-      },
       cookies: {
-        get(name: string) {
-          if (typeof document === 'undefined') return '';
-          const cookies = document.cookie.split('; ');
-          const cookie = cookies.find(c => c.startsWith(`${name}=`));
-          return cookie?.substring(name.length + 1) ?? '';
+        getAll() {
+          if (typeof document === 'undefined') return [];
+          return document.cookie.split('; ').map(cookie => {
+            const [name, ...value] = cookie.split('=');
+            return { name, value: value.join('=') };
+          });
         },
-        set(name: string, value: string, options: any) {
+        setAll(cookiesToSet) {
           if (typeof document === 'undefined') return;
-          let cookie = `${name}=${value}`;
-          if (options?.maxAge) cookie += `; max-age=${options.maxAge}`;
-          cookie += `; path=${options?.path ?? '/'}`;
-          // Use Lax for OAuth redirects to work properly; SDK will override when needed.
-          cookie += `; samesite=${options?.sameSite ?? 'Lax'}`;
-          // Only add secure flag in production (HTTPS)
-          if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-            cookie += '; secure';
-          }
-          document.cookie = cookie;
-        },
-        remove(name: string, options: any) {
-          if (typeof document === 'undefined') return;
-          document.cookie = `${name}=; path=${options?.path ?? '/'}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+          cookiesToSet.forEach(({ name, value, options }) => {
+            let cookie = `${name}=${value}`;
+            if (options?.maxAge) cookie += `; max-age=${options.maxAge}`;
+            if (options?.expires) cookie += `; expires=${options.expires.toUTCString()}`;
+            cookie += `; path=${options?.path ?? '/'}`;
+            cookie += `; samesite=${options?.sameSite ?? 'Lax'}`;
+            if (options?.secure) cookie += '; secure';
+            document.cookie = cookie;
+          });
         },
       },
     }

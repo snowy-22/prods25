@@ -777,7 +777,12 @@ const LibraryGridCard = memo(function LibraryGridCard({
                         if (onDragStartProp) {
                             onDragStartProp(e);
                         } else {
-                            e.dataTransfer.setData('application/json', JSON.stringify({ ...item, isNew: true }));
+                            const payload = JSON.stringify({ ...item, isNew: true });
+                            e.dataTransfer.effectAllowed = 'copy';
+                            e.dataTransfer.dropEffect = 'copy';
+                            e.dataTransfer.setData('application/json', payload);
+                            // Fallback for browsers that strip custom types (iOS Safari)
+                            e.dataTransfer.setData('text/plain', payload);
                         }
                     }}
                     onDragEnd={() => setIsDragging(false)}
@@ -1572,7 +1577,11 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                         isSelected={selectedItemIds.includes(item.id)}
                         onDragStart={(e: React.DragEvent) => {
                             if (props.setDraggedItem) {
-                                e.dataTransfer.setData('application/json', JSON.stringify({ ...item, isNew: true }));
+                                const payload = JSON.stringify({ ...item, isNew: true });
+                                e.dataTransfer.effectAllowed = 'copy';
+                                e.dataTransfer.dropEffect = 'copy';
+                                e.dataTransfer.setData('application/json', payload);
+                                e.dataTransfer.setData('text/plain', payload);
                                 props.setDraggedItem(item);
                             }
                         }}
@@ -2462,7 +2471,11 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                                                             onWidgetClick={onWidgetClick!}
                                                             onDragStart={(e) => {
                                                                 if (setDraggedItem && widget.type) {
-                                                                    e.dataTransfer.setData('application/json', JSON.stringify({ ...widget, isNew: true }));
+                                                                    const payload = JSON.stringify({ ...widget, isNew: true });
+                                                                    e.dataTransfer.effectAllowed = 'copy';
+                                                                    e.dataTransfer.dropEffect = 'copy';
+                                                                    e.dataTransfer.setData('application/json', payload);
+                                                                    e.dataTransfer.setData('text/plain', payload);
                                                                     setDraggedItem(widget);
                                                                 }
                                                             }}

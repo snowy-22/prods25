@@ -118,7 +118,7 @@ import React from "react";
 const SectionSeparator = () => <div className="section-separator" />;
 
 const MainHeader = () => (
-	<header className="sticky top-0 z-40 bg-background/80 backdrop-blur-sm">
+	<header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
 		<div className="container mx-auto flex h-16 items-center justify-between px-4">
 			<Logo />
 			<nav className="flex items-center gap-4">
@@ -173,6 +173,11 @@ export default function LandingPage() {
   const router = useRouter();
 	const { user, loading } = useAuth();
 	const isAuthenticated = !!user;
+
+	// Scroll to top on mount
+	useEffect(() => {
+		window.scrollTo({ top: 0, behavior: 'instant' });
+	}, []);
 
 	// Hero word carousel effect - MUST run unconditionally before any conditional returns
 	useEffect(() => {
@@ -255,8 +260,16 @@ export default function LandingPage() {
 							<AnimatedBorderButton asChild variant="shimmer" size="lg">
 								<Link href="/auth">Hemen Başla</Link>
 							</AnimatedBorderButton>
-							<AnimatedBorderButton asChild variant="glass" size="lg">
-								<Link href="#pricing">Fiyatlandırma</Link>
+						<AnimatedBorderButton 
+							asChild 
+							variant="glass" 
+							size="lg"
+							onClick={(e: React.MouseEvent) => {
+								e.preventDefault();
+								document.getElementById('pricing')?.scrollIntoView({ behavior: 'instant', block: 'start' });
+							}}
+						>
+							<button type="button">Fiyatlandırma</button>
 							</AnimatedBorderButton>
 						</div>
 					</div>
@@ -268,7 +281,7 @@ export default function LandingPage() {
 					</div>
 				</section>
 				{/* Demo Grid Section */}
-				<section className="w-full max-w-6xl mx-auto py-8 md:py-16 px-2">
+				<section className="w-full max-w-6xl mx-auto py-12 md:py-20 px-4">
 					<LandingPageDemoGrid />
 				</section>
 

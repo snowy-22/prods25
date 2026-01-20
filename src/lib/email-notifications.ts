@@ -64,7 +64,7 @@ export async function sendTransactionalEmail(
       to: email,
       subject,
       html: htmlContent,
-      reply_to: EMAIL_CONFIG.support,
+      replyTo: EMAIL_CONFIG.support,
       headers: {
         'X-Entity-Ref-ID': metadata?.userId || 'unknown',
         'X-Campaign-Id': metadata?.campaignId || 'transactional',
@@ -143,7 +143,7 @@ export async function sendAdminNotification(
       to: EMAIL_CONFIG.admin,
       subject: `[${type.toUpperCase()}] ${subject}`,
       html: htmlContent,
-      reply_to: EMAIL_CONFIG.support,
+      replyTo: EMAIL_CONFIG.support,
       headers: {
         'X-Notification-Type': type,
         'X-Entity-Ref-ID': metadata?.userId || 'system',

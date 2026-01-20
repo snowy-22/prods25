@@ -370,20 +370,45 @@ const DemoCard: React.FC<{ card: DemoCardData }> = ({ card }) => {
   };
 
   return (
-    <Card className={`${CARD_SIZE} ${gradient} p-0 overflow-hidden relative`}>
+    <Card 
+      className={`${CARD_SIZE} ${gradient} p-0 overflow-hidden relative`}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
       <div className="absolute inset-0 z-10 flex flex-col">
         <div className="px-2 py-1.5 bg-black/40 backdrop-blur-sm border-b border-white/10">
           <h4 className="text-white font-medium text-xs truncate">{title}</h4>
         </div>
         <div className="flex-1 p-1.5">
           {type === 'video' && url && (
-            <iframe src={url} title={title} className="w-full h-full rounded-md border border-white/20" allow="autoplay; encrypted-media" allowFullScreen />
+            <iframe 
+              src={url} 
+              title={title} 
+              className="w-full h-full rounded-md border border-white/20" 
+              allow="autoplay; encrypted-media" 
+              allowFullScreen 
+              onClick={(e) => e.stopPropagation()}
+            />
           )}
           {type === 'iframe' && url && (
-            <iframe src={url} title={title} className="w-full h-full rounded-md border border-white/20 bg-white" sandbox="allow-scripts allow-same-origin" />
+            <iframe 
+              src={url} 
+              title={title} 
+              className="w-full h-full rounded-md border border-white/20 bg-white" 
+              sandbox="allow-scripts allow-same-origin"
+              onClick={(e) => e.stopPropagation()}
+            />
           )}
           {type === 'slides' && url && (
-            <iframe src={url} title={title} className="w-full h-full rounded-md border border-white/20 bg-white" allowFullScreen />
+            <iframe 
+              src={url} 
+              title={title} 
+              className="w-full h-full rounded-md border border-white/20 bg-white" 
+              allowFullScreen
+              onClick={(e) => e.stopPropagation()}
+            />
           )}
           {type === 'ai' && <MiniAIChat />}
           {type === 'widget' && renderWidget()}
@@ -518,10 +543,10 @@ export const LandingPageDemoGrid: React.FC<{
 }> = ({ onHeroWordChange }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
   const [translateX, setTranslateX] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [randomCards, setRandomCards] = useState<DemoCardData[] | null>(null);
+  const dragState = useRef({ isPointerDown: false, startX: 0, startY: 0 });
   
   // NEW: Tab-based random system
   const [randomTabs, setRandomTabs] = useState<RandomTab[]>([]);
@@ -649,32 +674,73 @@ export const LandingPageDemoGrid: React.FC<{
     : demoPages[currentPage].cards;
 
   // Touch/Mouse handlers for swipe (prevent scroll issues)
-  const handleStart = (clientX: number, e?: React.MouseEvent | React.TouchEvent) => {
+  const handleStart = (
+    clientX: number,
+    clientY: number,
+    e?: React.MouseEvent | React.TouchEvent
+  ) => {
+    dragState.current = { isPointerDown: true, startX: clientX, startY: clientY };
+    setIsDragging(false);
+    setTranslateX(0);
     if (e) {
-      e.preventDefault();
       e.stopPropagation();
     }
-    setIsDragging(true);
-    setStartX(clientX);
   };
 
-  const handleMove = (clientX: number, e?: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging) return;
+  const handleMove = (
+    clientX: number,
+    clientY: number,
+    e?: React.MouseEvent | React.TouchEvent
+  ) => {
+    const { isPointerDown, startX, startY } = dragState.current;
+    if (!isPointerDown) return;
+
+    const diffX = clientX - startX;
+    const diffY = Math.abs(clientY - startY);
+
+    // If vertical intent is stronger, allow native scroll
+    if (!isDragging && diffY > Math.abs(diffX)) {
+      return;
+    }
+
+    // Activate drag only after a small horizontal threshold to avoid blocking taps
+    const dragThreshold = 8;
+    if (!isDragging && Math.abs(diffX) < dragThreshold) {
+      return;
+    }
+
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    const diff = clientX - startX;
+
     const maxDrag = 200;
-    setTranslateX(Math.max(-maxDrag, Math.min(maxDrag, diff)));
+    setTranslateX(Math.max(-maxDrag, Math.min(maxDrag, diffX)));
   };
 
   const handleEnd = (e?: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging) return;
+    const { isPointerDown } = dragState.current;
+    if (!isPointerDown) return;
+
+    dragState.current.isPointerDown = false;
+
+    if (!isDragging) {
+      setTranslateX(0);
+      if (e) {
+        e.stopPropagation();
+      }
+      return;
+    }
+
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
+
     setIsDragging(false);
     const threshold = 60;
     if (translateX > threshold) {
@@ -699,10 +765,10 @@ export const LandingPageDemoGrid: React.FC<{
   return (
     <div className="relative w-full">
       {/* Achievement Notifications */}
-      <AchievementNotification 
+      {/* <AchievementNotification 
         achievements={achievements} 
         onClose={removeAchievement}
-      />
+      /> */}
 
       {/* Page Title */}
       <h3 className="text-center text-xl font-bold text-white mb-4">
@@ -771,12 +837,13 @@ export const LandingPageDemoGrid: React.FC<{
         <div 
           ref={containerRef}
           className="relative overflow-hidden xl:mx-40"
-          onMouseDown={(e) => handleStart(e.clientX, e)}
-          onMouseMove={(e) => handleMove(e.clientX, e)}
+          style={{ touchAction: 'pan-y pinch-zoom' }}
+          onMouseDown={(e) => handleStart(e.clientX, e.clientY, e)}
+          onMouseMove={(e) => handleMove(e.clientX, e.clientY, e)}
           onMouseUp={(e) => handleEnd(e)}
           onMouseLeave={(e) => handleEnd(e)}
-          onTouchStart={(e) => handleStart(e.touches[0].clientX, e)}
-          onTouchMove={(e) => handleMove(e.touches[0].clientX, e)}
+          onTouchStart={(e) => handleStart(e.touches[0].clientX, e.touches[0].clientY, e)}
+          onTouchMove={(e) => handleMove(e.touches[0].clientX, e.touches[0].clientY, e)}
           onTouchEnd={(e) => handleEnd(e)}
         >
           <div 
@@ -907,7 +974,7 @@ export const LandingPageDemoGrid: React.FC<{
             <ArrowRight className="w-5 h-5" />
           </Button>
         </Link>
-        <p className="text-white/50 text-sm">Ücretsiz hesap oluştur, hemen kullanmaya başla!</p>
+        <p className="text-white/50 text-sm">Ücretsiz kayıt ol, hemen kullanmaya başla!</p>
       </div>
     </div>
   );

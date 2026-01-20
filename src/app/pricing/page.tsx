@@ -275,7 +275,7 @@ export default function PricingPage() {
 						Ücretsiz planla başlayın. İstediğiniz zaman yükseltebilirsiniz.
 					</p>
 					<AnimatedBorderButton asChild size="lg">
-						<Link href="/auth">Hesap Oluştur</Link>
+						<Link href="/auth">Kayıt Ol</Link>
 					</AnimatedBorderButton>
 				</div>
 			</main>

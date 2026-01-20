@@ -163,6 +163,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     
+    // Clear ALL auth cookies (critical for re-authentication)
+    const cookies = [
+      'sb-access-token', 
+      'sb-refresh-token', 
+      'supabase-auth-token', 
+      'sb-auth-token',
+      // Clear all possible Supabase cookie names
+      `sb-${process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID}-auth-token`,
+    ];
+    
+    cookies.forEach(name => {
+      document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=${window.location.hostname}; SameSite=Lax`;
+      // Also try without domain for localhost
+      document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+    });
+    
+    console.log('🧹 Auth cookies cleared on logout');
+    
+    // Clear local storage
+    if (typeof window !== 'undefined') {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth')) {
+          localStorage.removeItem(key);
+        }
+      });
+      console.log('🧹 Auth localStorage cleared');
+    }
+    
     // Clear local state
     setUser(null);
     setStoreUser(null);

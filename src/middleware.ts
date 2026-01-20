@@ -1,20 +1,51 @@
+import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 
-// Tüm domainlerde (tv25.app, tv22.app, tv22.app, tv26.app, localhost, vs.) ana sayfa ve alt sayfalar boş/temiz açılır.
-// Gerekirse burada özel yönlendirme veya header işlemleri yapılabilir.
+export async function middleware(req: NextRequest) {
+  let supabaseResponse = NextResponse.next({
+    request: req,
+  });
 
-export function middleware(req: NextRequest) {
-  // İstenirse domain bazlı özel logic eklenebilir
-  // Şimdilik sadece devam et
-  return NextResponse.next();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            req.cookies.set(name, value);
+            supabaseResponse.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  // Refresh session if expired - this is Supabase recommended pattern
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Optional: Protect routes
+  if (!user && req.nextUrl.pathname.startsWith('/canvas')) {
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = '/auth';
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  return supabaseResponse;
 }
 
 export const config = {
   matcher: [
     '/',
+    '/auth/callback',
+    '/canvas/:path*',
     '/login',
     '/register',
     '/guest',
-    // Diğer landing ve auth sayfaları
   ],
 };

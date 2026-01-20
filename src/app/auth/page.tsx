@@ -146,6 +146,10 @@ const signupSchema = z.object({
   email: z.string().email({ message: "Geçerli bir e-posta adresi girin." }),
   password: z.string().min(6, { message: "Şifre en az 6 karakter olmalıdır." }),
   referralCode: z.string().optional(),
+  acceptTerms: z.boolean().refine(val => val === true, {
+    message: "Kullanım şartlarını ve gizlilik politikasını kabul etmelisiniz."
+  }),
+  acceptMarketing: z.boolean().optional(),
 });
 
 // Password strength checker
@@ -172,6 +176,7 @@ export default function AuthPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetSent, setIsResetSent] = useState(false);
   const [referralCodeInput, setReferralCodeInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
   
   const { toast } = useToast();
   const { signIn, signUp, signInWithOAuth } = useAuth();
@@ -188,6 +193,8 @@ export default function AuthPage() {
       email: "",
       password: "",
       referralCode: "",
+      acceptTerms: false,
+      acceptMarketing: false,
     } : {
       email: "",
       password: "",
@@ -333,8 +340,8 @@ export default function AuthPage() {
         
         // Show success message with achievements info
         const successMessage = folderCreated 
-          ? "Hesap oluşturuldu! İlk klasörünüz hazır. 🎉" 
-          : "Hesap oluşturuldu! 🎉";
+          ? "Kayıt başarılı! İlk klasörünüz hazır. 🎉" 
+          : "Kayıt başarılı! 🎉";
         
         toast({ 
           title: successMessage, 
@@ -422,15 +429,32 @@ export default function AuthPage() {
   };
   
   const handleOAuthLogin = async (provider: 'google' | 'github' | 'facebook' | 'apple') => {
+    console.log(`🔄 [${provider}] Click detected...`);
+    setError(null);
     setIsSubmitting(true);
     try {
+      console.log(`🔄 [${provider}] Calling signInWithOAuth...`);
       await signInWithOAuth(provider);
+      // If we get here without an error being thrown, OAuth should redirect us
+      console.log(`✅ [${provider}] signInWithOAuth succeeded (should redirect)`);
     } catch (error: any) {
+      console.error(`❌ [${provider}] OAuth error caught:`, error);
+      const errorMessage = error?.message || error?.error_description || `${provider} girişi başarısız oldu.`;
+      console.error(`❌ [${provider}] Error message: ${errorMessage}`);
+      
+      // Set error state for display
+      setError(errorMessage);
+      
+      // Show toast
       toast({
         title: "Hata",
-        description: error.message || `${provider} girişi başarısız oldu.`,
+        description: errorMessage,
         variant: "destructive"
       });
+      
+      // FALLBACK: window.alert for visibility
+      window.alert(`❌ ${provider} Hatası:\n\n${errorMessage}`);
+      
       setIsSubmitting(false);
     }
   };
@@ -470,6 +494,14 @@ export default function AuthPage() {
               )}
             </motion.button>
           </div>
+          
+          {/* Error Alert */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700 font-medium">❌ Giriş Hatası</p>
+              <p className="text-sm text-red-600 mt-1">{error}</p>
+            </div>
+          )}
           
           <AnimatePresence mode="wait">
             <motion.div
@@ -735,6 +767,70 @@ export default function AuthPage() {
               )}
             </AnimatePresence>
             
+            {/* Terms and Consent Checkboxes - Only for signup */}
+            <AnimatePresence>
+              {isSignup && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-4"
+                >
+                  {/* Terms Acceptance (Required) */}
+                  <FormField
+                    control={form.control}
+                    // @ts-expect-error acceptTerms is part of signupSchema
+                    name="acceptTerms"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={!!field.value}
+                            onChange={field.onChange}
+                            className="w-4 h-4 mt-1 rounded border-white/20 bg-white/5 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-sm text-slate-300 cursor-pointer">
+                            <a href="/terms" target="_blank" className="text-indigo-400 hover:text-indigo-300 hover:underline">Kullanım Şartları</a>,{' '}
+                            <a href="/privacy" target="_blank" className="text-indigo-400 hover:text-indigo-300 hover:underline">Gizlilik Politikası</a> ve{' '}
+                            <a href="/kvkk" target="_blank" className="text-indigo-400 hover:text-indigo-300 hover:underline">KVKK Sözleşmesi</a>'ni okudum ve kabul ediyorum. <span className="text-red-400">*</span>
+                          </FormLabel>
+                          <FormMessage className="text-red-400 text-xs" />
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Marketing Consent (Optional) */}
+                  <FormField
+                    control={form.control}
+                    // @ts-expect-error acceptMarketing is part of signupSchema
+                    name="acceptMarketing"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={!!field.value}
+                            onChange={field.onChange}
+                            className="w-4 h-4 mt-1 rounded border-white/20 bg-white/5 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 cursor-pointer"
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel className="text-sm text-slate-300 cursor-pointer">
+                            Kampanyalar, duyurular ve ürün güncellemeleri hakkında dijital mesaj almak istiyorum.
+                          </FormLabel>
+                          <p className="text-xs text-slate-500">İstediğiniz zaman vazgeçebilirsiniz.</p>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+            
             {/* Forgot password - Only for login */}
             {!isSignup && (
               <div className="flex justify-end">
@@ -763,22 +859,11 @@ export default function AuthPage() {
                   İşleniyor...
                 </>
               ) : (
-                isSignup ? 'Hesap Oluştur' : 'Giriş Yap'
+                isSignup ? 'Kayıt Ol' : 'Giriş Yap'
               )}
             </Button>
           </form>
         </Form>
-        
-        {/* Terms */}
-        {isSignup && (
-          <p className="text-xs text-slate-500 text-center mt-6">
-            Kayıt olarak{' '}
-            <a href="/terms" className="text-indigo-400 hover:underline">Kullanım Şartları</a>
-            {' '}ve{' '}
-            <a href="/privacy" className="text-indigo-400 hover:underline">Gizlilik Politikası</a>
-            &apos;nı kabul etmiş olursun.
-          </p>
-        )}
       </div>
       
       {/* Right Side - Animated Player Grid Demo */}

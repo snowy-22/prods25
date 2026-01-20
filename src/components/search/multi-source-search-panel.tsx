@@ -128,12 +128,16 @@ export default function MultiSourceSearchPanel() {
                 onDragStart={e => {
                   // Mark as a draggable web result for native drop
                   e.dataTransfer.effectAllowed = 'copy';
-                  e.dataTransfer.setData('application/json', JSON.stringify({
+                  e.dataTransfer.dropEffect = 'copy';
+                  const payload = {
                     type: 'web-link',
                     title: r.title,
                     url: r.url,
                     source: 'web',
-                  }));
+                  };
+                  e.dataTransfer.setData('application/json', JSON.stringify(payload));
+                  // Provide text/plain fallback for browsers stripping custom types
+                  e.dataTransfer.setData('text/plain', JSON.stringify(payload));
                 }}
                 onClick={e => {
                   // Always open in new tab, also for mobile (prevent default if needed)
@@ -169,13 +173,16 @@ export default function MultiSourceSearchPanel() {
               <div key={v.id} className="mb-2 cursor-grab" draggable
                 onDragStart={e => {
                   e.dataTransfer.effectAllowed = 'copy';
-                  e.dataTransfer.setData('application/json', JSON.stringify({
+                  e.dataTransfer.dropEffect = 'copy';
+                  const payload = {
                     type: 'youtube-video',
                     title: v.title,
                     url: `https://www.youtube.com/watch?v=${v.id}`,
                     videoId: v.id,
                     source: 'youtube',
-                  }));
+                  };
+                  e.dataTransfer.setData('application/json', JSON.stringify(payload));
+                  e.dataTransfer.setData('text/plain', JSON.stringify(payload));
                 }}
               >
                 <iframe width="100%" height="120" src={`https://www.youtube.com/embed/${v.id}`} title={v.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
@@ -187,13 +194,16 @@ export default function MultiSourceSearchPanel() {
                 <div key={v.id} className="w-1/5 cursor-grab" draggable
                   onDragStart={e => {
                     e.dataTransfer.effectAllowed = 'copy';
-                    e.dataTransfer.setData('application/json', JSON.stringify({
+                    e.dataTransfer.dropEffect = 'copy';
+                    const payload = {
                       type: 'youtube-video',
                       title: v.title,
                       url: `https://www.youtube.com/watch?v=${v.id}`,
                       videoId: v.id,
                       source: 'youtube',
-                    }));
+                    };
+                    e.dataTransfer.setData('application/json', JSON.stringify(payload));
+                    e.dataTransfer.setData('text/plain', JSON.stringify(payload));
                   }}
                 >
                   <iframe width="100%" height="60" src={`https://www.youtube.com/embed/${v.id}`} title={v.title} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>

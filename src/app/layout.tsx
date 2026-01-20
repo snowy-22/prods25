@@ -9,6 +9,7 @@ import { VercelAnalytics } from '@/components/vercel-analytics';
 import { MobileFullscreenHandler } from '@/components/mobile-fullscreen-handler';
 import { AchievementProvider, AchievementNotification } from '@/components/ui/achievement-notification';
 import { AchievementLoader } from '@/components/achievement-loader';
+import { FrameDanceProvider } from '@/components/frame-dance-controller';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -123,12 +124,14 @@ export default function RootLayout({
           <CloudSyncProvider>
             <AppProvider>
               <AchievementProvider>
-                <MobileFullscreenHandler />
-                <LogTracker />
-                <AchievementLoader />
-                <AchievementNotification />
-                {children}
-                <VercelAnalytics />
+                <FrameDanceProvider>
+                  <MobileFullscreenHandler />
+                  <LogTracker />
+                  <AchievementLoader />
+                  <AchievementNotification />
+                  {children}
+                  <VercelAnalytics />
+                </FrameDanceProvider>
               </AchievementProvider>
             </AppProvider>
           </CloudSyncProvider>
