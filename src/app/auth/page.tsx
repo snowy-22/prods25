@@ -434,13 +434,40 @@ export default function AuthPage() {
     setIsSubmitting(true);
     try {
       console.log(`🔄 [${provider}] Calling signInWithOAuth...`);
+      // Log OAuth attempt
+      const oauthLog = {
+        provider,
+        timestamp: new Date().toISOString(),
+        userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'N/A',
+        url: typeof window !== 'undefined' ? window.location.href : 'N/A',
+      };
+      localStorage.setItem('oauth_attempt_log', JSON.stringify(oauthLog));
+      console.log('📝 OAuth attempt logged:', oauthLog);
+      
       await signInWithOAuth(provider);
       // If we get here without an error being thrown, OAuth should redirect us
       console.log(`✅ [${provider}] signInWithOAuth succeeded (should redirect)`);
     } catch (error: any) {
       console.error(`❌ [${provider}] OAuth error caught:`, error);
       const errorMessage = error?.message || error?.error_description || `${provider} girişi başarısız oldu.`;
-      console.error(`❌ [${provider}] Error message: ${errorMessage}`);
+      const fullErrorDetails = {
+        provider,
+        message: errorMessage,
+        code: error?.code,
+        status: error?.status,
+        details: error?.details,
+        timestamp: new Date().toISOString(),
+        url: typeof window !== 'undefined' ? window.location.href : 'N/A',
+        fullError: String(error)
+      };
+      
+      console.error(`❌ [${provider}] Full error details:`, fullErrorDetails);
+      
+      // SAVE ERROR TO LOCALSTORAGE
+      localStorage.setItem('oauth_error_log', JSON.stringify(fullErrorDetails));
+      
+      // SHOW ALERT WITH ERROR (won't disappear)
+      window.alert(`🔴 OAuth Hatası:\n\n${errorMessage}\n\nKod: ${error?.code || 'UNKNOWN'}`);
       
       // Set error state for display
       setError(errorMessage);
