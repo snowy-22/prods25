@@ -10,7 +10,7 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qukzepteomenikeelzno.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_YFd4MDCZ6IRAC5-GmQk7Pg_Y1bSto94';
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || 'sb_secret_8ghGs6KhBbV3xR4VQepRcQ_ZKS-qYzm';
 const MIGRATION_FILE = path.join(__dirname, '../supabase/migrations/20260107_sharing_and_realtime_sync.sql');
 
 async function deployMigration() {
@@ -23,7 +23,7 @@ async function deployMigration() {
 
   // Create Supabase client with service role key
   console.log('🔐 Supabase\'e bağlanılıyor...');
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY);
   console.log(`✅ Supabase\'e bağlandı (${SUPABASE_URL})\n`);
 
   try {

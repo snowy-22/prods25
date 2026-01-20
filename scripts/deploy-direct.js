@@ -10,7 +10,7 @@ const path = require('path');
 const https = require('https');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qukzepteomenikeelzno.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_YFd4MDCZ6IRAC5-GmQk7Pg_Y1bSto94';
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || 'sb_secret_8ghGs6KhBbV3xR4VQepRcQ_ZKS-qYzm';
 const MIGRATION_FILE = path.join(__dirname, '../supabase/migrations/20260107_sharing_and_realtime_sync.sql');
 
 async function execSQL(sql) {
@@ -25,8 +25,8 @@ async function execSQL(sql) {
       headers: {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(payload),
-        'apikey': SUPABASE_SERVICE_ROLE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+        'apikey': SUPABASE_SECRET_KEY,
+        'Authorization': `Bearer ${SUPABASE_SECRET_KEY}`
       }
     };
 
@@ -68,7 +68,7 @@ async function deployMigration() {
     // Connect to Supabase
     console.log('\n🔐 Supabase\'e bağlanılıyor...');
     console.log(`   - URL: ${SUPABASE_URL}`);
-    console.log(`   - Service Role Key: ${SUPABASE_SERVICE_ROLE_KEY.substring(0, 20)}...`);
+    console.log(`   - Secret Key: ${SUPABASE_SECRET_KEY.substring(0, 20)}...`);
     
     // Split SQL into logical chunks
     const chunks = migrationSQL

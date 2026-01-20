@@ -70,11 +70,11 @@ const TEMPLATE_MAPPING = {
 
 async function uploadTemplate(templateKey) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ADMIN_KEY;
+  const supabaseServiceKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_ADMIN_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('❌ Error: Missing environment variables');
-    console.error('Required: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
+    console.error('Required: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY');
     process.exit(1);
   }
 
