@@ -2,9 +2,10 @@
 
 import { readFileSync } from 'fs';
 import fetch from 'node-fetch';
+import 'dotenv/config';
 
-const SUPABASE_URL = 'https://qukzepteomenikeelzno.supabase.co';
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1a3plcHRlb21lbmlrZWVsem5vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NzEyNTU3NCwiZXhwIjoyMDgyNzAxNTc0fQ.m6MmqRhGaJHRUOdO_NzOVdXx50KSkm4SgT2mppOhNpI';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_PROJECT_ID = SUPABASE_URL ? new URL(SUPABASE_URL).hostname.split('.')[0] : 'YOUR_PROJECT_ID';
 
 console.log('🚀 Supabase SQL Migration Uploader\n');
 console.log('📖 Reading migrations-combined.sql...');
@@ -17,7 +18,7 @@ console.log('=' .repeat(60));
 console.log('\n⚠️  AUTOMATED UPLOAD NOT AVAILABLE');
 console.log('    Supabase requires SQL to be executed via Dashboard SQL Editor\n');
 console.log('📌 MANUAL STEPS:');
-console.log('   1. Open: https://supabase.com/dashboard/project/qukzepteomenikeelzno/sql/new');
+console.log(`   1. Open: https://supabase.com/dashboard/project/${SUPABASE_PROJECT_ID}/sql/new`);
 console.log('   2. Copy the entire content of: migrations-combined.sql');
 console.log('   3. Paste into the SQL Editor');
 console.log('   4. Click "RUN" button');
