@@ -4,13 +4,13 @@
 
 **Publishable Key (Client-side):**
 ```
-sb_publishable_i4PMqx-5M9y7gTw7G7NnJw_pgB3BW89
+[REDACTED - Use environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY]
 ```
 
 **Secret Key (Server-side):**
 ```
-
-sb_secret_8ghGs6KhBbV3xR4VQepRcQ_ZKS-qYzm
+[REDACTED - Use environment variable: SUPABASE_SECRET_KEY]
+[⚠️ NEVER commit actual secret keys to git!]
 ```
 
 ---
@@ -33,17 +33,17 @@ sb_secret_8ghGs6KhBbV3xR4VQepRcQ_ZKS-qYzm
 
    **NEXT_PUBLIC_SUPABASE_ANON_KEY:**
    ```
-   sb_publishable_i4PMqx-5M9y7gTw7G7NnJw_pgB3BW89
+   [Get from .env.local - Publishable Key]
    ```
 
    **NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:**
    ```
-   sb_publishable_i4PMqx-5M9y7gTw7G7NnJw_pgB3BW89
+   [Get from .env.local - Publishable Key]
    ```
 
    **SUPABASE_SECRET_KEY** (yeni - eskiden SERVICE_ROLE_KEY):
    ```
-   sb_secret_8ghGs6KhBbV3xR4VQepRcQ_ZKS-qYzm
+   [Get from .env.local - SECRET KEY - Keep private!]
    ```
 
 3. Eski `SUPABASE_SERVICE_ROLE_KEY` değişkenini SİL
@@ -63,21 +63,21 @@ vercel env rm SUPABASE_SERVICE_ROLE_KEY preview
 vercel env rm SUPABASE_SERVICE_ROLE_KEY development
 
 vercel env add SUPABASE_SECRET_KEY production
-# Değer: sb_secret_8ghGs6KhBbV3xR4VQepRcQ_ZKS-qYzm
+# [Use value from .env.local - Do NOT hardcode!]
 
 vercel env add SUPABASE_SECRET_KEY preview
-# Değer: sb_secret_8ghGs6KhBbV3xR4VQepRcQ_ZKS-qYzm
+# [Use value from .env.local - Do NOT hardcode!]
 
 vercel env add SUPABASE_SECRET_KEY development
-# Değer: sb_secret_8ghGs6KhBbV3xR4VQepRcQ_ZKS-qYzm
+# [Use value from .env.local - Do NOT hardcode!]
 
 vercel env rm NEXT_PUBLIC_SUPABASE_ANON_KEY production
 vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
-# Değer: sb_publishable_i4PMqx-5M9y7gTw7G7NnJw_pgB3BW89
+# [Use value from .env.local - Publishable Key]
 
 vercel env rm NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY production
 vercel env add NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY production
-# Değer: sb_publishable_i4PMqx-5M9y7gTw7G7NnJw_pgB3BW89
+# [Use value from .env.local - Publishable Key]
 
 # Redeploy:
 vercel --prod
@@ -114,10 +114,10 @@ Eğer GitHub Actions kullanıyorsanız:
 2. `SUPABASE_SERVICE_ROLE_KEY` sil
 3. Yeni secret ekle:
    - Name: `SUPABASE_SECRET_KEY`
-   - Value: `sb_secret_8ghGs6KhBbV3xR4VQepRcQ_ZKS-qYzm`
+   - Value: `[Get from .env.local - Do NOT hardcode in docs!]`
 
 4. `NEXT_PUBLIC_SUPABASE_ANON_KEY` güncelle:
-   - Value: `sb_publishable_i4PMqx-5M9y7gTw7G7NnJw_pgB3BW89`
+   - Value: `[Get from .env.local - Publishable Key]`
 
 ---
 

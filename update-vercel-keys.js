@@ -7,8 +7,15 @@
 
 const { execSync } = require('child_process');
 
-const NEW_PUBLISHABLE_KEY = 'sb_publishable_i4PMqx-5M9y7gTw7G7NnJw_pgB3BW89';
-const NEW_SECRET_KEY = 'sb_secret_8ghGs6KhBbV3xR4VQepRcQ_ZKS-qYzm';
+const NEW_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEW_PUBLISHABLE_KEY;
+const NEW_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || process.env.NEW_SECRET_KEY;
+
+if (!NEW_PUBLISHABLE_KEY || !NEW_SECRET_KEY) {
+  console.error('\n❌ Error: Supabase keys must be provided via environment variables!');
+  console.error('   Required: NEXT_PUBLIC_SUPABASE_ANON_KEY and SUPABASE_SECRET_KEY');
+  console.error('   Or: NEW_PUBLISHABLE_KEY and NEW_SECRET_KEY\n');
+  process.exit(1);
+}
 
 console.log('\n🚀 Vercel Environment Variables Auto-Updater\n');
 console.log('═'.repeat(60));

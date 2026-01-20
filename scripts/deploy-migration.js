@@ -10,7 +10,13 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://qukzepteomenikeelzno.supabase.co';
-const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || 'sb_secret_8ghGs6KhBbV3xR4VQepRcQ_ZKS-qYzm';
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
+
+if (!SUPABASE_SECRET_KEY) {
+  console.error('❌ Error: SUPABASE_SECRET_KEY environment variable is required!');
+  console.error('   Set it in .env.local or environment variables.');
+  process.exit(1);
+}
 const MIGRATION_FILE = path.join(__dirname, '../supabase/migrations/20260107_sharing_and_realtime_sync.sql');
 
 async function deployMigration() {
