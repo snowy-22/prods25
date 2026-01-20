@@ -10,7 +10,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, username: string, referralCode?: string) => Promise<void>;
-  signInWithOAuth: (provider: 'google' | 'github' | 'facebook' | 'apple') => Promise<void>;
+  signInWithOAuth: (provider: 'google') => Promise<void>;
   signOut: () => Promise<void>;
   signInAnonymously: () => void;
   generateReferralCode: (userId: string) => string;
@@ -206,7 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   };
 
-  const signInWithOAuth = async (provider: 'google' | 'github' | 'facebook' | 'apple') => {
+  const signInWithOAuth = async (provider: 'google') => {
     try {
       console.log(`🔐 Initiating ${provider} OAuth...`);
       console.log(`📍 Redirect URL: ${window.location.origin}/auth/callback`);
