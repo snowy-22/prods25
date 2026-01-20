@@ -951,25 +951,13 @@ export const LandingPageDemoGrid: React.FC<{
           </Button>
         </div>
 
-        {/* Sign Up Button - Alt satırda */}
-        <div className="mt-3 flex justify-center">
-          <Link href="/auth" onClick={handleSignUpWithDemo}>
-            <Button
-              size="sm"
-              className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold gap-1.5 shadow-lg shadow-emerald-500/20"
-            >
-              <UserPlus className="w-4 h-4" />
-              Hemen Üye Ol
-            </Button>
-          </Link>
-        </div>
       </div>
 
       {/* Bottom CTA */}
       <div className="mt-4 flex flex-col items-center gap-3">
         <Link href="/auth" onClick={handleSignUpWithDemo}>
           <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold px-8 py-6 text-lg gap-2 shadow-lg shadow-emerald-500/25">
-            <Sparkles className="w-5 h-5" />
+            <UserPlus className="w-5 h-5" />
             Hemen Üye Ol ve Kullanmaya Başla
             <ArrowRight className="w-5 h-5" />
           </Button>
