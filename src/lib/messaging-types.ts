@@ -73,7 +73,8 @@ export interface Message {
   fileName?: string;
   fileSize?: number;
   reactions: Record<string, string[]>; // emoji -> [userId1, userId2, ...]
-  mentions: string[]; // @userId references
+  mentions?: Array<{ userId: string; userName: string; index: number; length: number }>; // @username references with position
+  hashtags?: Array<{ text: string; index: number; length: number }>; // #hashtag references with position
   replyToId?: string; // Reply to another message
   replyToContent?: string;
   replyToSender?: string;

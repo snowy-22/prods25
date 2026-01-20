@@ -10,6 +10,7 @@ import { MobileFullscreenHandler } from '@/components/mobile-fullscreen-handler'
 import { AchievementProvider, AchievementNotification } from '@/components/ui/achievement-notification';
 import { AchievementLoader } from '@/components/achievement-loader';
 import { FrameDanceProvider } from '@/components/frame-dance-controller';
+import { AdSenseProvider } from '@/components/adsense';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -123,16 +124,18 @@ export default function RootLayout({
         <AuthProvider>
           <CloudSyncProvider>
             <AppProvider>
-              <AchievementProvider>
-                <FrameDanceProvider>
-                  <MobileFullscreenHandler />
-                  <LogTracker />
-                  <AchievementLoader />
-                  <AchievementNotification />
-                  {children}
-                  <VercelAnalytics />
-                </FrameDanceProvider>
-              </AchievementProvider>
+              <AdSenseProvider>
+                <AchievementProvider>
+                  <FrameDanceProvider>
+                    <MobileFullscreenHandler />
+                    <LogTracker />
+                    <AchievementLoader />
+                    <AchievementNotification />
+                    {children}
+                    <VercelAnalytics />
+                  </FrameDanceProvider>
+                </AchievementProvider>
+              </AdSenseProvider>
             </AppProvider>
           </CloudSyncProvider>
         </AuthProvider>

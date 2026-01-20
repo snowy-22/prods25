@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AdminLayout, AdminNav } from '@/components/admin/admin-layout';
 import { getAdminAnalyticsSummary } from '@/lib/analytics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -73,17 +74,27 @@ export default function AdminAnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <AdminLayout title="Analytics" subtitle="Platform analitikleri yükleniyor...">
+        <AdminNav />
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
     );
   }
 
   if (!analytics) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Analitik veri yüklenemedi.</p>
-      </div>
+      <AdminLayout title="Analytics" subtitle="Veri yüklenemedi">
+        <AdminNav />
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Analitik veri yüklenemedi.</p>
+          <Button onClick={loadAnalytics} variant="outline" className="mt-4">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Tekrar Dene
+          </Button>
+        </div>
+      </AdminLayout>
     );
   }
 
@@ -95,7 +106,12 @@ export default function AdminAnalyticsPage() {
     : 0;
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl space-y-8">
+    <AdminLayout
+      title="Analytics"
+      subtitle="Platform genelindeki kullanım istatistikleri ve performans metrikleri"
+    >
+      <AdminNav />
+      <div className="container mx-auto p-6 max-w-7xl space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -527,6 +543,7 @@ export default function AdminAnalyticsPage() {
           </div>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }

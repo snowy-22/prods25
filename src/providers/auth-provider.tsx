@@ -9,7 +9,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, username: string, referralCode?: string) => Promise<void>;
+  signUp: (email: string, password: string, username: string, referralCode?: string) => Promise<{ user: User | null; session: any | null }>;
   signInWithOAuth: (provider: 'google') => Promise<void>;
   signOut: () => Promise<void>;
   signInAnonymously: () => void;
@@ -156,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    return data;
+    return { user: data.user, session: data.session };
   };
 
   const signOut = async () => {
@@ -219,7 +219,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             prompt: 'consent',
           },
           skipBrowserRedirect: false, // Let Supabase handle redirect
-          flowType: 'pkce', // Explicitly use PKCE flow
         },
       });
 

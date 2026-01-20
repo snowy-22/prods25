@@ -257,20 +257,19 @@ export default function LandingPage() {
 							Web içeriklerini, videoları, widget'ları ve daha fazlasını tek bir dijital kanvasta organize et. Sürükle-bırak, AI entegrasyonu ve çoklu görünüm modları ile üretkenliğini artır.
 						</p>
 						<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center md:justify-start">
+							<AnimatedBorderButton asChild variant="glass" size="lg">
+								<Link href="/canvas">Hemen Test Et</Link>
+							</AnimatedBorderButton>
 							<AnimatedBorderButton asChild variant="shimmer" size="lg">
-								<Link href="/auth">Hemen Başla</Link>
+								<Link href="/auth">Ücretsiz Başla</Link>
 							</AnimatedBorderButton>
-						<AnimatedBorderButton 
-							asChild 
-							variant="glass" 
-							size="lg"
-							onClick={(e: React.MouseEvent) => {
-								e.preventDefault();
-								document.getElementById('pricing')?.scrollIntoView({ behavior: 'instant', block: 'start' });
-							}}
-						>
-							<button type="button">Fiyatlandırma</button>
-							</AnimatedBorderButton>
+						</div>
+						{/* Scroll indicator */}
+						<div className="flex flex-col items-center mt-8 animate-bounce">
+							<span className="text-xs text-muted-foreground/60 mb-1">Daha fazlası için kaydır</span>
+							<svg className="w-5 h-5 text-muted-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+							</svg>
 						</div>
 					</div>
 					{/* Right: Responsive DVD Animation */}

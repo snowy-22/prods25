@@ -152,6 +152,9 @@ export interface Message {
   editedAt?: string;
   replyToId?: string;
   reactions: Array<{ emoji: string; userId: string; userName: string }>;
+  // Mention & Hashtag support
+  mentions?: Array<{ userId: string; userName: string; index: number; length: number }>;
+  hashtags?: Array<{ text: string; index: number; length: number }>;
 }
 import { HueBridge, HueLight, HueScene, HueSync } from './hue-types';
 import { GridModeState } from './layout-engine';
@@ -1997,7 +2000,43 @@ export const useAppStore = create<AppStore>()(
       },
       togglePanel: (panel, open) => set((state) => ({ [panel]: open !== undefined ? open : !state[panel] })),
       setEcommerceView: (view) => set({ ecommerceView: view }),
-      setActiveSecondaryPanel: (panel) => set({ activeSecondaryPanel: panel, isSecondLeftSidebarOpen: !!panel }),
+      setActiveSecondaryPanel: (panel) => {
+        const restrictedForGuest: AppStore['activeSecondaryPanel'][] = [
+          'social',
+          'messages',
+          'widgets',
+          'notifications',
+          'spaces',
+          'devices',
+          'ai-chat',
+          'shopping',
+          'advanced-profiles',
+          'message-groups',
+          'calls',
+          'meetings',
+          'social-groups',
+          'achievements',
+          'marketplace',
+          'rewards',
+        ];
+
+        const allowedForGuest: AppStore['activeSecondaryPanel'][] = ['library', 'profile', 'search'];
+        const tier = get().userSubscriptionTier;
+
+        if (tier === 'guest' && panel && restrictedForGuest.includes(panel)) {
+          // Keep sidebar on a safe panel for guests and avoid opening locked areas
+          set({ activeSecondaryPanel: 'library', isSecondLeftSidebarOpen: true });
+          return;
+        }
+
+        // Allow explicitly whitelisted guest panels and all panels for other tiers
+        if (tier === 'guest' && panel && !allowedForGuest.includes(panel)) {
+          set({ activeSecondaryPanel: 'library', isSecondLeftSidebarOpen: true });
+          return;
+        }
+
+        set({ activeSecondaryPanel: panel, isSecondLeftSidebarOpen: !!panel });
+      },
       toggleSecondarySidebarOverlayMode: () => set((state) => ({ secondarySidebarOverlayMode: !state.secondarySidebarOverlayMode })),
       setSecondarySidebarWidth: (width) => {
         const clampedWidth = Math.max(280, Math.min(600, width));

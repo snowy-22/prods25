@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { supabase } from '@/lib/db/supabase-client';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, BarChart3, Users, ShieldCheck, Home } from 'lucide-react';
+import { LogOut, Settings, BarChart3, Users, ShieldCheck, Home, Sliders, TrendingUp } from 'lucide-react';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -38,7 +38,7 @@ export function AdminLayout({
   React.useEffect(() => {
     const checkAdminStatus = async () => {
       if (!user) {
-        router.push('/auth/callback');
+        router.push('/auth');
         return;
       }
 
@@ -193,6 +193,16 @@ export function AdminNav() {
         icon={<Users className="w-4 h-4" />}
         label="Users"
       />
+      <NavLink
+        href="/admin/features"
+        icon={<Sliders className="w-4 h-4" />}
+        label="Özellik Planlama"
+      />
+      <NavLink
+        href="/admin/analytics"
+        icon={<TrendingUp className="w-4 h-4" />}
+        label="Analytics"
+      />
     </nav>
   );
 }
@@ -205,8 +215,8 @@ interface NavLinkProps {
 
 function NavLink({ href, icon, label }: NavLinkProps) {
   const router = useRouter();
-  const isActive = typeof window !== 'undefined' &&
-    window.location.pathname === href;
+  const pathname = usePathname();
+  const isActive = pathname === href;
 
   return (
     <button

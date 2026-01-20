@@ -30,7 +30,8 @@ export interface Comment {
   userAvatar?: string;
   content: string;
   html?: string;
-  mentions?: string[];
+  mentions?: Array<{ userId: string; userName: string; index: number; length: number }>; // @username references
+  hashtags?: Array<{ text: string; index: number; length: number }>; // #hashtag references
   attachments?: string[];
   createdAt: string;
   updatedAt: string;

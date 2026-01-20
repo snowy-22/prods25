@@ -139,7 +139,7 @@ export function MessagingPanel({
   const currentConversation = conversations.find((c) => c.id === currentConversationId);
   const currentMessages = currentConversationId ? messages[currentConversationId] || [] : [];
 
-  const handleSendMessage = () => {
+  const handleSendMessage = (mentions?: Array<{ userId: string; userName: string; index: number; length: number }>, hashtags?: Array<{ text: string; index: number; length: number }>) => {
     if (!messageInput.trim() && !attachedItem || !currentConversationId) return;
 
     const newMessage: Message = {
@@ -151,7 +151,8 @@ export function MessagingPanel({
       type: attachedItem ? MessageType.SHARED_ITEM : MessageType.TEXT,
       metadata: attachedItem ? { sharedItem: attachedItem } : undefined,
       reactions: {},
-      mentions: [],
+      mentions: mentions || [],
+      hashtags: hashtags || [],
       isEdited: false,
       readBy: [currentUserId],
       createdAt: new Date().toISOString(),
@@ -335,10 +336,10 @@ export function MessagingPanel({
                 </div>
               )}
 
-              {/* Message Input */}
+              {/* Message Input with Mention Support */}
               <div className="flex gap-2">
                 <Input
-                  placeholder="Mesaj yazın..."
+                  placeholder="Mesaj yazın... (@kullanıcı veya #etiket)"
                   value={messageInput}
                   onChange={(e) => setMessageInput(e.target.value)}
                   onKeyPress={(e) => {

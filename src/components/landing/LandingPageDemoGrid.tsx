@@ -546,6 +546,7 @@ export const LandingPageDemoGrid: React.FC<{
   const [translateX, setTranslateX] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
   const [randomCards, setRandomCards] = useState<DemoCardData[] | null>(null);
+  const [isSavedToCache, setIsSavedToCache] = useState(false);
   const dragState = useRef({ isPointerDown: false, startX: 0, startY: 0 });
   
   // NEW: Tab-based random system
@@ -613,8 +614,42 @@ export const LandingPageDemoGrid: React.FC<{
     onHeroWordChange?.(heroWords[newPage] || 'Dijital Dünyayı');
   }, [totalPages, onHeroWordChange]);
 
-  const nextPage = useCallback(() => goToPage(currentPage + 1), [currentPage, goToPage]);
-  const prevPage = useCallback(() => goToPage(currentPage - 1), [currentPage, goToPage]);
+  // Navigate between pages and random tabs
+  const nextPage = useCallback(() => {
+    if (activeRandomTabId !== null) {
+      // Currently on a random tab - go to next random tab or wrap to page 0
+      const currentTabIdx = randomTabs.findIndex(t => t.id === activeRandomTabId);
+      if (currentTabIdx < randomTabs.length - 1) {
+        setActiveRandomTabId(randomTabs[currentTabIdx + 1].id);
+      } else {
+        // Wrap to first page
+        goToPage(0);
+      }
+    } else if (currentPage === totalPages - 1 && randomTabs.length > 0) {
+      // Last regular page - go to first random tab
+      setActiveRandomTabId(randomTabs[0].id);
+      setTranslateX(0);
+    } else {
+      goToPage(currentPage + 1);
+    }
+  }, [currentPage, goToPage, activeRandomTabId, randomTabs, totalPages]);
+
+  const prevPage = useCallback(() => {
+    if (activeRandomTabId !== null) {
+      // Currently on a random tab
+      const currentTabIdx = randomTabs.findIndex(t => t.id === activeRandomTabId);
+      if (currentTabIdx > 0) {
+        setActiveRandomTabId(randomTabs[currentTabIdx - 1].id);
+      } else {
+        // Go back to last regular page
+        setActiveRandomTabId(null);
+        setCurrentPage(totalPages - 1);
+        setTranslateX(0);
+      }
+    } else {
+      goToPage(currentPage - 1);
+    }
+  }, [currentPage, goToPage, activeRandomTabId, randomTabs, totalPages]);
 
   // Get previous and next page indices for peek effect (circular)
   const prevPageIdx = (currentPage - 1 + totalPages) % totalPages;
@@ -654,6 +689,18 @@ export const LandingPageDemoGrid: React.FC<{
     
     setRandomTabs(prev => [...prev, newTab]);
     setActiveRandomTabId(newTabId);
+  };
+
+  // Generate creative title for random tabs
+  const getRandomTabTitle = (tabIndex: number) => {
+    const titles = [
+      '🎲 Yapay Zeka Pikseleri',
+      '⚡ Hız Modunda İçerik',
+      '🔮 Fusion Klasörü',
+      '🌀 Dinamik Seçim',
+      '✨ Muse Enspirasyonu'
+    ];
+    return titles[tabIndex % titles.length];
   };
 
   // Navigate to a random tab
@@ -763,29 +810,213 @@ export const LandingPageDemoGrid: React.FC<{
   }, [nextPage, prevPage]);
 
   return (
-    <div className="relative w-full">
-      {/* Section Snap Scroll Container */}
-      <div
-        className="snap-y snap-mandatory overflow-y-auto h-[calc(100vh-120px)]"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        {/* Each demo page as a snap section */}
-        {demoPages.map((page, idx) => (
-          <section
-            key={idx}
-            className="snap-start min-h-[80vh] flex flex-col justify-center items-center"
-          >
-            <h3 className="text-center text-xl font-bold text-white mb-4">{page.title}</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-5xl mx-auto px-4">
-              {page.cards.map((card, cidx) => (
-                <DemoCard key={`${idx}-${cidx}`} card={card} />
-              ))}
-            </div>
-          </section>
-        ))}
+    <div 
+      className="relative w-full group/carousel"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+    >
+      {/* Carousel Container */}
+      <div className="relative overflow-hidden w-full">
+        {/* Left Side Arrow - Hover visible */}
+        <button
+          onClick={prevPage}
+          className={`absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-black/50 backdrop-blur-sm text-white transition-all duration-300 hover:bg-black/70 hover:scale-110 ${
+            isHovering ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4'
+          } ${currentPage === 0 && activeRandomTabId === null ? 'cursor-not-allowed opacity-30' : ''}`}
+          aria-label="Önceki sayfa"
+          disabled={currentPage === 0 && activeRandomTabId === null}
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+
+        {/* Right Side Arrow - Hover visible */}
+        <button
+          onClick={nextPage}
+          className={`absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-black/50 backdrop-blur-sm text-white transition-all duration-300 hover:bg-black/70 hover:scale-110 ${
+            isHovering ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-4'
+          } ${currentPage === totalPages - 1 && randomTabs.length === 0 ? 'cursor-not-allowed opacity-30' : ''}`}
+          aria-label="Sonraki sayfa"
+          disabled={currentPage === totalPages - 1 && randomTabs.length === 0}
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+
+        {/* Sliding Carousel Track - All pages side by side */}
+        <div
+          className="flex w-full transition-transform duration-500 ease-out"
+          style={{ 
+            transform: `translateX(calc(-${activeRandomTabId !== null 
+              ? (totalPages + randomTabs.findIndex(t => t.id === activeRandomTabId)) * 100 
+              : currentPage * 100}% + ${translateX}px))` 
+          }}
+          onTouchStart={(e: React.TouchEvent<HTMLDivElement>) => handleStart(e.touches[0].clientX, e.touches[0].clientY, e)}
+          onTouchMove={(e: React.TouchEvent<HTMLDivElement>) => handleMove(e.touches[0].clientX, e.touches[0].clientY, e)}
+          onTouchEnd={(e: React.TouchEvent<HTMLDivElement>) => handleEnd(e)}
+          onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => handleStart(e.clientX, e.clientY, e)}
+          onMouseMove={(e: React.MouseEvent<HTMLDivElement>) => handleMove(e.clientX, e.clientY, e)}
+          onMouseUp={(e: React.MouseEvent<HTMLDivElement>) => handleEnd(e)}
+          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => handleEnd(e)}
+        >
+          {/* Regular Demo Pages */}
+          {demoPages.map((page, pageIdx) => {
+            const isActive = activeRandomTabId === null && currentPage === pageIdx;
+            const isPrev = activeRandomTabId === null && currentPage === pageIdx + 1;
+            const isNext = activeRandomTabId === null && currentPage === pageIdx - 1;
+            
+            return (
+              <div 
+                key={pageIdx} 
+                className={`w-full flex-shrink-0 px-2 md:px-6 py-2 transition-all duration-300 ${
+                  isActive ? 'opacity-100 scale-100' : 
+                  isPrev || isNext ? 'opacity-40 scale-95 blur-[2px]' : 
+                  'opacity-20 scale-90 blur-sm'
+                }`}
+              >
+                <h3 className="text-center text-xl font-bold text-white mb-4">
+                  {page.title}
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-5xl mx-auto">
+                  {page.cards.map((card, idx) => (
+                    <DemoCard key={`${pageIdx}-${idx}`} card={card} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          
+          {/* Random Tabs - Appended after regular pages */}
+          {randomTabs.map((tab, tabIdx) => {
+            const absoluteIdx = totalPages + tabIdx;
+            const isActive = activeRandomTabId === tab.id;
+            
+            return (
+              <div 
+                key={`random-${tab.id}`} 
+                className={`w-full flex-shrink-0 px-2 md:px-6 py-2 transition-all duration-300 ${
+                  isActive ? 'opacity-100 scale-100' : 'opacity-20 scale-90 blur-sm'
+                }`}
+              >
+                <h3 className="text-center text-xl font-bold text-white mb-4 flex items-center justify-center gap-2">
+                  {getRandomTabTitle(tabIdx)}
+                  <span className="text-sm text-purple-400/70">({tabIdx + 1}/{MAX_RANDOM_TABS})</span>
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-5xl mx-auto">
+                  {tab.cards.map((card, idx) => (
+                    <DemoCard key={`random-${tab.id}-${idx}`} card={card} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Left Blur Preview Overlay - Ultra Minimal */}
+        <div className="absolute left-0 top-0 bottom-0 w-2 md:w-3 bg-gradient-to-r from-black/10 to-transparent pointer-events-none z-10" />
+        
+        {/* Right Blur Preview Overlay - Ultra Minimal */}
+        <div className="absolute right-0 top-0 bottom-0 w-2 md:w-3 bg-gradient-to-l from-black/10 to-transparent pointer-events-none z-10" />
       </div>
+
+      {/* Bottom Controls */}
+      <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
+        {/* Page Indicators - Regular Pages */}
+        <div className="flex items-center gap-2">
+          {demoPages.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => goToPage(idx)}
+              className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${
+                activeRandomTabId === null && idx === currentPage
+                  ? 'bg-emerald-500 scale-125'
+                  : 'bg-white/30 hover:bg-white/50'
+              }`}
+              aria-label={`Sayfa ${idx + 1}`}
+            />
+          ))}
+          
+          {/* Random Tab Indicators */}
+          {randomTabs.length > 0 && (
+            <>
+              <div className="w-px h-4 bg-white/30 mx-1" />
+              {randomTabs.map((tab, idx) => (
+                <button
+                  key={`dot-random-${tab.id}`}
+                  onClick={() => goToRandomTab(tab.id)}
+                  className={`w-2.5 h-2.5 rounded-full transition-all duration-200 ${
+                    activeRandomTabId === tab.id
+                      ? 'bg-purple-500 scale-125'
+                      : 'bg-purple-400/40 hover:bg-purple-400/60'
+                  }`}
+                  aria-label={`Rastgele ${idx + 1}`}
+                />
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* Separator */}
+        <div className="w-px h-6 bg-white/20 mx-2 hidden sm:block" />
+
+        {/* Rastgele (Random) Button */}
+        <button
+          onClick={shuffleCards}
+          disabled={randomTabs.length >= MAX_RANDOM_TABS && activeRandomTabId === null}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+            randomTabs.length >= MAX_RANDOM_TABS && activeRandomTabId === null
+              ? 'bg-white/5 text-white/40 cursor-not-allowed'
+              : 'bg-white/10 hover:bg-white/20 text-white'
+          }`}
+          title={randomTabs.length >= MAX_RANDOM_TABS ? 'Maksimum 5 rastgele klasör' : 'Rastgele sırala'}
+        >
+          <Dice5 className="w-4 h-4" />
+          <span className="hidden sm:inline text-sm">Rastgele</span>
+          {randomTabs.length > 0 && (
+            <span className="text-xs bg-purple-500/30 px-1.5 py-0.5 rounded">
+              {randomTabs.length}/{MAX_RANDOM_TABS}
+            </span>
+          )}
+        </button>
+
+        {/* Separator */}
+        <div className="w-px h-6 bg-white/20 mx-2 hidden sm:block" />
+
+        {/* Save Button - Cache first, then real save on auth */}
+        <button
+          onClick={() => {
+            saveCurrentDemo();
+            setIsSavedToCache(true);
+            setTimeout(() => setIsSavedToCache(false), 2000);
+          }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${
+            isSavedToCache 
+              ? 'bg-emerald-500/30 text-emerald-300' 
+              : 'bg-white/10 hover:bg-white/20 text-white'
+          }`}
+          title="Önizlemeyi kaydet (üye olunca kalıcı olur)"
+        >
+          {isSavedToCache ? (
+            <Check className="w-4 h-4" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          <span className="hidden sm:inline text-sm">
+            {isSavedToCache ? 'Kaydedildi!' : 'Kaydet'}
+          </span>
+        </button>
+      </div>
+
+      {/* Membership Message Popup */}
+      {showMembershipMessage && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-full shadow-lg animate-bounce">
+          <p className="flex items-center gap-2 text-sm font-medium">
+            <AlertCircle className="w-4 h-4" />
+            Daha fazla rastgele için üye olun!
+          </p>
+        </div>
+      )}
+
       {/* Bottom CTA */}
-      <div className="mt-4 flex flex-col items-center gap-3">
+      <div className="mt-6 flex flex-col items-center gap-3">
         <Link href="/auth" onClick={handleSignUpWithDemo}>
           <Button size="lg" className="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold px-8 py-6 text-lg gap-2 shadow-lg shadow-emerald-500/25">
             <UserPlus className="w-5 h-5" />
@@ -793,7 +1024,11 @@ export const LandingPageDemoGrid: React.FC<{
             <ArrowRight className="w-5 h-5" />
           </Button>
         </Link>
-        <p className="text-white/50 text-sm">Ücretsiz kayıt ol, hemen kullanmaya başla!</p>
+        <p className="text-white/50 text-sm">
+          {isSavedToCache 
+            ? '✓ Önizlemeniz kaydedildi! Üye olunca klasörünüz hazır olacak.' 
+            : 'Ücretsiz kayıt ol, hemen kullanmaya başla!'}
+        </p>
       </div>
     </div>
   );

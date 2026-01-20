@@ -8,6 +8,7 @@ import { AppLogo } from '@/components/icons/app-logo';
 import type { ContentItem, ItemType, SortOption } from '@/lib/initial-content';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { useAppStore } from '@/lib/store';
 import { Label } from '@/components/ui/label';
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger, ContextMenuSeparator, ContextMenuItem } from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
@@ -111,6 +112,8 @@ export default function PrimarySidebar({
 
     const router = useRouter();
     const supabase = createClient();
+    const userSubscriptionTier = useAppStore(s => s.userSubscriptionTier);
+    const isGuest = userSubscriptionTier === 'guest';
     
     const isUserLoggedIn = !!username;
 
@@ -187,7 +190,18 @@ export default function PrimarySidebar({
             
             {/* Scrollable Middle */}
             <ScrollArea className="flex-1 mt-2 sm:mt-4">
-                 <div className='flex flex-col items-center gap-1 sm:gap-2 p-1 sm:p-2'>
+                                 <div className='flex flex-col items-center gap-1 sm:gap-2 p-1 sm:p-2'>
+                                                {isGuest && (
+                                                    <div className="w-full px-1 sm:px-2 pb-2">
+                                                        <div className="rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground">
+                                                            <div className="flex items-center gap-2 font-medium text-foreground">
+                                                                <AlertCircle className="h-4 w-4 text-amber-600" />
+                                                                Misafir modu
+                                                            </div>
+                                                            <p className="mt-1">Sosyal mesajlar ve araç takımları kilitli. Reklamlı önizleme için Free planına geçin.</p>
+                                                        </div>
+                                                    </div>
+                                                )}
                         {/* Main Tools */}
                         <Tooltip>
                             <TooltipTrigger asChild>
