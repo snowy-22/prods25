@@ -29,8 +29,8 @@ export async function middleware(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Optional: Protect routes
-  if (!user && req.nextUrl.pathname.startsWith('/canvas')) {
+  // Optional: Protect routes - but allow guest-canvas for unauthenticated users
+  if (!user && req.nextUrl.pathname.startsWith('/canvas') && !req.nextUrl.pathname.startsWith('/guest-canvas')) {
     const redirectUrl = req.nextUrl.clone();
     redirectUrl.pathname = '/auth';
     return NextResponse.redirect(redirectUrl);
@@ -44,6 +44,7 @@ export const config = {
     '/',
     '/auth/callback',
     '/canvas/:path*',
+    '/guest-canvas',
     '/login',
     '/register',
     '/guest',

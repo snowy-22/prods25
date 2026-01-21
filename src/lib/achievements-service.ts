@@ -79,7 +79,7 @@ export class AchievementService {
   async getRewardBalance(userId: string): Promise<RewardBalance> {
     const { data, error } = await this.supabase
       .from('user_achievements')
-      .select('reward_type, reward_amount, reward_claimed')
+      .select('achievement_key, reward_type, reward_amount, reward_claimed')
       .eq('user_id', userId);
 
     if (error) {

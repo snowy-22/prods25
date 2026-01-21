@@ -513,7 +513,7 @@ const demoPages: { id: number; title: string; cards: DemoCardData[] }[] = [
     id: 9, title: 'Teknoloji & Haberler',
     cards: [
       { title: 'Tech Review', type: 'video', url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', gradient: 'bg-gradient-to-br from-gray-700 to-slate-600' },
-      { title: 'TechCrunch', type: 'iframe', url: 'https://techcrunch.com', gradient: 'bg-gradient-to-br from-green-600 to-emerald-500' },
+      { title: 'Donanım Haber', type: 'iframe', url: 'https://www.donanimhaber.com', gradient: 'bg-gradient-to-br from-orange-600 to-red-500' },
       { title: 'Ürün Sunumu', type: 'slides', url: 'https://docs.google.com/presentation/d/e/2PACX-1vQxkq3j6aDt2FZ_Rpe7FdaYCQPXlJzqFN1qqLMqKQylqAWR9qlZQC0Pg8d9w7s6lg/embed?start=false&loop=true&delayms=4000', gradient: 'bg-gradient-to-br from-blue-600 to-indigo-500' },
       { title: 'Tech AI', type: 'ai', gradient: 'bg-gradient-to-br from-violet-600 to-purple-500' },
       { title: 'Hız Testi', type: 'widget', widgetType: 'speed', gradient: 'bg-gradient-to-br from-orange-500 to-red-500' },

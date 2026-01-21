@@ -99,7 +99,7 @@ function getItemPreview(item: ContentItem, autoPlayMuted: boolean = true): React
     // Fallback icon
     return (
       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-        <FileVideo className="h-8 w-8 text-primary/60" />
+        <FileVideo className="h-10 w-10 text-primary/70" />
       </div>
     );
   }
@@ -120,7 +120,7 @@ function getItemPreview(item: ContentItem, autoPlayMuted: boolean = true): React
   if (type === 'audio') {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-purple-500/5">
-        <Music className="h-8 w-8 text-purple-500/60" />
+        <Music className="h-10 w-10 text-purple-500/70" />
       </div>
     );
   }
@@ -139,7 +139,7 @@ function getItemPreview(item: ContentItem, autoPlayMuted: boolean = true): React
     }
     return (
       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-blue-500/5">
-        <Globe className="h-8 w-8 text-blue-500/60" />
+        <Globe className="h-10 w-10 text-blue-500/70" />
       </div>
     );
   }
@@ -148,7 +148,7 @@ function getItemPreview(item: ContentItem, autoPlayMuted: boolean = true): React
   if (type === 'folder') {
     return (
       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-amber-500/5">
-        <Folder className="h-8 w-8 text-amber-500/60" />
+        <Folder className="h-10 w-10 text-amber-500/70" />
       </div>
     );
   }
@@ -156,7 +156,7 @@ function getItemPreview(item: ContentItem, autoPlayMuted: boolean = true): React
   // Default file icon
   return (
     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-500/20 to-gray-500/5">
-      <File className="h-8 w-8 text-gray-500/60" />
+      <File className="h-10 w-10 text-gray-500/70" />
     </div>
   );
 }

@@ -371,29 +371,29 @@ function GlobalSearch({
             title: "Sanat & Tasarım İlhamı",
             description: "Yaratıcılığınızı ateşleyecek görsel kaynaklar.",
             items: [
-                { type: 'website', url: 'https://www.behance.net' },
-                { type: 'website', url: 'https://dribbble.com' },
-                { type: 'website', url: 'https://www.artstation.com' },
-                { type: 'website', url: 'https://www.pinterest.com' },
-                { type: 'video', url: 'https://www.youtube.com/watch?v=q6_66a21wz8' }
+                { id: 'suggestion-art-behance', type: 'website', url: 'https://www.behance.net' },
+                { id: 'suggestion-art-dribbble', type: 'website', url: 'https://dribbble.com' },
+                { id: 'suggestion-art-artstation', type: 'website', url: 'https://www.artstation.com' },
+                { id: 'suggestion-art-pinterest', type: 'website', url: 'https://www.pinterest.com' },
+                { id: 'suggestion-art-tutorial', type: 'video', url: 'https://www.youtube.com/watch?v=q6_66a21wz8' }
             ]
         },
         {
             title: "Verimlilik Araçları",
             description: "İş akışınızı hızlandıracak widget ve araçlar.",
             items: [
-                { type: 'todolist', title: 'Günlük Görevler' },
-                { type: 'notes', title: 'Hızlı Notlar' },
-                { type: 'calendar', title: 'Haftalık Plan' },
+                { id: 'suggestion-prod-todo', type: 'todolist', title: 'Günlük Görevler' },
+                { id: 'suggestion-prod-notes', type: 'notes', title: 'Hızlı Notlar' },
+                { id: 'suggestion-prod-calendar', type: 'calendar', title: 'Haftalık Plan' },
             ]
         },
-         {
+        {
             title: "Sakinleştirici Mola",
             description: "Rahatlamak için sakinleştirici müzikler ve görseller.",
             items: [
-                { type: 'video', url: 'https://www.youtube.com/watch?v=l_0a8hOcC8c' }, // Lofi
-                { type: 'video', url: 'https://www.youtube.com/watch?v=__32aFVvrko' }, // Rain sounds
-                { type: 'image', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1920&auto=format&fit=crop' } // Mountain
+                { id: 'suggestion-relax-lofi', type: 'video', url: 'https://www.youtube.com/watch?v=l_0a8hOcC8c' }, // Lofi
+                { id: 'suggestion-relax-rain', type: 'video', url: 'https://www.youtube.com/watch?v=__32aFVvrko' }, // Rain sounds
+                { id: 'suggestion-relax-mountain', type: 'image', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=1920&auto=format&fit=crop' } // Mountain
             ]
         }
     ];

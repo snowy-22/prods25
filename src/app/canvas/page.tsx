@@ -74,8 +74,9 @@ import { LayoutMode } from '@/lib/layout-engine';
 import { useAuth } from '@/providers/auth-provider';
 import { useRealtimeSync } from '@/hooks/use-realtime-sync';
 import { BottomControlBar } from '@/components/bottom-control-bar';
-import { MiniMapOverlay } from '@/components/mini-map-overlay';
 import { CrossDragManager } from '@/lib/cross-drag-system';
+
+const MiniMapOverlay = dynamic(() => import('@/components/mini-map-overlay').then(mod => ({ default: mod.MiniMapOverlay })), { ssr: false });
 
 
 const MainContentInternal = ({ username }: { username: string | null }) => {

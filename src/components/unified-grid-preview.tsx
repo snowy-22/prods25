@@ -94,7 +94,7 @@ export const UnifiedGridPreview: React.FC<UnifiedGridPreviewProps> = ({
       )}
       {layoutMode === 'canvas' && (
         <div className="absolute inset-0 z-10 w-full h-full">
-          {itemsToShow.map((item) => {
+          {itemsToShow.map((item, index) => {
             const itemX = (item.x || 0) * canvasScale;
             const itemY = (item.y || 0) * canvasScale;
             const itemW = Math.max(6, (item.width || 100) * canvasScale);
@@ -102,7 +102,7 @@ export const UnifiedGridPreview: React.FC<UnifiedGridPreviewProps> = ({
             const isSelected = selectedItemIds.includes(item.id);
             return (
               <motion.div
-                key={item.id}
+                key={item.id || `preview-canvas-item-${index}`}
                 className={cn(
                   "absolute rounded-sm cursor-pointer transition-all duration-200 shadow-sm",
                   isSelected 
@@ -179,11 +179,11 @@ export const UnifiedGridPreview: React.FC<UnifiedGridPreviewProps> = ({
           gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${gridRows}, minmax(0, 1fr))`,
         }}>
-          {itemsToShow.map((item) => {
+          {itemsToShow.map((item, index) => {
             const isSelected = selectedItemIds.includes(item.id);
             return (
               <div
-                key={item.id}
+                key={item.id || `preview-grid-item-${index}`}
                 className={cn(
                   "relative rounded-sm cursor-pointer transition-all duration-200 shadow-sm overflow-hidden",
                   isSelected 

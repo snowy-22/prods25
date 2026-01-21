@@ -67,7 +67,7 @@ export function calculateLayout(
     if (mode === 'grid-square' || mode === 'grid') {
         // Responsive threshold: container genişliğine göre maksimum span hesapla
         // XXL ekranlarda daha büyük grid size kullan
-        const baseGridSize = containerWidth >= 2560 ? 480 : containerWidth >= 1920 ? 360 : 280;
+        const baseGridSize = containerWidth >= 2560 ? 520 : containerWidth >= 1920 ? 400 : 320;
         const gap = 24;
         const safeWidth = Math.max(containerWidth, 320);
         const maxColumns = Math.max(1, Math.floor((safeWidth + gap) / (baseGridSize + gap)));
@@ -80,7 +80,7 @@ export function calculateLayout(
         
         // Klasör kapakları için özel boyutlandırma
         const isFolderCover = item.type === 'folder' && (item as any).coverImage;
-        const minHeight = isFolderCover ? '240px' : '200px';
+        const minHeight = isFolderCover ? '320px' : '240px';
         
         return {
             styles: {
@@ -91,7 +91,7 @@ export function calculateLayout(
                 height: '100%',
                 zIndex: 1,
                 minHeight,
-                maxHeight: effectiveRowSpan > 2 ? 'none' : '600px'
+                maxHeight: effectiveRowSpan > 2 ? 'none' : '800px'
             },
             className: isFolderCover ? 'folder-cover-grid-item' : undefined
         };

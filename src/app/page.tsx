@@ -258,7 +258,7 @@ export default function LandingPage() {
 						</p>
 						<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center md:justify-start">
 							<AnimatedBorderButton asChild variant="glass" size="lg">
-								<Link href="/canvas">Hemen Test Et</Link>
+								<Link href="/guest-canvas">Hemen Dene</Link>
 							</AnimatedBorderButton>
 							<AnimatedBorderButton asChild variant="shimmer" size="lg">
 								<Link href="/auth">Ücretsiz Başla</Link>

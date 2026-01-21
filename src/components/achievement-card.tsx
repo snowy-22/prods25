@@ -7,10 +7,11 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Badge, Settings, Gift, User, Building2, ExternalLink, Eye, EyeOff } from 'lucide-react';
+import { BadgeCheck, Settings, Gift, User, Building2, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import type { UserAchievement, AchievementDefinition } from '@/lib/achievements-types';
 import { achievementService } from '@/lib/achievements-service';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,

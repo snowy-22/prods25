@@ -30,6 +30,8 @@ import {
   Play
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AppLogo } from '@/components/icons/app-logo';
+import Link from 'next/link';
 
 // ============================================================================
 // ANIMATED PLAYER GRID STRIPS - Hero Section için Player Demo Şeritleri
@@ -384,12 +386,20 @@ export default function AuthPage() {
         router.push('/');
       } else {
         const loginValues = values as z.infer<typeof loginSchema>;
-        await signIn(loginValues.email, loginValues.password);
-        toast({ 
-          title: "Giriş başarılı! 🎉", 
-          description: "Hoş geldiniz!" 
-        });
-        router.push('/');
+        try {
+          await signIn(loginValues.email, loginValues.password);
+          toast({ 
+            title: "Giriş başarılı! 🎉", 
+            description: "Hoş geldiniz!" 
+          });
+          
+          // Small delay to ensure state updates propagate
+          setTimeout(() => {
+            router.push('/');
+          }, 500);
+        } catch (signinError: any) {
+          throw signinError;
+        }
       }
     } catch (error: any) {
       toast({ 
@@ -493,19 +503,21 @@ export default function AuthPage() {
         {/* Header with toggle */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3"
-            >
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 ring-2 ring-white/20">
-                <span className="text-xl font-black text-white">25</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xl font-bold text-slate-800">tv25</span>
-                <span className="text-[10px] text-slate-500 -mt-1">CanvasFlow</span>
-              </div>
-            </motion.div>
+            <Link href="/" className="group">
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 ring-2 ring-white/20 group-hover:shadow-purple-500/50 transition-shadow">
+                  <AppLogo className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xl font-bold text-slate-800">tv25</span>
+                  <span className="text-[10px] text-slate-500 -mt-1">CanvasFlow</span>
+                </div>
+              </motion.div>
+            </Link>
             
             {/* Toggle link */}
             <motion.button
@@ -876,9 +888,11 @@ export default function AuthPage() {
               transition={{ delay: 0.3 }}
               className="text-center"
             >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
-                <Sparkles className="w-8 h-8 text-white" />
-              </div>
+              <Link href="/" className="block mx-auto mb-4 group">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/30 group-hover:shadow-purple-500/50 transition-shadow cursor-pointer">
+                  <AppLogo className="w-8 h-8 text-white" />
+                </div>
+              </Link>
               <h2 className="text-2xl font-bold text-white mb-2">
                 Dijital Canvas&apos;ını Oluştur
               </h2>

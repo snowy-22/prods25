@@ -30,8 +30,8 @@ interface AnimatedMinimapProps {
 }
 
 export function AnimatedMinimap({
-  width = 200,
-  height = 150,
+  width = 300,
+  height = 200,
   items = [],
   patternType = 'dot',
   animationSpeed = 1,

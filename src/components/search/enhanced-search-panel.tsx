@@ -61,7 +61,7 @@ const algorithmicSuggestions = [
     description: 'Yapay zeka ve yazılım dünyasından',
     icon: Newspaper,
     color: 'from-blue-500 to-cyan-500',
-    sources: ['TechCrunch', 'The Verge', 'Wired'],
+    sources: ['Engadget', 'The Verge', 'Wired'],
     type: 'article' as const
   },
   { 

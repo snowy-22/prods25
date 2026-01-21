@@ -1118,19 +1118,20 @@ const LibraryItem = memo(function LibraryItem({
                 </div>
                 
                 {/* Icon */}
-                <div className="flex items-center justify-center h-4 w-4 flex-shrink-0">
-                                    {item.thumbnail_url || item.coverImage ? (
-                                        <div className="relative h-4 w-4 rounded-sm overflow-hidden">
-                                            <Image 
-                                                src={item.thumbnail_url || item.coverImage} 
-                                                alt={item.title} 
-                                                fill 
-                                                className="object-cover"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <Icon className="h-4 w-4 flex-shrink-0" />
-                                    )}
+                <div className="flex items-center justify-center h-4 w-4 min-h-4 min-w-4 flex-shrink-0 overflow-hidden">
+                    {item.thumbnail_url || item.coverImage ? (
+                        <Image 
+                            src={item.thumbnail_url || item.coverImage} 
+                            alt={item.title} 
+                            width={16}
+                            height={16}
+                            className="h-4 w-4 object-cover rounded-sm flex-shrink-0"
+                            unoptimized
+                            priority={false}
+                        />
+                    ) : (
+                        <Icon className="h-4 w-4 flex-shrink-0" />
+                    )}
                 </div>
                 {isEditing ? (
                 <Input
@@ -1624,32 +1625,48 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
         />
     );
 
-    // Common panel wrapper with mobile optimizations
-    const PanelWrapper = ({ children, testId }: { children: React.ReactNode; testId?: string }) => {
-        const [isDesktop, setIsDesktop] = useState(false);
+    // Common panel wrapper with mobile optimizations - memoized to prevent flicker
+    const PanelWrapper = memo(({ children, testId }: { children: React.ReactNode; testId?: string }) => {
+        const [isDesktop, setIsDesktop] = useState(() => {
+            if (typeof window === 'undefined') return true;
+            return window.matchMedia('(min-width: 1024px)').matches;
+        });
 
         useEffect(() => {
-            const checkDesktop = () => {
-                setIsDesktop(window.innerWidth >= 1024);
+            // Use matchMedia for better performance and accuracy
+            const mediaQuery = window.matchMedia('(min-width: 1024px)');
+            
+            const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+                setIsDesktop(e.matches);
             };
-            checkDesktop();
-            window.addEventListener('resize', checkDesktop);
-            return () => window.removeEventListener('resize', checkDesktop);
+            
+            // Modern browsers support addEventListener
+            if (mediaQuery.addEventListener) {
+                mediaQuery.addEventListener('change', handleChange);
+                return () => mediaQuery.removeEventListener('change', handleChange);
+            } else {
+                // Fallback for older browsers
+                // @ts-ignore
+                mediaQuery.addListener(handleChange);
+                // @ts-ignore
+                return () => mediaQuery.removeListener(handleChange);
+            }
         }, []);
 
         return (
             <>
-                <MobileBackdrop />
+                {!isDesktop && <MobileBackdrop />}
                 <div 
                     className={cn(
-                        "h-full flex flex-col bg-card/60 backdrop-blur-md fixed inset-y-0 z-40 shadow-xl",
-                        "left-12 sm:left-14", // After left sidebar
-                        "lg:relative lg:left-auto lg:shadow-none", // Desktop: relative positioning
+                        "h-full flex flex-col bg-card/60 backdrop-blur-md z-40 shadow-xl",
+                        isDesktop ? "relative" : "fixed inset-y-0 left-12 sm:left-14 w-72 sm:w-80",
+                        "lg:relative lg:left-auto lg:shadow-none",
                         isResizing ? "transition-none" : "transition-all duration-300"
                     )}
                     style={{
-                        width: isDesktop ? `${secondarySidebarWidth}px` : 'auto',
-                        right: isDesktop ? 'auto' : 0, // Mobile: stretch to right edge
+                        width: isDesktop ? `${secondarySidebarWidth}px` : undefined,
+                        zIndex: isDesktop ? 'auto' : 40,
+                        willChange: isResizing ? 'width' : 'auto'
                     }}
                     data-testid={testId}
                 >
@@ -1672,7 +1689,7 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                 </div>
             </>
         );
-    };
+    });
 
     // Destructure common props once
     const { onSetClipboard, onPaste, clipboard, onShowInfo, onShare, onRenameItem, onTogglePinItem, onNewFolder, onNewList, onNewPlayer, onNewCalendar, onNewSpace, onNewDevice, expandedItems, onToggleExpansion, setActiveDevice, activeDeviceId, setDraggedItem, onDeleteItem, onLibraryDrop } = props;

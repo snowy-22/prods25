@@ -11,6 +11,7 @@ import { AchievementProvider, AchievementNotification } from '@/components/ui/ac
 import { AchievementLoader } from '@/components/achievement-loader';
 import { FrameDanceProvider } from '@/components/frame-dance-controller';
 import { AdSenseProvider } from '@/components/adsense';
+import { CanvasFlowProvider } from '@/contexts/canvas-flow-context';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -124,18 +125,20 @@ export default function RootLayout({
         <AuthProvider>
           <CloudSyncProvider>
             <AppProvider>
-              <AdSenseProvider>
-                <AchievementProvider>
-                  <FrameDanceProvider>
-                    <MobileFullscreenHandler />
-                    <LogTracker />
-                    <AchievementLoader />
-                    <AchievementNotification />
-                    {children}
-                    <VercelAnalytics />
-                  </FrameDanceProvider>
-                </AchievementProvider>
-              </AdSenseProvider>
+              <CanvasFlowProvider>
+                <AdSenseProvider>
+                  <AchievementProvider>
+                    <FrameDanceProvider>
+                      <MobileFullscreenHandler />
+                      <LogTracker />
+                      <AchievementLoader />
+                      <AchievementNotification />
+                      {children}
+                      <VercelAnalytics />
+                    </FrameDanceProvider>
+                  </AchievementProvider>
+                </AdSenseProvider>
+              </CanvasFlowProvider>
             </AppProvider>
           </CloudSyncProvider>
         </AuthProvider>

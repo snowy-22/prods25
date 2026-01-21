@@ -283,20 +283,24 @@ Here are the test IDs for the main UI elements:
 
 
       for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
-          const llmResponse = await ai.generate({
-            model: 'googleai/gemini-1.5-flash',
-            system: systemPrompt,
-            messages: history,
-            tools: tools!,
-            config: {
-              temperature: 0.5,
-            },
-          });
+          try {
+            const llmResponse = await ai.generate({
+              model: 'googleai/gemini-1.5-flash',
+              system: systemPrompt,
+              messages: history,
+              tools: tools!,
+              config: {
+                temperature: 0.5,
+                maxOutputTokens: 8192,
+              },
+            });
 
-          const llmMessage = llmResponse.output;
-          if (!llmMessage) {
-              throw new Error("AI did not return a message.");
-          }
+            const llmMessage = llmResponse.output;
+            if (!llmMessage) {
+                console.error('❌ AI did not return a message at iteration', i);
+                await updateAIRequestStatus(logId, 'failed', 'No response from AI model');
+                throw new Error("AI did not return a message.");
+            }
           
           history.push(llmMessage);
 
@@ -318,41 +322,46 @@ Here are the test IDs for the main UI elements:
                   
                   try {
                       // 🔥 LOGLAMA 2: Tool çağrısı yapılıyor
-                      switch (toolRequest.name) {
+                      const toolName = toolRequest.name;
+                      console.log(`🔧 Calling tool: ${toolName}`, toolRequest.input);
+                      
+                      switch (toolName) {
                           case 'webSearch':
-                              // toolResponseOutput = await webSearchTool(toolRequest.input);
-                              toolResponseOutput = "Web search is currently unavailable.";
+                              toolResponseOutput = { results: [], message: "Web search is currently unavailable. Please try using other tools." };
                               break;
                           case 'youtubeSearch':
-                              toolResponseOutput = await (tools![1] as any)(toolRequest.input);
+                              toolResponseOutput = await youtubeSearchTool(toolRequest.input);
                               break;
                           case 'pageScraper':
-                              toolResponseOutput = await (tools![1] as any)(toolRequest.input);
+                              toolResponseOutput = await pageScraperTool(toolRequest.input);
                               break;
                           case 'highlightElement':
-                              toolResponseOutput = await (tools![2] as any)(toolRequest.input);
+                              toolResponseOutput = await highlightElementTool(toolRequest.input);
                               break;
                           case 'addPlayerTool':
-                              toolResponseOutput = await (tools![3] as any)(toolRequest.input);
+                              toolResponseOutput = await addPlayerTool(toolRequest.input);
                               break;
                           case 'fetchYoutubeMeta':
-                              toolResponseOutput = await (tools![4] as any)(toolRequest.input);
+                              toolResponseOutput = await fetchYoutubeMetaTool(toolRequest.input);
                               break;
                           case 'analyzeItem':
-                              toolResponseOutput = await (tools![5] as any)(toolRequest.input);
+                              toolResponseOutput = await analyzeItemTool(toolRequest.input);
                               break;
                           case 'analyzeContent':
-                              toolResponseOutput = await (tools![6] as any)(toolRequest.input);
+                              toolResponseOutput = await analyzeContentTool(toolRequest.input);
                               break;
                           case 'suggestFrameStyles':
-                              toolResponseOutput = await (tools![7] as any)(toolRequest.input);
+                              toolResponseOutput = await suggestFrameStylesTool(toolRequest.input);
                               break;
                           case 'offlineAnalytics':
-                              toolResponseOutput = await (tools![8] as any)(toolRequest.input);
+                              toolResponseOutput = await offlineAnalyticsTool(toolRequest.input);
                               break;
                           default:
-                              toolResponseOutput = { error: `Tool '${toolRequest.name}' not found.` };
+                              console.error(`❌ Unknown tool: ${toolName}`);
+                              toolResponseOutput = { error: `Tool '${toolName}' not found.` };
                       }
+                      
+                      console.log(`✅ Tool ${toolName} completed successfully`);
                       
                       // Tool başarılı - logla
                       await logToolCall(
@@ -390,31 +399,60 @@ Here are the test IDs for the main UI elements:
           );
 
           history.push(...toolResponses.filter((r): r is Message => r !== null));
+          } catch (iterationError: any) {
+            console.error('❌ Error in iteration', i, ':', iterationError);
+            await updateAIRequestStatus(logId, 'failed', iterationError.message);
+            
+            // Return error message to user
+            return {
+              history: [
+                ...history,
+                {
+                  role: 'model',
+                  content: [{
+                    text: `Üzgünüm, işlem sırasında bir hata oluştu: ${iterationError.message}. Lütfen tekrar deneyin.`
+                  }]
+                }
+              ]
+            };
+          }
       }
 
       // If the loop finishes, return the history as is. 
       // The model might need one last generation to summarize the tool outputs.
-       const finalResponse = await ai.generate({
-          model: 'googleai/gemini-1.5-flash',
-          system: systemPrompt,
-          messages: history,
-          tools: [], // No tools in the final step
-       });
+      try {
+        const finalResponse = await ai.generate({
+            model: 'googleai/gemini-1.5-flash',
+            system: systemPrompt,
+            messages: history,
+            tools: [], // No tools in the final step
+            config: {
+              temperature: 0.5,
+              maxOutputTokens: 8192,
+            },
+        });
 
-       if (finalResponse.output) {
-          history.push(finalResponse.output);
-       }
+        if (finalResponse.output) {
+            history.push(finalResponse.output);
+        }
 
-      // 🔥 LOGLAMA 3: İstek tamamlandı
-      const finalMessage = history.filter(m => m.role === 'model').pop();
-      const responseText = finalMessage?.content[0]?.text || 'No response';
-      
-      await updateAIRequestStatus(logId, 'success', {
-        response: responseText.substring(0, 500), // İlk 500 karakter
-        tokensUsed: undefined, // Genkit'te usage bilgisi farklı alınabilir
-      });
+        // 🔥 LOGLAMA 3: İstek tamamlandı
+        const finalMessage = history.filter(m => m.role === 'model').pop();
+        const responseText = finalMessage?.content[0]?.text || 'No response';
+        
+        await updateAIRequestStatus(logId, 'success', {
+          response: responseText.substring(0, 500), // İlk 500 karakter
+          tokensUsed: undefined, // Genkit'te usage bilgisi farklı alınabilir
+        });
 
-      return { history };
+        return { history };
+      } catch (finalError: any) {
+        console.error('❌ Error in final generation:', finalError);
+        await updateAIRequestStatus(logId, 'failed', finalError.message);
+        
+        // Still return the history we have so far
+        return { history };
+      }
     }
   );
 }

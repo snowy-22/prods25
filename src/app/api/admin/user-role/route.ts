@@ -4,16 +4,25 @@
  */
 
 import { supabase } from '@/lib/db/supabase-client';
-import { requireAdmin, updateUserRole, UserRole } from '@/lib/admin-auth';
+import { checkAdminAccess, hasPermission } from '@/lib/admin-security';
 
 export async function POST(request: Request) {
   try {
-    // Check authorization
-    const auth = await requireAdmin(request);
-    if (!auth.isAuthorized || !auth.userId) {
-      return new Response(
-        JSON.stringify({ error: auth.error || 'Unauthorized' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+    const adminEmail = request.headers.get('x-admin-email');
+    
+    if (!adminEmail) {
+      return Response.json(
+        { error: 'Admin email required' },
+        { status: 401 }
+      );
+    }
+
+    const access = await checkAdminAccess(adminEmail);
+    
+    if (!access.isAdmin || !hasPermission(access.role!, 'users:write')) {
+      return Response.json(
+        { error: 'Insufficient permissions' },
+        { status: 403 }
       );
     }
 
@@ -21,41 +30,59 @@ export async function POST(request: Request) {
     const { userId, newRole } = body;
 
     if (!userId || !newRole) {
-      return new Response(
-        JSON.stringify({ error: 'Missing userId or newRole' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      return Response.json(
+        { error: 'Missing userId or newRole' },
+        { status: 400 }
       );
     }
 
-    if (!['user', 'moderator', 'admin'].includes(newRole)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid role' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+    const validRoles = ['user', 'moderator', 'admin', 'super_admin', 'analyst'];
+    if (!validRoles.includes(newRole)) {
+      return Response.json(
+        { error: 'Invalid role' },
+        { status: 400 }
       );
     }
 
-    // Update role
-    const result = await updateUserRole(userId, newRole as UserRole, auth.userId);
+    // Update user role in custom users table
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ role: newRole })
+      .eq('id', userId);
 
-    if (!result.success) {
-      return new Response(
-        JSON.stringify({ error: result.error }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
+    if (updateError) {
+      console.error('Role update error:', updateError);
+      return Response.json(
+        { error: 'Failed to update user role' },
+        { status: 500 }
       );
     }
 
-    return new Response(
-      JSON.stringify({
+    // Log the action
+    await supabase
+      .from('admin_audit_logs')
+      .insert({
+        admin_id: adminEmail,
+        action: 'user_role_update',
+        target_user_id: userId,
+        details: { old_role: 'user', new_role: newRole },
+        timestamp: new Date().toISOString(),
+      });
+
+    return Response.json(
+      {
         success: true,
         message: `User role updated to ${newRole}`,
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+        userId,
+        newRole,
+      },
+      { status: 200 }
     );
   } catch (error) {
     console.error('Role update error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    return Response.json(
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }

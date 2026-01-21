@@ -5,16 +5,25 @@
  */
 
 import { supabase } from '@/lib/db/supabase-client';
-import { requireAdmin, banUser, unbanUser } from '@/lib/admin-auth';
+import { checkAdminAccess, hasPermission } from '@/lib/admin-security';
 
 export async function POST(request: Request) {
   try {
-    // Check authorization
-    const auth = await requireAdmin(request);
-    if (!auth.isAuthorized || !auth.userId) {
-      return new Response(
-        JSON.stringify({ error: auth.error || 'Unauthorized' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+    const adminEmail = request.headers.get('x-admin-email');
+    
+    if (!adminEmail) {
+      return Response.json(
+        { error: 'Admin email required' },
+        { status: 401 }
+      );
+    }
+
+    const access = await checkAdminAccess(adminEmail);
+    
+    if (!access.isAdmin || !hasPermission(access.role!, 'users:write')) {
+      return Response.json(
+        { error: 'Insufficient permissions' },
+        { status: 403 }
       );
     }
 
@@ -22,46 +31,77 @@ export async function POST(request: Request) {
     const { userId, reason } = body;
 
     if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing userId' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      return Response.json(
+        { error: 'Missing userId' },
+        { status: 400 }
       );
     }
 
-    // Ban user
-    const result = await banUser(userId, reason || 'No reason provided', auth.userId);
+    // Update user ban status
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ 
+        is_banned: true,
+        ban_reason: reason || 'No reason provided',
+        banned_at: new Date().toISOString(),
+        banned_by: adminEmail
+      })
+      .eq('id', userId);
 
-    if (!result.success) {
-      return new Response(
-        JSON.stringify({ error: result.error }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
+    if (updateError) {
+      console.error('Ban error:', updateError);
+      return Response.json(
+        { error: 'Failed to ban user' },
+        { status: 500 }
       );
     }
 
-    return new Response(
-      JSON.stringify({
+    // Log the action
+    await supabase
+      .from('admin_audit_logs')
+      .insert({
+        admin_id: adminEmail,
+        action: 'user_ban',
+        target_user_id: userId,
+        details: { reason: reason || 'No reason provided' },
+        timestamp: new Date().toISOString(),
+      });
+
+    return Response.json(
+      {
         success: true,
         message: 'User banned successfully',
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+        userId,
+        reason: reason || 'No reason provided',
+      },
+      { status: 200 }
     );
   } catch (error) {
     console.error('Ban error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    return Response.json(
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }
 
 export async function DELETE(request: Request) {
   try {
-    // Check authorization
-    const auth = await requireAdmin(request);
-    if (!auth.isAuthorized || !auth.userId) {
-      return new Response(
-        JSON.stringify({ error: auth.error || 'Unauthorized' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
+    const adminEmail = request.headers.get('x-admin-email');
+    
+    if (!adminEmail) {
+      return Response.json(
+        { error: 'Admin email required' },
+        { status: 401 }
+      );
+    }
+
+    const access = await checkAdminAccess(adminEmail);
+    
+    if (!access.isAdmin || !hasPermission(access.role!, 'users:write')) {
+      return Response.json(
+        { error: 'Insufficient permissions' },
+        { status: 403 }
       );
     }
 
@@ -69,34 +109,55 @@ export async function DELETE(request: Request) {
     const { userId } = body;
 
     if (!userId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing userId' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      return Response.json(
+        { error: 'Missing userId' },
+        { status: 400 }
       );
     }
 
-    // Unban user
-    const result = await unbanUser(userId, auth.userId);
+    // Update user ban status
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ 
+        is_banned: false,
+        ban_reason: null,
+        banned_at: null,
+        banned_by: null
+      })
+      .eq('id', userId);
 
-    if (!result.success) {
-      return new Response(
-        JSON.stringify({ error: result.error }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
+    if (updateError) {
+      console.error('Unban error:', updateError);
+      return Response.json(
+        { error: 'Failed to unban user' },
+        { status: 500 }
       );
     }
 
-    return new Response(
-      JSON.stringify({
+    // Log the action
+    await supabase
+      .from('admin_audit_logs')
+      .insert({
+        admin_id: adminEmail,
+        action: 'user_unban',
+        target_user_id: userId,
+        details: {},
+        timestamp: new Date().toISOString(),
+      });
+
+    return Response.json(
+      {
         success: true,
         message: 'User unbanned successfully',
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
+        userId,
+      },
+      { status: 200 }
     );
   } catch (error) {
     console.error('Unban error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    return Response.json(
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }

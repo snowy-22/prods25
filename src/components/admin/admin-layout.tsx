@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { supabase } from '@/lib/db/supabase-client';
+import { checkAdminAccess } from '@/lib/admin-security';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -33,21 +34,31 @@ export function AdminLayout({
   const { user, username } = useAppStore();
   const [isLoading, setIsLoading] = React.useState(false);
   const [isAdmin, setIsAdmin] = React.useState(false);
+  const [userRole, setUserRole] = React.useState<string>('');
 
   // Check admin status on mount
   React.useEffect(() => {
     const checkAdminStatus = async () => {
-      if (!user) {
+      if (!user?.email) {
         router.push('/auth');
         return;
       }
 
-      // TODO: Check user role in database
-      // For now, accept any logged-in user as demo
+      // Check admin access using secure method
+      const access = await checkAdminAccess(user.email);
+      
+      if (!access.isAdmin) {
+        // Not an admin, redirect to home
+        router.push('/');
+        return;
+      }
+
       setIsAdmin(true);
+      setUserRole(access.role || 'user');
     };
 
     checkAdminStatus();
+
   }, [user, router]);
 
   const handleLogout = async () => {
@@ -179,29 +190,34 @@ export function AdminNav() {
         label="Dashboard"
       />
       <NavLink
+        href="/admin/users"
+        icon={<Users className="w-4 h-4" />}
+        label="Kullanıcılar"
+      />
+      <NavLink
+        href="/admin/guest-analytics"
+        icon={<TrendingUp className="w-4 h-4" />}
+        label="Misafir Analitikleri"
+      />
+      <NavLink
         href="/admin/achievements"
         icon={<ShieldCheck className="w-4 h-4" />}
-        label="Achievements"
+        label="Başarılar"
       />
       <NavLink
         href="/admin/sales"
         icon={<BarChart3 className="w-4 h-4" />}
-        label="Sales"
-      />
-      <NavLink
-        href="/admin/users"
-        icon={<Users className="w-4 h-4" />}
-        label="Users"
+        label="Satışlar"
       />
       <NavLink
         href="/admin/features"
         icon={<Sliders className="w-4 h-4" />}
-        label="Özellik Planlama"
+        label="Özellikler"
       />
       <NavLink
         href="/admin/analytics"
         icon={<TrendingUp className="w-4 h-4" />}
-        label="Analytics"
+        label="Genel Analitik"
       />
     </nav>
   );

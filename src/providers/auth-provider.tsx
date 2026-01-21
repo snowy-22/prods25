@@ -25,12 +25,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser: setStoreUser, setUsername } = useAppStore();
 
   useEffect(() => {
+    let mounted = true;
+    
     // Check active session
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (session?.user) {
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) setLoading(false);
+          return;
+        }
+        
+        if (session?.user && mounted) {
           setUser(session.user);
           setStoreUser(session.user);
           const username = session.user.user_metadata?.username || 
@@ -41,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
@@ -50,7 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        console.log('🔐 Auth state changed:', event, session?.user?.email);
+        
+        if (!mounted) return;
         
         if (session?.user) {
           setUser(session.user);
@@ -70,6 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [supabase, setStoreUser, setUsername]);
@@ -82,14 +93,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) throw error;
-    
-    // User state will be updated by onAuthStateChange
+      if (error) {
+        console.error('❌ SignIn error:', error.message);
+        throw error;
+      }
+
+      if (!data.session?.user) {
+        throw new Error('SignIn failed: No session returned');
+      }
+
+      // Update state immediately (onAuthStateChange will also fire)
+      setUser(data.session.user);
+      setStoreUser(data.session.user);
+      const username = data.session.user.user_metadata?.username || 
+                      data.session.user.email?.split('@')[0] || 
+                      'User';
+      setUsername(username);
+      console.log('✅ SignIn successful:', data.session.user.email);
+      
+      // Wait a bit for state to propagate
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (err) {
+      console.error('❌ SignIn failed:', err);
+      throw err;
+    }
   };
 
   const signUp = async (email: string, password: string, username: string, referralCode?: string) => {
@@ -107,6 +140,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (error) throw error;
+
+    // Update user state immediately if we have a session
+    if (data.session?.user) {
+      setUser(data.session.user);
+      setStoreUser(data.session.user);
+      setUsername(username);
+      console.log('✅ SignUp user state updated:', data.session.user.email);
+    }
 
     // Create profile directly (trigger disabled for reliability)
     if (data.user) {
@@ -160,41 +201,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    
-    // Clear ALL auth cookies (critical for re-authentication)
-    const cookies = [
-      'sb-access-token', 
-      'sb-refresh-token', 
-      'supabase-auth-token', 
-      'sb-auth-token',
-      // Clear all possible Supabase cookie names
-      `sb-${process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID}-auth-token`,
-    ];
-    
-    cookies.forEach(name => {
-      document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=${window.location.hostname}; SameSite=Lax`;
-      // Also try without domain for localhost
-      document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
-    });
-    
-    console.log('🧹 Auth cookies cleared on logout');
-    
-    // Clear local storage
-    if (typeof window !== 'undefined') {
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth')) {
-          localStorage.removeItem(key);
-        }
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('❌ SignOut error:', error.message);
+        throw error;
+      }
+      
+      // Clear state immediately
+      setUser(null);
+      setStoreUser(null);
+      setUsername(null);
+      
+      // Clear ALL auth cookies (critical for re-authentication)
+      const cookies = [
+        'sb-access-token', 
+        'sb-refresh-token', 
+        'supabase-auth-token', 
+        'sb-auth-token',
+        // Clear all possible Supabase cookie names
+        `sb-${process.env.NEXT_PUBLIC_SUPABASE_PROJECT_ID}-auth-token`,
+      ];
+      
+      cookies.forEach(name => {
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=${window.location.hostname}; SameSite=Lax`;
+        // Also try without domain for localhost
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
       });
-      console.log('🧹 Auth localStorage cleared');
+      
+      console.log('🧹 Auth cookies cleared on logout');
+      
+      // Clear local storage
+      if (typeof window !== 'undefined') {
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth')) {
+            localStorage.removeItem(key);
+          }
+        });
+        console.log('🧹 Auth localStorage cleared');
+      }
+      
+      console.log('✅ SignOut successful');
+    } catch (err) {
+      console.error('❌ SignOut failed:', err);
+      // Still clear state even if signOut fails
+      setUser(null);
+      setStoreUser(null);
+      setUsername(null);
+      throw err;
     }
-    
-    // Clear local state
-    setUser(null);
-    setStoreUser(null);
-    setUsername(null);
   };
 
   const signInAnonymously = async () => {
