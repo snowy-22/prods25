@@ -910,11 +910,7 @@ export const LandingPageDemoGrid: React.FC<{
           })}
         </div>
 
-        {/* Left Blur Preview Overlay - Ultra Minimal */}
-        <div className="absolute left-0 top-0 bottom-0 w-2 md:w-3 bg-gradient-to-r from-black/10 to-transparent pointer-events-none z-10" />
-        
-        {/* Right Blur Preview Overlay - Ultra Minimal */}
-        <div className="absolute right-0 top-0 bottom-0 w-2 md:w-3 bg-gradient-to-l from-black/10 to-transparent pointer-events-none z-10" />
+        {/* Removed preview blur overlays for maximum clarity */}
       </div>
 
       {/* Bottom Controls */}

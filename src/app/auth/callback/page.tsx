@@ -1,61 +1,79 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+'use client';
 
-export default async function AuthCallbackPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ code?: string; error?: string; error_description?: string }>;
-}) {
-  const params = await searchParams;
-  const code = params.code;
-  const errorParam = params.error;
-  const errorDescription = params.error_description;
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
-  // Handle OAuth errors from provider
-  if (errorParam) {
-    redirect(`/auth?error=${errorParam}&message=${encodeURIComponent(errorDescription || 'OAuth provider returned an error')}`);
-  }
+export default function AuthCallbackPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const supabase = useMemo(() => createClient(), []);
+  const [status, setStatus] = useState<'exchanging' | 'error' | 'success'>('exchanging');
+  const [message, setMessage] = useState('Oturum doğrulanıyor...');
 
-  if (code) {
-    const supabase = await createClient();
-    
-    // Exchange code for session using PKCE (server-side handles cookies properly)
-    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-    
-    if (exchangeError) {
-      // Handle PKCE error - code verifier missing from storage
-      if (exchangeError.message?.includes('PKCE') || 
-          exchangeError.message?.includes('code verifier') ||
-          exchangeError.message?.includes('both auth code and code verifier')) {
-        redirect('/auth?error=session_expired&message=Oturum süresi doldu. Lütfen tekrar giriş yapın.');
+  useEffect(() => {
+    const code = searchParams.get('code');
+    const errorParam = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+
+    // Provider error returned in query string
+    if (errorParam) {
+      router.replace(`/auth?error=${errorParam}&message=${encodeURIComponent(errorDescription || 'OAuth provider returned an error')}`);
+      return;
+    }
+
+    if (!code) {
+      router.replace('/auth?error=missing_code&message=Kod bulunamadı. Lütfen tekrar giriş yapın.');
+      return;
+    }
+
+    const exchange = async () => {
+      try {
+        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (exchangeError) {
+          const isPkceError = exchangeError.message?.includes('PKCE') ||
+            exchangeError.message?.includes('code verifier') ||
+            exchangeError.message?.includes('both auth code and code verifier');
+
+          const errorQuery = isPkceError
+            ? `session_expired&message=${encodeURIComponent('Oturum süresi doldu. Lütfen tekrar giriş yapın.')}`
+            : `exchange_failed&message=${encodeURIComponent('Giriş doğrulaması tamamlanamadı. Lütfen tekrar deneyin.')}`;
+
+          setStatus('error');
+          setMessage('Giriş doğrulaması başarısız. Yönlendiriliyorsunuz...');
+          router.replace(`/auth?error=${errorQuery}`);
+          return;
+        }
+
+        if (data?.session) {
+          setStatus('success');
+          setMessage('Başarılı! Yönlendiriliyorsunuz...');
+          router.replace('/canvas');
+          return;
+        }
+
+        setStatus('error');
+        setMessage('Oturum bulunamadı. Lütfen tekrar giriş yapın.');
+        router.replace(`/auth?error=no_session&message=${encodeURIComponent('Oturum bulunamadı.')}`);
+      } catch (err) {
+        console.error('OAuth callback error:', err);
+        setStatus('error');
+        setMessage('Beklenmeyen hata oluştu. Lütfen tekrar deneyin.');
+        router.replace('/auth?error=unexpected');
       }
-      
-      // Other exchange errors
-      redirect('/auth?error=exchange_failed');
-    }
-    
-    if (data?.session) {
-      // Create profile if it doesn't exist
-      await supabase
-        .from('profiles')
-        .upsert({
-          id: data.session.user.id,
-          username: data.session.user.user_metadata?.name || 
-                   data.session.user.user_metadata?.full_name || 
-                   data.session.user.email?.split('@')[0] || 
-                   'User',
-          email: data.session.user.email,
-          full_name: data.session.user.user_metadata?.full_name || 
-                    data.session.user.user_metadata?.name || null,
-        }, {
-          onConflict: 'id',
-          ignoreDuplicates: false
-        });
-      
-      redirect('/canvas');
-    }
-  }
+    };
 
-  // No code or session, redirect to auth
-  redirect('/auth');
+    exchange();
+  }, [router, searchParams, supabase]);
+
+  return (
+    <div className="flex h-screen w-full items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className={`h-12 w-12 rounded-full border-2 ${status === 'error' ? 'border-destructive' : 'border-primary'} border-b-transparent animate-spin`} />
+        <p className="text-lg font-medium">{message}</p>
+        <p className="text-sm text-muted-foreground">Bu pencere otomatik olarak yönlendirilecek.</p>
+      </div>
+    </div>
+  );
 }
