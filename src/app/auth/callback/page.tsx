@@ -29,9 +29,21 @@ export default function AuthCallbackPage() {
 
     const exchange = async () => {
       try {
+        console.log('📋 OAuth Callback Handler Started');
+        console.log(`🔗 Current URL: ${window.location.href}`);
+        console.log(`🌍 Origin: ${window.location.origin}`);
+        console.log(`🔐 Code parameter exists: ${!!code}`);
+
         const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
         if (exchangeError) {
+          console.error('❌ Exchange error details:', {
+            message: exchangeError.message,
+            status: (exchangeError as any).status,
+            statusCode: (exchangeError as any).statusCode,
+            cause: (exchangeError as any).cause,
+          });
+
           const isPkceError = exchangeError.message?.includes('PKCE') ||
             exchangeError.message?.includes('code verifier') ||
             exchangeError.message?.includes('both auth code and code verifier');
@@ -47,17 +59,25 @@ export default function AuthCallbackPage() {
         }
 
         if (data?.session) {
+          console.log('✅ Session obtained successfully');
+          console.log('👤 User:', data.session.user?.email);
           setStatus('success');
           setMessage('Başarılı! Yönlendiriliyorsunuz...');
           router.replace('/canvas');
           return;
         }
 
+        console.warn('⚠️ No session data returned');
         setStatus('error');
         setMessage('Oturum bulunamadı. Lütfen tekrar giriş yapın.');
         router.replace(`/auth?error=no_session&message=${encodeURIComponent('Oturum bulunamadı.')}`);
       } catch (err) {
-        console.error('OAuth callback error:', err);
+        console.error('💥 OAuth callback error:', err);
+        console.error('Error details:', {
+          name: (err as any)?.name,
+          message: (err as any)?.message,
+          stack: (err as any)?.stack,
+        });
         setStatus('error');
         setMessage('Beklenmeyen hata oluştu. Lütfen tekrar deneyin.');
         router.replace('/auth?error=unexpected');
