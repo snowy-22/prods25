@@ -126,7 +126,8 @@ export default function RootLayout({
           <CloudSyncProvider>
             <AppProvider>
               <CanvasFlowProvider>
-                <AdSenseProvider>
+                {/* AdSense disabled for now to avoid console noise on auth */}
+                <AdSenseProvider enabled={false}>
                   <AchievementProvider>
                     <FrameDanceProvider>
                       <MobileFullscreenHandler />

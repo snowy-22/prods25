@@ -263,14 +263,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithOAuth = async (provider: 'google') => {
     try {
-      // Use configured OAuth callback URL or fallback to current origin
-      const callbackUrl = process.env.NEXT_PUBLIC_OAUTH_CALLBACK_URL || 
-                          `${window.location.origin}/auth/callback`;
+      // CRITICAL: Supabase OAuth callback MUST be Supabase's own URL
+      // NOT your custom domain callback!
+      const isDevelopment = window.location.hostname === 'localhost';
+      const callbackUrl = isDevelopment
+        ? `${window.location.origin}/auth/callback`
+        : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/callback`;
       
       console.log(`🔐 Initiating ${provider} OAuth...`);
       console.log(`📍 Callback URL: ${callbackUrl}`);
-      console.log(`🌍 Current origin: ${window.location.origin}`);
-      console.log(`📱 Current hostname: ${window.location.hostname}`);
+      console.log(`🌍 Environment: ${isDevelopment ? 'development' : 'production'}`);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
