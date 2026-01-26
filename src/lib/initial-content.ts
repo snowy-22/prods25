@@ -785,6 +785,17 @@ export const initialContent: ContentItem[] = [
     { id: 'ex-instagram-post', type: 'website', title: 'Instagram Post (Embed)', icon: 'instagram', url: 'https://www.instagram.com/p/CxVjVbOPQy1/', createdAt: now, updatedAt: now, parentId: 'social-examples' },
     { id: 'ex-facebook-video', type: 'website', title: 'Facebook Video (Embed)', icon: 'globe', url: 'https://www.facebook.com/facebookapp/videos/10153231379946729/', createdAt: now, updatedAt: now, parentId: 'social-examples' },
     { id: 'ex-kick-channel', type: 'video', title: 'Kick: Channel (Autoplay/Mute)', icon: 'tv', url: 'https://kick.com/trainwreckstv', createdAt: now, updatedAt: now, parentId: 'social-examples' },
+    
+    // 3D Modeller Klasörü - Example 3D Models
+    { id: '3d-models-folder', type: 'folder', title: '3D Modeller', icon: 'box', createdAt: now, updatedAt: now, parentId: 'root', order: 3.5, styles: { width: '800px', height: '600px' }, content: 'GLB, GLTF ve OBJ formatında 3D model örnekleri' },
+    // 3D Model örnekleri (ücretsiz ve açık kaynak modellerden)
+    { id: '3d-astronaut', type: '3dplayer', title: 'Astronot', icon: 'box', url: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb', createdAt: now, updatedAt: now, parentId: '3d-models-folder', width: 400, height: 400 },
+    { id: '3d-robot', type: '3dplayer', title: 'Robot Ekspres', icon: 'box', url: 'https://modelviewer.dev/shared-assets/models/RobotExpressive.glb', createdAt: now, updatedAt: now, parentId: '3d-models-folder', width: 400, height: 400 },
+    { id: '3d-nefertiti', type: '3dplayer', title: 'Nefertiti Büstü', icon: 'box', url: 'https://modelviewer.dev/shared-assets/models/NeilArmstrong.glb', createdAt: now, updatedAt: now, parentId: '3d-models-folder', width: 400, height: 400 },
+    { id: '3d-horse', type: '3dplayer', title: 'At Heykeli', icon: 'box', url: 'https://modelviewer.dev/shared-assets/models/Horse.glb', createdAt: now, updatedAt: now, parentId: '3d-models-folder', width: 400, height: 400 },
+    { id: '3d-shishkebab', type: '3dplayer', title: 'Şiş Kebap', icon: 'box', url: 'https://modelviewer.dev/shared-assets/models/shishkebab.glb', createdAt: now, updatedAt: now, parentId: '3d-models-folder', width: 400, height: 400 },
+    { id: '3d-alpha-blend', type: '3dplayer', title: 'Alpha Blend', icon: 'box', url: 'https://modelviewer.dev/shared-assets/models/alpha-blend-litmus.glb', createdAt: now, updatedAt: now, parentId: '3d-models-folder', width: 400, height: 400 },
+    
     { id: 'trash-folder', type: 'trash-folder', title: 'Çöp Kutusu', icon: 'trash-2', createdAt: now, updatedAt: now, parentId: 'root', isDeletable: false, order: 10, styles: { width: '400px', height: '300px' } },
     { id: 'bmc-example', type: 'business-model-canvas', title: 'İşletme Modeli Canvas', icon: 'layout', createdAt: now, updatedAt: now, parentId: 'root', order: 4, styles: { width: '1200px', height: '800px' }, content: 'İşletme modelinizi yapılandırmak ve analiz etmek için Business Model Canvas' },
     
