@@ -1,18 +1,22 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { HydrationWrapper, ClientOnly } from '@/components/hydration-wrapper';
+import { useGuestLogin, useGuestAnalytics, GuestAuthGuard } from '@/lib/guest-login';
+import { useSocialFeed, useSocialActions, formatRelativeTime, SocialPost } from '@/hooks/use-social-feed';
+import { useCanvasSync, RemoteCursor, useRemoteCursors, useThrottledCursor } from '@/hooks/use-canvas-sync';
 import { 
   Play, Pause, Volume2, VolumeX, Maximize2, Heart, MessageCircle, 
   Share2, Download, Lock, User, LogIn, UserPlus, X, Sparkles,
-  ChevronRight, ExternalLink, Eye, Clock, Star, Zap, Gift
+  ChevronRight, ExternalLink, Eye, Clock, Star, Zap, Gift, RefreshCw,
+  Users, Wifi, WifiOff
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { guestAnalytics } from '@/lib/guest-analytics';
 
 // 25 Örnek İçerik - Video, Resim, Web Siteleri
 const DEMO_CONTENT = [
@@ -48,14 +52,190 @@ const DEMO_CONTENT = [
   { id: 'i7', type: 'image', title: 'Tropikal Plaj', url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800', thumbnail: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400', views: 10800, likes: 890 },
 ];
 
-// Sosyal Akış - Örnek Postlar
-const SOCIAL_FEED = [
-  { id: 's1', user: 'Ahmet Y.', avatar: 'A', content: 'Harika bir koleksiyon! 🎉', time: '2 dk önce', likes: 12 },
-  { id: 's2', user: 'Elif K.', avatar: 'E', content: 'Lo-Fi müzik tam çalışırken dinlenecek türden.', time: '5 dk önce', likes: 8 },
-  { id: 's3', user: 'Mehmet S.', avatar: 'M', content: 'Doğa belgeselleri favorim!', time: '12 dk önce', likes: 15 },
-  { id: 's4', user: 'Zeynep A.', avatar: 'Z', content: 'Tasarım kaynakları çok faydalı 👍', time: '18 dk önce', likes: 6 },
-  { id: 's5', user: 'Can B.', avatar: 'C', content: 'Kodlama dersleri süper!', time: '25 dk önce', likes: 22 },
-];
+// Canlı Sosyal Akış Bileşeni
+const LiveSocialFeed: React.FC<{ onLoginPrompt: () => void }> = ({ onLoginPrompt }) => {
+  const { posts, loading, hasMore, loadMore, refresh } = useSocialFeed({ limit: 10 });
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refresh();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium">Canlı Akış</span>
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="h-7 px-2"
+        >
+          <RefreshCw className={cn("w-3 h-3", isRefreshing && "animate-spin")} />
+        </Button>
+      </div>
+
+      {loading && posts.length === 0 ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="p-3 bg-muted/50 rounded-lg animate-pulse">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 bg-muted rounded-full" />
+                <div className="h-3 w-20 bg-muted rounded" />
+              </div>
+              <div className="h-3 w-full bg-muted rounded mb-1" />
+              <div className="h-3 w-2/3 bg-muted rounded" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-[400px] overflow-y-auto scrollbar-thin">
+          <AnimatePresence mode="popLayout">
+            {posts.map((post, index) => (
+              <motion.div
+                key={post.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ delay: index * 0.05 }}
+                className="p-3 bg-muted/30 hover:bg-muted/50 rounded-lg transition-colors"
+              >
+                <div className="flex items-start gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {post.user_avatar ? (
+                      <img src={post.user_avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      post.user_name.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="font-medium text-sm truncate">{post.user_name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatRelativeTime(post.created_at)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{post.content}</p>
+                    <div className="flex items-center gap-3 mt-2">
+                      <button
+                        onClick={onLoginPrompt}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Heart className="w-3 h-3" />
+                        <span>{post.likes_count}</span>
+                      </button>
+                      <button
+                        onClick={onLoginPrompt}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        <span>{post.comments_count}</span>
+                      </button>
+                      <button
+                        onClick={onLoginPrompt}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Share2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {hasMore && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={loadMore}
+              disabled={loading}
+              className="w-full text-xs"
+            >
+              {loading ? 'Yükleniyor...' : 'Daha Fazla'}
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Çevrimiçi Kullanıcılar Bileşeni (Self-contained with hook)
+const OnlineUsers: React.FC = () => {
+  const { users } = useCanvasSync('guest-canvas');
+  
+  if (users.length === 0) {
+    // Show mock online users for demo
+    const mockUsers = [
+      { user_id: '1', user_name: 'Ahmet', color: '#8B5CF6' },
+      { user_id: '2', user_name: 'Elif', color: '#EC4899' },
+      { user_id: '3', user_name: 'Mehmet', color: '#3B82F6' },
+    ];
+    
+    return (
+      <Card className="sticky top-24">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-xs text-muted-foreground">{mockUsers.length} çevrimiçi</span>
+            </div>
+            <div className="flex -space-x-2">
+              {mockUsers.map((user) => (
+                <div
+                  key={user.user_id}
+                  className="w-6 h-6 rounded-full border-2 border-background flex items-center justify-center text-[10px] font-bold text-white"
+                  style={{ backgroundColor: user.color }}
+                  title={user.user_name}
+                >
+                  {user.user_name.charAt(0)}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="sticky top-24">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-xs text-muted-foreground">{users.length} çevrimiçi</span>
+          </div>
+          <div className="flex -space-x-2">
+            {users.slice(0, 5).map((user) => (
+              <div
+                key={user.user_id}
+                className="w-6 h-6 rounded-full border-2 border-background flex items-center justify-center text-[10px] font-bold text-white"
+                style={{ backgroundColor: user.color }}
+                title={user.user_name}
+              >
+                {user.user_name.charAt(0)}
+              </div>
+            ))}
+            {users.length > 5 && (
+              <div className="w-6 h-6 rounded-full bg-muted border-2 border-background flex items-center justify-center text-[10px]">
+                +{users.length - 5}
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 // Reklam Kartı Komponenti
 const AdCard: React.FC<{ position: number }> = ({ position }) => {
@@ -209,19 +389,16 @@ const ContentCard: React.FC<{
 
 // Ana Sayfa Komponenti
 export default function GuestCanvasPage() {
+  const { guestSession, isGuest, loginAsGuest } = useGuestLogin();
+  const { trackEvent, trackView } = useGuestAnalytics();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [promptMessage, setPromptMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'videos' | 'websites' | 'images'>('all');
   
-  // Guest Analytics başlat
+  // Track page view on mount
   useEffect(() => {
-    guestAnalytics.initialize();
-    guestAnalytics.trackPageView('/guest-canvas', 'Misafir Canvas');
-    
-    return () => {
-      guestAnalytics.cleanup();
-    };
-  }, []);
+    trackView('guest-canvas');
+  }, [trackView]);
   
   const filteredContent = useMemo(() => {
     const content = [...DEMO_CONTENT];
@@ -231,7 +408,7 @@ export default function GuestCanvasPage() {
     return content;
   }, [activeTab]);
   
-  // Reklamları araya serpiştir (her 6 içerikte 1 reklam)
+  // Insert ads every 6 items
   const contentWithAds = useMemo(() => {
     const result: (typeof DEMO_CONTENT[0] | { isAd: true; position: number })[] = [];
     let adIndex = 0;
@@ -254,20 +431,15 @@ export default function GuestCanvasPage() {
       export: '📥 Dışa aktarmak için üye olmanız gerekiyor',
     };
     
-    // Analytics tracking
-    if (action === 'like') guestAnalytics.track('social_interaction', 'like', 'button');
-    else if (action === 'comment') guestAnalytics.track('social_interaction', 'comment', 'button');
-    else if (action === 'share') guestAnalytics.trackShareAttempt('content');
-    else if (action === 'export') guestAnalytics.trackDownloadAttempt('content');
-    
+    trackEvent(action, { source: 'content_card' });
     setPromptMessage(messages[action] || 'Bu özellik için üye olmanız gerekiyor');
     setShowLoginPrompt(true);
   };
   
-  // Tab değişikliğini takip et
+  // Track tab changes
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
-    guestAnalytics.track('filter_change', tab, 'tab');
+    trackEvent('tab_change', { tab });
   };
   
   return (
@@ -378,59 +550,12 @@ export default function GuestCanvasPage() {
           </div>
           
           {/* Social Feed Sidebar */}
-          <div className="hidden xl:block w-80 shrink-0">
-            <Card className="sticky top-24">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-yellow-500" />
-                  Sosyal Akış
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {SOCIAL_FEED.map((post) => (
-                  <div key={post.id} className="flex gap-3 p-3 rounded-lg bg-muted/50">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
-                      {post.avatar}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{post.user}</span>
-                        <span className="text-xs text-muted-foreground">{post.time}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">{post.content}</p>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                        <button 
-                          className="flex items-center gap-1 hover:text-red-500"
-                          onClick={() => handleAction('like')}
-                        >
-                          <Heart className="w-3 h-3" /> {post.likes}
-                          <Lock className="w-2 h-2 ml-1" />
-                        </button>
-                        <button 
-                          className="flex items-center gap-1"
-                          onClick={() => handleAction('comment')}
-                        >
-                          <MessageCircle className="w-3 h-3" /> Yanıtla
-                          <Lock className="w-2 h-2 ml-1" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-center text-muted-foreground mb-3">
-                    Sosyal akışa katılmak için üye olun
-                  </p>
-                  <Link href="/register" className="block">
-                    <Button className="w-full" size="sm">
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Hemen Üye Ol
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="hidden xl:block w-80 shrink-0 space-y-4">
+            {/* Online Users */}
+            <OnlineUsers />
+            
+            {/* Live Social Feed */}
+            <LiveSocialFeed onLoginPrompt={() => setShowLoginPrompt(true)} />
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Send, Bot, Sparkles, ArrowRight, Dice5, Clock, Calendar, Calculator, Cloud, CloudRain, Sun, Snowflake, Music, Image, FileText, Globe, Zap, Save, UserPlus, Gauge, Check, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { AchievementNotification, useAchievements } from '@/components/ui/achievement-notification';
+import { SafeIframe } from '@/components/safe-iframe';
 
 // Mini AI Chat component for the AI Asistan demo card
 const MiniAIChat: React.FC = () => {
@@ -25,7 +26,7 @@ const MiniAIChat: React.FC = () => {
     if (q.includes('nedir')) return 'TV25, videolarınızı ve widget\'larınızı tek tuvalde organize eden güçlü bir platform! 🎬';
     if (q.includes('ücretsiz') || q.includes('fiyat')) return 'Evet! Ücretsiz planımız var. Hemen başlayın! 💰';
     if (q.includes('başla') || q.includes('kayıt')) return 'Çok kolay! "Ücretsiz Başla" butonuna tıklayın. 🚀';
-    return 'Harika soru! Hemen kayıt olup keşfedin! ✨';
+    return 'Harika soru! Hemen üye olup keşfedin! ✨';
   };
 
   const handleSend = () => {
@@ -383,31 +384,31 @@ const DemoCard: React.FC<{ card: DemoCardData }> = ({ card }) => {
         </div>
         <div className="flex-1 p-1.5">
           {type === 'video' && url && (
-            <iframe 
+            <SafeIframe 
               src={url} 
               title={title} 
               className="w-full h-full rounded-md border border-white/20" 
               allow="autoplay; encrypted-media" 
-              allowFullScreen 
-              onClick={(e) => e.stopPropagation()}
+              allowFullScreen
+              fallbackMode="card"
             />
           )}
           {type === 'iframe' && url && (
-            <iframe 
+            <SafeIframe 
               src={url} 
               title={title} 
               className="w-full h-full rounded-md border border-white/20 bg-white" 
               sandbox="allow-scripts allow-same-origin"
-              onClick={(e) => e.stopPropagation()}
+              fallbackMode="preview"
             />
           )}
           {type === 'slides' && url && (
-            <iframe 
+            <SafeIframe 
               src={url} 
               title={title} 
               className="w-full h-full rounded-md border border-white/20 bg-white" 
               allowFullScreen
-              onClick={(e) => e.stopPropagation()}
+              fallbackMode="card"
             />
           )}
           {type === 'ai' && <MiniAIChat />}
@@ -1023,7 +1024,7 @@ export const LandingPageDemoGrid: React.FC<{
         <p className="text-white/50 text-sm">
           {isSavedToCache 
             ? '✓ Önizlemeniz kaydedildi! Üye olunca klasörünüz hazır olacak.' 
-            : 'Ücretsiz kayıt ol, hemen kullanmaya başla!'}
+            : 'Ücretsiz üye ol, hemen kullanmaya başla!'}
         </p>
       </div>
     </div>

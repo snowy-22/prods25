@@ -263,16 +263,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithOAuth = async (provider: 'google') => {
     try {
-      // CRITICAL: Supabase OAuth callback MUST be Supabase's own URL
-      // NOT your custom domain callback!
-      const isDevelopment = window.location.hostname === 'localhost';
-      const callbackUrl = isDevelopment
-        ? `${window.location.origin}/auth/callback`
-        : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/callback`;
+      // PKCE flow: Use YOUR app's callback, not Supabase's callback
+      // The middleware will handle cookie management for PKCE
+      const callbackUrl = `${window.location.origin}/auth/callback`;
       
-      console.log(`🔐 Initiating ${provider} OAuth...`);
+      console.log(`🔐 Initiating ${provider} OAuth with PKCE...`);
       console.log(`📍 Callback URL: ${callbackUrl}`);
-      console.log(`🌍 Environment: ${isDevelopment ? 'development' : 'production'}`);
+      console.log(`🌍 Origin: ${window.location.origin}`);
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -280,8 +277,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           redirectTo: callbackUrl,
           queryParams: {
             prompt: 'consent',
+            access_type: 'offline', // Get refresh token
           },
-          skipBrowserRedirect: false, // Let Supabase handle redirect
+          skipBrowserRedirect: false,
         },
       });
 

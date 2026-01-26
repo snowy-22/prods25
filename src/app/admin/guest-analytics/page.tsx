@@ -115,7 +115,7 @@ export default function GuestAnalyticsPage() {
   return (
     <AdminLayout
       title="Misafir Analitikleri"
-      subtitle="Kayıt olmamış ziyaretçilerin davranışlarını analiz edin"
+      subtitle="Üye olmamış ziyaretçilerin davranışlarını analiz edin"
     >
       <AdminNav />
 
@@ -147,7 +147,7 @@ export default function GuestAnalyticsPage() {
           />
           <StatCard
             label="Dönüşüm Oranı"
-            value={`${stats?.conversionRate.toFixed(1) || 0}%`}
+            value={`${(stats?.conversionRate ?? 0).toFixed(1)}%`}
             trend="up"
             icon={<TrendingUp className="w-8 h-8" />}
           />
@@ -176,18 +176,18 @@ export default function GuestAnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {stats?.topActions.map((action, i) => (
+                  {(stats?.topActions ?? []).map((action, i) => (
                     <div
                       key={i}
                       className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${getActionColor(action.action_type)}`}>
-                          {getActionIcon(action.action_type)}
+                        <div className={`p-2 rounded-full ${getActionColor(action.action_type ?? 'unknown')}`}>
+                          {getActionIcon(action.action_type ?? 'unknown')}
                         </div>
                         <div>
                           <p className="font-medium text-slate-900">
-                            {action.action_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            {(action.action_type ?? 'unknown').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </p>
                         </div>
                       </div>
@@ -195,7 +195,8 @@ export default function GuestAnalyticsPage() {
                         {action.count}
                       </Badge>
                     </div>
-                  )) || (
+                  ))}
+                  {(!stats?.topActions || stats.topActions.length === 0) && (
                     <p className="text-slate-500 text-center py-4">Henüz veri yok</p>
                   )}
                 </div>
@@ -220,7 +221,7 @@ export default function GuestAnalyticsPage() {
                   </p>
                   <div className="mt-4 bg-green-50 rounded-lg p-3">
                     <p className="text-sm text-green-700">
-                      %{stats?.conversionRate.toFixed(1) || 0} dönüşüm oranı
+                      %{(stats?.conversionRate ?? 0).toFixed(1)} dönüşüm oranı
                     </p>
                   </div>
                 </CardContent>

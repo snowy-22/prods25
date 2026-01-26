@@ -22,6 +22,9 @@ export interface GuestSession {
   actions_count: number;
   converted_to_signup: boolean;
   last_activity: string;
+  // Aliases for UI compatibility
+  converted?: boolean;
+  duration?: number;
 }
 
 export interface GuestAction {
@@ -32,6 +35,8 @@ export interface GuestAction {
   target_type: string | null;
   metadata: Record<string, any>;
   timestamp: string;
+  // Alias for UI compatibility
+  item_id?: string | null;
 }
 
 export type GuestActionType = 
@@ -53,16 +58,30 @@ export type GuestActionType =
   | 'social_interaction';
 
 export interface GuestAnalyticsSummary {
+  // snake_case (database format)
   total_sessions: number;
   active_sessions: number;
   total_page_views: number;
   total_actions: number;
   conversion_rate: number;
   avg_session_duration: number;
-  top_actions: { action: string; count: number }[];
+  top_actions: { action: string; action_type?: string; count: number }[];
   traffic_by_device: { device: string; count: number }[];
   traffic_by_hour: { hour: number; count: number }[];
   traffic_by_day: { day: string; count: number }[];
+  
+  // camelCase aliases (for UI compatibility)
+  totalSessions?: number;
+  activeSessions?: number;
+  totalPageViews?: number;
+  totalActions?: number;
+  conversionRate?: number;
+  avgSessionDuration?: number;
+  topActions?: { action: string; action_type?: string; count: number }[];
+  uniqueVisitors?: number;
+  signupAttempts?: number;
+  recentActions?: GuestAction[];
+  recentSessions?: GuestSession[];
 }
 
 // Session ID oluştur veya localStorage'dan al
@@ -248,7 +267,7 @@ class GuestAnalyticsManager {
   }
   
   /**
-   * Kayıt ol butonuna tıklama
+   * Üye ol butonuna tıklama
    */
   trackSignupClick(source: string): void {
     this.track('signup_click', source, 'button', { source });
@@ -446,16 +465,46 @@ export async function getGuestAnalyticsSummary(days: number = 7): Promise<GuestA
     .map(([day, count]) => ({ day, count }))
     .sort((a, b) => a.day.localeCompare(b.day));
   
+  // Recent actions
+  const recentActions = actionList
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, 20);
+  
+  // Recent sessions  
+  const recentSessions = sessionList
+    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+    .slice(0, 10);
+  
+  // Unique visitors (by visitor hash)
+  const uniqueVisitors = new Set(sessionList.map(s => s.visitor_hash)).size;
+  
+  // Signup attempts (converted sessions)
+  const signupAttempts = conversions;
+  
   return {
+    // snake_case (primary)
     total_sessions: sessionList.length,
     active_sessions: activeSessions.length,
     total_page_views: sessionList.reduce((sum, s) => sum + (s.page_views || 0), 0),
     total_actions: actionList.length,
     conversion_rate: Math.round(conversionRate * 100) / 100,
     avg_session_duration: Math.round(avgDuration),
-    top_actions: topActions,
+    top_actions: topActions.map(a => ({ action: a.action, action_type: a.action, count: a.count })),
     traffic_by_device: trafficByDevice,
     traffic_by_hour: trafficByHour,
-    traffic_by_day: trafficByDay
+    traffic_by_day: trafficByDay,
+    
+    // camelCase (for UI compatibility)
+    totalSessions: sessionList.length,
+    activeSessions: activeSessions.length,
+    totalPageViews: sessionList.reduce((sum, s) => sum + (s.page_views || 0), 0),
+    totalActions: actionList.length,
+    conversionRate: Math.round(conversionRate * 100) / 100,
+    avgSessionDuration: Math.round(avgDuration),
+    topActions: topActions.map(a => ({ action: a.action, action_type: a.action, count: a.count })),
+    uniqueVisitors,
+    signupAttempts,
+    recentActions: recentActions as GuestAction[],
+    recentSessions: recentSessions as GuestSession[],
   };
 }

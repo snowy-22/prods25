@@ -263,7 +263,7 @@ class ProfileService {
         owner_username: profile.username,
         reward_type: 'premium_days',
         reward_amount: 7,
-        message: `${profile.username} tarafından davet edildiniz! Kayıt olduğunuzda 7 gün premium kazanacaksınız.`,
+        message: `${profile.username} tarafından davet edildiniz! Üye olduğunuzda 7 gün premium kazanacaksınız.`,
       };
     }
 

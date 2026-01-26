@@ -213,7 +213,7 @@ export default function FeaturesPage() {
 					</p>
 					<div className="flex flex-col sm:flex-row gap-4 justify-center">
 						<AnimatedBorderButton asChild size="lg">
-							<Link href="/auth">Ücretsiz Kayıt Ol</Link>
+							<Link href="/auth">Ücretsiz Üye Ol</Link>
 						</AnimatedBorderButton>
 						<Button asChild variant="outline" size="lg">
 							<Link href="/">Ana Sayfaya Dön</Link>

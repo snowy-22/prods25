@@ -333,6 +333,7 @@ export type Tab = ContentItem & {
 export type NewTabBehavior = 'chrome-style' | 'library' | 'folder' | 'custom';
 export type StartupBehavior = 'last-session' | 'new-tab' | 'library' | 'folder' | 'custom';
 export type EcommerceView = 'products' | 'marketplace' | 'cart' | 'orders';
+export type SecondarySidebarBehavior = 'expanded' | 'collapsed' | 'hover';
 
 
 
@@ -368,7 +369,8 @@ interface AppStore {
   isSecondLeftSidebarOpen: boolean;
   secondarySidebarOverlayMode: boolean; // Desktop overlay mode for secondary sidebar
   secondarySidebarWidth: number; // Width in pixels (min: 280, max: 600, default: 320)
-  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | 'search' | null;
+  secondarySidebarBehavior: SecondarySidebarBehavior; // Sidebar behavior: expanded, collapsed, or hover-to-expand
+  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | 'search' | 'enterprise' | null;
   isStyleSettingsOpen: boolean;
   isViewportEditorOpen: boolean;
   isSpacesPanelOpen: boolean;
@@ -605,6 +607,7 @@ interface AppStore {
   setActiveSecondaryPanel: (panel: AppStore['activeSecondaryPanel']) => void;
   toggleSecondarySidebarOverlayMode: () => void;
   setSecondarySidebarWidth: (width: number) => void;
+  setSecondarySidebarBehavior: (behavior: SecondarySidebarBehavior) => void;
   setEcommerceView: (view: EcommerceView) => void;
   updateSearchPanel: (update: Partial<SearchPanelState>) => void;
   setItemToShare: (item: ContentItem | null) => void;
@@ -1049,6 +1052,7 @@ export const useAppStore = create<AppStore>()(
       isSecondLeftSidebarOpen: true,
       secondarySidebarOverlayMode: false,
       secondarySidebarWidth: 320, // Default width in pixels
+      secondarySidebarBehavior: 'expanded' as SecondarySidebarBehavior, // Default: always expanded
       activeSecondaryPanel: 'library',
       isStyleSettingsOpen: false,
       isViewportEditorOpen: false,
@@ -2041,6 +2045,16 @@ export const useAppStore = create<AppStore>()(
       setSecondarySidebarWidth: (width) => {
         const clampedWidth = Math.max(280, Math.min(600, width));
         set({ secondarySidebarWidth: clampedWidth });
+      },
+      setSecondarySidebarBehavior: (behavior) => {
+        set({ secondarySidebarBehavior: behavior });
+        // If behavior is 'collapsed', close the sidebar; if 'expanded', open it
+        if (behavior === 'collapsed') {
+          set({ isSecondLeftSidebarOpen: false });
+        } else if (behavior === 'expanded') {
+          set({ isSecondLeftSidebarOpen: true });
+        }
+        // 'hover' mode keeps current state but adds hover-to-expand behavior
       },
       updateSearchPanel: (update) => set((state) => ({ searchPanelState: { ...state.searchPanelState, ...update } })),
       setItemToShare: (item) => set({ itemToShare: item }),
@@ -5582,6 +5596,7 @@ export const useAppStore = create<AppStore>()(
         isSecondLeftSidebarOpen: state.isSecondLeftSidebarOpen,
         activeSecondaryPanel: state.activeSecondaryPanel,
         secondarySidebarWidth: state.secondarySidebarWidth,
+        secondarySidebarBehavior: state.secondarySidebarBehavior,
         gridModeState: state.gridModeState,
         expandedItems: state.expandedItems,
         // Micro Clock Settings (persisted locally and synced to cloud)

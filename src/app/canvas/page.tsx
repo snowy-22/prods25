@@ -75,6 +75,7 @@ import { useAuth } from '@/providers/auth-provider';
 import { useRealtimeSync } from '@/hooks/use-realtime-sync';
 import { BottomControlBar } from '@/components/bottom-control-bar';
 import { CrossDragManager } from '@/lib/cross-drag-system';
+import { recordOperation, OperationType, ProducerType } from '@/lib/operation-service';
 
 const MiniMapOverlay = dynamic(() => import('@/components/mini-map-overlay').then(mod => ({ default: mod.MiniMapOverlay })), { ssr: false });
 
@@ -477,6 +478,9 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     }, [activeTab, activeView, state.updateTab]);
     
     const updateItem = useCallback(async (itemId: string, updates: Partial<ContentItem>) => {
+        // Get previous state for operation recording
+        const previousItem = itemsRef.current.find(i => i.id === itemId);
+        
         // Push to undo/redo stack if this is a contentItem update
         if (activeTab) {
             state.pushUndoRedo(activeTab.id, activeTab.activeViewId);
@@ -496,6 +500,27 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         );
 
         if (state.user) {
+            // Record operation for undo/redo and admin tracking
+            const nextState = previousItem ? { ...previousItem, ...updates } : updates;
+            recordOperation(
+                state.user.id,
+                'update',
+                'canvas_items',
+                itemId,
+                previousItem || null,
+                nextState,
+                {
+                    targetTitle: previousItem?.title || nextState.title,
+                    canvasId: activeTab?.id || 'default',
+                    folderId: previousItem?.parentId || undefined,
+                    producerType: 'user',
+                    producerContext: {
+                        source: 'canvas',
+                        metadata: { affectedFields: Object.keys(updates) }
+                    }
+                }
+            ).catch(err => canvasLogger.debug("Operation recording skipped", { error: err }));
+
             const { error } = await supabase
                 .from('items')
                 .update(updates)
@@ -578,6 +603,9 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
     }, [setAllRawItems, state.user, supabase, toast]);
 
     const deleteItem = useCallback(async (itemId: string) => {
+        // Get item state before deletion for operation recording
+        const itemToDelete = itemsRef.current.find(i => i.id === itemId);
+        
         const childrenIdsToDelete: string[] = [];
         const visited = new Set<string>();
         
@@ -600,6 +628,30 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         broadcastItemDelete(state.activeTabId, itemId);
 
         if (state.user) {
+            // Record delete operation for undo/redo and admin tracking
+            recordOperation(
+                state.user.id,
+                'delete',
+                'canvas_items',
+                itemId,
+                itemToDelete || null,
+                null,
+                {
+                    targetTitle: itemToDelete?.title,
+                    canvasId: activeTab?.id || 'default',
+                    folderId: itemToDelete?.parentId || undefined,
+                    producerType: 'user',
+                    securityLevel: itemToDelete?.type === 'folder' ? 'elevated' : 'normal',
+                    producerContext: {
+                        source: 'canvas',
+                        metadata: { 
+                            childrenDeleted: childrenIdsToDelete.length,
+                            itemType: itemToDelete?.type
+                        }
+                    }
+                }
+            ).catch(err => canvasLogger.debug("Operation recording skipped", { error: err }));
+
             const { error } = await supabase
                 .from('items')
                 .delete()
@@ -613,7 +665,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 }
             }
         }
-    }, [updateItems, state.user, supabase, toast]);
+    }, [updateItems, state.user, supabase, toast, activeTab]);
      const addItemToView = useCallback(async (itemData: Partial<ContentItem> & { type: ItemType }, parentId: string | null, index?: number): Promise<ContentItem> => {
         const now = new Date().toISOString();
         const finalParentId = parentId;
@@ -780,6 +832,29 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                     }
                 });
 
+            // Record create operation for undo/redo and admin tracking
+            recordOperation(
+                state.user.id,
+                'create',
+                'canvas_items',
+                newItem.id,
+                null,
+                newItem,
+                {
+                    targetTitle: newItem.title,
+                    canvasId: activeTab?.id || 'default',
+                    folderId: newItem.parentId || undefined,
+                    producerType: 'user',
+                    producerContext: {
+                        source: 'canvas',
+                        metadata: { 
+                            itemType: newItem.type,
+                            hasUrl: !!newItem.url
+                        }
+                    }
+                }
+            ).catch(err => canvasLogger.debug("Operation recording skipped", { error: err }));
+
             if (error) {
                 // Silently fail if items table doesn't exist yet
                 canvasLogger.debug("Cloud sync skipped (items table not configured)", { error: error.message });
@@ -794,7 +869,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         broadcastItemAdd(state.activeTabId, parentId || 'root', newItem);
 
         return newItem;
-    }, [updateItems, state.selectedItemIds, state.user, supabase, toast]);
+    }, [updateItems, state.selectedItemIds, state.user, supabase, toast, activeTab]);
     
     const addFolderWithItems = useCallback(async (folderName: string, itemsToAdd: { type: ItemType; url: string }[], parentId: string | null) => {
         canvasLogger.info(`Creating folder`, { folderName, itemCount: itemsToAdd.length });

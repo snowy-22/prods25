@@ -61,7 +61,7 @@ const pricingTiers = [
 			'Temel Izgara Modu',
 			'Topluluk Paylaşımı'
 		],
-		cta: 'Kayıt Ol',
+		cta: 'Üye Ol',
 		ctaLink: '/register'
 	},
 	{
@@ -123,7 +123,7 @@ const MainHeader = () => (
 			<Logo />
 			<nav className="flex items-center gap-4">
 				<AnimatedBorderButton asChild variant="primary" size="sm">
-					<Link href="/auth">Giriş / Kayıt Ol</Link>
+					<Link href="/auth">Giriş / Üye Ol</Link>
 				</AnimatedBorderButton>
 			</nav>
 		</div>
@@ -425,7 +425,7 @@ export default function LandingPage() {
 						<div className="bg-card/80 border border-border/50 rounded-lg p-8 text-center">
 							<h3 className="text-2xl font-bold mb-4">Kurumsal Müşterilerin Tercih Ettiği</h3>
 							<div className="flex flex-wrap justify-center gap-8 mb-8">
-								{['Fortune 500', 'Girişim Şirketleri', 'Eğitim Kurumları','Dernekler ve Kamu', 'Yayın Şirketleri'].map((type, idx) => (
+								{['Fortune 500', 'Girişim Şirketleri', 'Eğitim Kurumları','Dernekler ve Kamu Kurumları', 'Yayın Şirketleri'].map((type, idx) => (
 									<div key={idx} className="flex items-center gap-2">
 										<span className="w-2 h-2 bg-primary rounded-full"></span>
 										<span className="font-medium">{type}</span>

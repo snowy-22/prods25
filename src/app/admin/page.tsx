@@ -94,23 +94,23 @@ export default function AdminDashboard() {
                 <div className="text-xs text-indigo-600">Toplam Eylem</div>
               </div>
               <div className="bg-white/80 rounded-lg p-4 text-center">
-                <div className="text-2xl font-bold text-blue-700">{guestStats.signupAttempts}</div>
+                <div className="text-2xl font-bold text-blue-700">{guestStats.signupAttempts ?? 0}</div>
                 <div className="text-xs text-blue-600">Kayıt Denemesi</div>
               </div>
               <div className="bg-white/80 rounded-lg p-4 text-center">
                 <div className="text-2xl font-bold text-green-700">
-                  {guestStats.conversionRate.toFixed(1)}%
+                  {(guestStats.conversionRate ?? 0).toFixed(1)}%
                 </div>
                 <div className="text-xs text-green-600">Dönüşüm Oranı</div>
               </div>
             </div>
             
             {/* Top Actions */}
-            {guestStats.topActions.length > 0 && (
+            {(guestStats.topActions ?? []).length > 0 && (
               <div className="mt-4">
                 <h4 className="text-sm font-medium text-purple-800 mb-2">En Popüler Eylemler</h4>
                 <div className="flex flex-wrap gap-2">
-                  {guestStats.topActions.slice(0, 5).map((action, i) => (
+                  {(guestStats.topActions ?? []).slice(0, 5).map((action, i) => (
                     <Badge key={i} variant="secondary" className="bg-white/80">
                       {action.action_type}: {action.count}
                     </Badge>
@@ -125,26 +125,26 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             label="Aktif Kullanıcılar"
-            value={guestStats?.uniqueVisitors.toString() || '0'}
+            value={(guestStats?.uniqueVisitors ?? 0).toString()}
             change={12}
             icon={<Users className="w-8 h-8" />}
           />
           <StatCard
             label="Misafir Oturumları"
-            value={guestStats?.totalSessions.toString() || '0'}
+            value={(guestStats?.totalSessions ?? 0).toString()}
             change={8}
             icon={<Eye className="w-8 h-8" />}
           />
           <StatCard
             label="Toplam Etkileşim"
-            value={guestStats?.totalActions.toString() || '0'}
+            value={(guestStats?.totalActions ?? 0).toString()}
             change={24}
             trend="up"
             icon={<MousePointer className="w-8 h-8" />}
           />
           <StatCard
             label="Kayıt Denemeleri"
-            value={guestStats?.signupAttempts.toString() || '0'}
+            value={(guestStats?.signupAttempts ?? 0).toString()}
             change={15}
             trend="up"
             icon={<UserPlus className="w-8 h-8" />}

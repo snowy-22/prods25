@@ -51,7 +51,7 @@ let deviceId: string | null = null;
  */
 function isSupabaseConfigured(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   // Treat placeholder or empty values as not configured
   return !!url && !!key && url !== 'https://placeholder.supabase.co' && key !== 'placeholder';
 }
@@ -619,6 +619,7 @@ export async function syncCanvasItem(userId: string, item: ContentItem): Promise
   const itemData = {
     id: item.id,
     user_id: userId,
+    canvas_id: (item as any).canvasId || 'default',
     parent_id: item.parentId || null,
     type: item.type,
     title: item.title || null,
@@ -626,6 +627,7 @@ export async function syncCanvasItem(userId: string, item: ContentItem): Promise
     icon: item.icon || null,
     url: (item as any).url || null,
     thumbnail: (item as any).thumbnail || null,
+    item_data: item,
     metadata: {
       description: (item as any).description,
       tags: (item as any).tags,
@@ -676,6 +678,7 @@ export async function syncCanvasItems(userId: string, items: ContentItem[]): Pro
   const itemsData = items.map(item => ({
     id: item.id,
     user_id: userId,
+    canvas_id: (item as any).canvasId || 'default',
     parent_id: item.parentId || null,
     type: item.type,
     title: item.title || null,
@@ -683,6 +686,7 @@ export async function syncCanvasItems(userId: string, items: ContentItem[]): Pro
     icon: item.icon || null,
     url: (item as any).url || null,
     thumbnail: (item as any).thumbnail || null,
+    item_data: item,
     metadata: {
       description: (item as any).description,
       tags: (item as any).tags,

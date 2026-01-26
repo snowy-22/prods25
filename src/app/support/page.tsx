@@ -40,7 +40,7 @@ const supportCategories = [
 ];
 
 const popularArticles = [
-	{ title: 'Kayıt olma ve giriş yapma', link: '/faq' },
+	{ title: 'Üye olma ve giriş yapma', link: '/faq' },
 	{ title: 'İlk kanvasınızı oluşturma', link: '/faq' },
 	{ title: 'Video ve medya ekleme', link: '/faq' },
 	{ title: 'Paylaşım ve işbirliği', link: '/faq' },

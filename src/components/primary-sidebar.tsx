@@ -3,7 +3,7 @@
 'use client';
 
 import { memo, useRef, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
-import { Bot, Library, Plus, Trash2, Folder as FolderIcon, FileText as FileIcon, Frame, Copy, List, Eye, Clock, StickyNote, Calendar, Play, Upload, LayoutGrid, AlertCircle, Film, Save, Pencil, MousePointer, Settings, Monitor, Moon, Sun, GripHorizontal, Image as ImageIcon, Expand, RotateCw, ArrowUpNarrowWide, Info, GanttChart, Wand2, User, LogOut, LogIn, ChevronDown, ListIcon, Undo, Redo, Share, Users, MessageSquare, Pin, PinOff, Palette, ArrowDownAZ, ArrowUpAZ, UserPlus, MessageSquarePlus, Minus, EyeOff, ChevronRight, PanelLeft, Link as LinkIcon, ChevronsRight, FolderSync, Award, Mic, History, Sparkles, Bell, Search, Puzzle, Globe, Camera, Tv, UserCog, Home, MonitorSmartphone, Airplay, Projector, QrCode, KeyRound, Maximize, Minimize, ExternalLink, BarChart, ShoppingCart, Columns3, SquareStack, Phone, Users2 } from 'lucide-react';
+import { Bot, Library, Plus, Trash2, Folder as FolderIcon, FileText as FileIcon, Frame, Copy, List, Eye, Clock, StickyNote, Calendar, Play, Upload, LayoutGrid, AlertCircle, Film, Save, Pencil, MousePointer, Settings, Monitor, Moon, Sun, GripHorizontal, Image as ImageIcon, Expand, RotateCw, ArrowUpNarrowWide, Info, GanttChart, Wand2, User, LogOut, LogIn, ChevronDown, ListIcon, Undo, Redo, Share, Users, MessageSquare, Pin, PinOff, Palette, ArrowDownAZ, ArrowUpAZ, UserPlus, MessageSquarePlus, Minus, EyeOff, ChevronRight, PanelLeft, Link as LinkIcon, ChevronsRight, FolderSync, Award, Mic, History, Sparkles, Bell, Search, Puzzle, Globe, Camera, Tv, UserCog, Home, MonitorSmartphone, Airplay, Projector, QrCode, KeyRound, Maximize, Minimize, ExternalLink, BarChart, ShoppingCart, Columns3, SquareStack, Phone, Users2, Building } from 'lucide-react';
 import { AppLogo } from '@/components/icons/app-logo';
 import type { ContentItem, ItemType, SortOption } from '@/lib/initial-content';
 import { Button } from '@/components/ui/button';
@@ -34,8 +34,8 @@ interface PrimarySidebarProps {
   onSetView: (item: ContentItem | null, event?: React.MouseEvent) => void;
   username: string;
   setUsername: (username: string) => void;
-  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | 'search' | null;
-  setActiveSecondaryPanel: (panel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | 'search' | null) => void;
+  activeSecondaryPanel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | 'search' | 'enterprise' | null;
+  setActiveSecondaryPanel: (panel: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | 'search' | 'enterprise' | null) => void;
   isSecondLeftSidebarOpen: boolean;
   toggleSecondLeftSidebar: (open?: boolean) => void;
   toggleSearchDialog: () => void;
@@ -467,6 +467,28 @@ export default function PrimarySidebar({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent side="right"><p>Başarılar & Ödüller</p></TooltipContent>
+                        </Tooltip>
+                        
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant={activeSecondaryPanel === 'enterprise' && isSecondLeftSidebarOpen ? "secondary" : "ghost"} 
+                                    size="icon" 
+                                    className='h-8 w-8 sm:h-10 sm:w-10' 
+                                    onClick={() => {
+                                        if (activeSecondaryPanel === 'enterprise' && isSecondLeftSidebarOpen) {
+                                            toggleSecondLeftSidebar(false);
+                                        } else {
+                                            setActiveSecondaryPanel('enterprise');
+                                            toggleSecondLeftSidebar(true);
+                                        }
+                                    }}
+                                    data-testid="enterprise-button"
+                                >
+                                    <Building className="h-4 w-4 sm:h-5 sm:w-5"/>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="right"><p>Enterprise & B2B</p></TooltipContent>
                         </Tooltip>
                         
                         <Separator className='my-2 w-8' />

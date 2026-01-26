@@ -252,7 +252,7 @@ export function AuthDialog({ action, authData, setAction, onAuthSuccess }: AuthD
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting
                         ? 'İşleniyor...' 
-                        : isSignup ? 'Kayıt Ol' : 'Giriş Yap'
+                        : isSignup ? 'Üye Ol' : 'Giriş Yap'
                     }
                   </Button>
               </div>

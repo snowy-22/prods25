@@ -542,7 +542,7 @@ export function ProfileSettingsDialog({ open, onOpenChange }: ProfileSettingsDia
                       <CardHeader>
                         <CardTitle>Davet Kodunuz</CardTitle>
                         <CardDescription>
-                          Bu kodu veya linki arkadaşlarınızla paylaşın. Her kayıt olan arkadaşınız için 7 gün premium kazanın!
+                          Bu kodu veya linki arkadaşlarınızla paylaşın. Her üye olan arkadaşınız için 7 gün premium kazanın!
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">

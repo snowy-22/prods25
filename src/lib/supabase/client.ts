@@ -2,15 +2,15 @@ import { createBrowserClient } from '@supabase/ssr'
 
 export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabasePublishableKey) {
     console.warn("Supabase environment variables are missing. Auth and sync features will be disabled.");
   }
 
   return createBrowserClient(
     supabaseUrl || 'https://placeholder.supabase.co',
-    supabaseAnonKey || 'placeholder',
+    supabasePublishableKey || 'placeholder',
     {
       cookies: {
         getAll() {

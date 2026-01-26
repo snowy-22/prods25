@@ -12,6 +12,11 @@ import { canvasLogger } from '@/lib/logger';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, ContextMenuSeparator } from './ui/context-menu';
 import { Plus, Clipboard, Settings, Folder, Trash2, MessageCircle, ChevronDown } from 'lucide-react';
 
+// Undo/Redo System
+import { useUndoRedo } from '@/hooks/use-undo-redo';
+import { UndoRedoToolbar } from './undo-redo-toolbar';
+import type { OperationType } from '@/lib/operation-service';
+
 import { calculateLayout, LayoutMode, calculateGridPagination, getPaginatedGridItems, snapToGrid } from '@/lib/layout-engine';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useAppStore } from '@/lib/store';
@@ -115,6 +120,27 @@ const Canvas = memo(function Canvas({
   const audioTrackerEnabled = useAppStore(state => state.audioTrackerEnabled);
   const mouseTrackerEnabled = useAppStore(state => state.mouseTrackerEnabled);
   const visualizerMode = useAppStore(state => state.visualizerMode);
+  
+  // Undo/Redo System Hook
+  const handleApplyState = useCallback((targetTable: string, targetId: string, state: any, operationType: OperationType) => {
+    // Apply the restored state to the canvas
+    if (targetTable === 'canvas_items') {
+      if (operationType === 'create') {
+        // Undo create = delete the item
+        deleteItem(targetId);
+      } else if (operationType === 'delete') {
+        // Undo delete = restore the item (state contains full item)
+        if (state && onAddItem) {
+          onAddItem(state, state.parentId || activeViewId || null);
+        }
+      } else {
+        // For update, move, resize, style_change - apply the state
+        onUpdateItem(targetId, state);
+      }
+    }
+  }, [deleteItem, onAddItem, onUpdateItem, activeViewId]);
+
+  const undoRedo = useUndoRedo(activeViewId || 'default', handleApplyState);
   
   // Oynatılan öğeleri izle (hook ile)
   const playingItems = usePlayingItems('[data-testid="main-canvas"]');
@@ -718,6 +744,24 @@ const Canvas = memo(function Canvas({
       onDrop={handleDrop}
     >
       {/* Grid Mode Controls - Moved to settings dropdown in primary-sidebar */}
+
+      {/* Undo/Redo Toolbar */}
+      {!isPreviewMode && (
+        <UndoRedoToolbar
+          canUndo={undoRedo.canUndo}
+          canRedo={undoRedo.canRedo}
+          undoStackSize={undoRedo.undoStackSize}
+          redoStackSize={undoRedo.redoStackSize}
+          lastOperation={undoRedo.lastOperation}
+          isLoading={undoRedo.isLoading}
+          performUndo={undoRedo.performUndo}
+          performRedo={undoRedo.performRedo}
+          refreshHistory={undoRedo.refreshHistory}
+          position="top-left"
+          showHistory={true}
+          compact={false}
+        />
+      )}
 
       {/* Tracker Overlays */}
       <MouseTrackerFrame 

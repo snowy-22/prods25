@@ -40,7 +40,7 @@ export type AdminPermission =
   | 'admin:audit';
 
 // Rol bazlı izinler
-const ROLE_PERMISSIONS: Record<AdminRole, AdminPermission[]> = {
+export const ROLE_PERMISSIONS: Record<AdminRole, AdminPermission[]> = {
   super_admin: [
     'users:read', 'users:write', 'users:delete', 'users:ban',
     'content:read', 'content:write', 'content:delete', 'content:moderate',
@@ -130,15 +130,21 @@ export function verifyAdminToken(token: string): { valid: boolean; payload?: any
 
 /**
  * Kullanıcının admin olup olmadığını kontrol et
+ * @param emailOrUserId - Email adresi (required) veya userId
+ * @param email - Opsiyonel email (eğer ilk parametre userId ise)
  */
-export async function checkAdminAccess(userId: string, email: string): Promise<{ 
+export async function checkAdminAccess(emailOrUserId: string, email?: string): Promise<{ 
   isAdmin: boolean; 
   role?: AdminRole;
   permissions?: AdminPermission[];
   error?: string;
 }> {
+  // Parametreleri normalize et - eğer email verilmediyse, ilk parametre email'dir
+  const userEmail = email || emailOrUserId;
+  const userId = email ? emailOrUserId : undefined;
+  
   // Önce önceden tanımlı adminleri kontrol et
-  const predefinedAdmin = PREDEFINED_ADMINS.find(a => a.email.toLowerCase() === email.toLowerCase());
+  const predefinedAdmin = PREDEFINED_ADMINS.find(a => a.email.toLowerCase() === userEmail.toLowerCase());
   
   if (predefinedAdmin) {
     return {
@@ -146,6 +152,11 @@ export async function checkAdminAccess(userId: string, email: string): Promise<{
       role: predefinedAdmin.role,
       permissions: ROLE_PERMISSIONS[predefinedAdmin.role]
     };
+  }
+  
+  // userId yoksa ve predefined admin değilse, admin değil
+  if (!userId) {
+    return { isAdmin: false, error: 'Not a predefined admin and no userId provided' };
   }
   
   // Veritabanından kontrol et
@@ -177,9 +188,17 @@ export async function checkAdminAccess(userId: string, email: string): Promise<{
 
 /**
  * İzin kontrolü
+ * @param roleOrPermissions - AdminRole string veya AdminPermission[] array
+ * @param requiredPermission - Gereken izin
  */
-export function hasPermission(userPermissions: AdminPermission[], requiredPermission: AdminPermission): boolean {
-  return userPermissions.includes(requiredPermission);
+export function hasPermission(roleOrPermissions: AdminRole | AdminPermission[], requiredPermission: AdminPermission): boolean {
+  // Eğer string (role) verilmişse, o role'ün izinlerini al
+  if (typeof roleOrPermissions === 'string') {
+    const permissions = ROLE_PERMISSIONS[roleOrPermissions as AdminRole];
+    return permissions ? permissions.includes(requiredPermission) : false;
+  }
+  // Eğer array (permissions) verilmişse, direkt kontrol et
+  return roleOrPermissions.includes(requiredPermission);
 }
 
 /**

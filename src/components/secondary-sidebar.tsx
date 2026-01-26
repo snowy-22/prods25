@@ -522,7 +522,7 @@ const WidgetCard = memo(function WidgetCard({
 
 
 type SecondarySidebarProps = {
-  type: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | 'search';
+  type: 'library' | 'social' | 'messages' | 'widgets' | 'notifications' | 'spaces' | 'devices' | 'ai-chat' | 'shopping' | 'profile' | 'advanced-profiles' | 'message-groups' | 'calls' | 'meetings' | 'social-groups' | 'achievements' | 'marketplace' | 'rewards' | 'search' | 'enterprise';
   // Library props
   allItems?: ContentItem[];
   onSetView?: (item: ContentItem | null, event?: React.MouseEvent | React.TouchEvent) => void;
@@ -1272,6 +1272,44 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
     const toggleSecondarySidebarOverlayMode = useAppStore((state) => state.toggleSecondarySidebarOverlayMode);
     const secondarySidebarWidth = useAppStore((state) => state.secondarySidebarWidth);
     const setSecondarySidebarWidth = useAppStore((state) => state.setSecondarySidebarWidth);
+    const secondarySidebarBehavior = useAppStore((state) => state.secondarySidebarBehavior);
+    const isSecondLeftSidebarOpen = useAppStore((state) => state.isSecondLeftSidebarOpen);
+    const togglePanel = useAppStore((state) => state.togglePanel);
+    
+    // Hover mode state for hover-to-expand behavior
+    const [isHovering, setIsHovering] = useState(false);
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    
+    // Handle hover-to-expand behavior
+    const handleMouseEnter = useCallback(() => {
+        if (secondarySidebarBehavior === 'hover') {
+            // Clear any pending close timeout
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current);
+                hoverTimeoutRef.current = null;
+            }
+            setIsHovering(true);
+        }
+    }, [secondarySidebarBehavior]);
+    
+    const handleMouseLeave = useCallback(() => {
+        if (secondarySidebarBehavior === 'hover') {
+            // Add small delay before closing to prevent flickering
+            hoverTimeoutRef.current = setTimeout(() => {
+                setIsHovering(false);
+            }, 300);
+        }
+    }, [secondarySidebarBehavior]);
+    
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current);
+            }
+        };
+    }, []);
+    
     // Handle drag events
     useEffect(() => {
         if (!isResizing) return;
@@ -1653,15 +1691,34 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
             }
         }, []);
 
+        // Determine if panel should be visible based on behavior
+        const shouldShowPanel = useMemo(() => {
+            if (!isDesktop) return true; // Mobile always shows when open
+            if (secondarySidebarBehavior === 'expanded') return true;
+            if (secondarySidebarBehavior === 'collapsed') return false;
+            if (secondarySidebarBehavior === 'hover') return isHovering;
+            return true;
+        }, [isDesktop, secondarySidebarBehavior, isHovering]);
+
         return (
             <>
                 {!isDesktop && <MobileBackdrop />}
+                {/* Hover trigger zone for hover mode - only visible when collapsed in hover mode */}
+                {isDesktop && secondarySidebarBehavior === 'hover' && !isHovering && (
+                    <div 
+                        className="absolute left-0 top-0 bottom-0 w-4 z-30 cursor-pointer"
+                        onMouseEnter={handleMouseEnter}
+                        title="Paneli göstermek için üzerine gelin"
+                    />
+                )}
                 <div 
                     className={cn(
                         "h-full flex flex-col bg-card/60 backdrop-blur-md z-40 shadow-xl",
                         isDesktop ? "relative" : "fixed inset-y-0 left-12 sm:left-14 w-72 sm:w-80",
                         "lg:relative lg:left-auto lg:shadow-none",
-                        isResizing ? "transition-none" : "transition-all duration-300"
+                        isResizing ? "transition-none" : "transition-all duration-300",
+                        // Hide panel in collapsed mode or hover mode when not hovering
+                        isDesktop && !shouldShowPanel && "hidden"
                     )}
                     style={{
                         width: isDesktop ? `${secondarySidebarWidth}px` : undefined,
@@ -1669,6 +1726,8 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                         willChange: isResizing ? 'width' : 'auto'
                     }}
                     data-testid={testId}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
                 >
                     {children}
                     {/* Resize handle - only visible on desktop */}
@@ -3026,6 +3085,64 @@ const SecondarySidebar = memo(function SecondarySidebar(props: SecondarySidebarP
                             defaultTab="coupons"
                             className="h-full"
                         />
+                    </div>
+                </PanelWrapper>
+            );
+        }
+        case 'enterprise': {
+            // Lazy import the enterprise menu to avoid bundle bloat
+            const EnterpriseMenuCompact = React.lazy(() => 
+                import('@/components/integrations/enterprise-menu').then(mod => ({ default: mod.EnterpriseMenuCompact }))
+            );
+            return (
+                <PanelWrapper testId="enterprise-panel">
+                    <div className="p-3 border-b flex items-center justify-between h-14 shrink-0">
+                        <h2 className="font-bold text-lg px-2 flex items-center gap-2">
+                            <Building className="h-5 w-5" /> Enterprise
+                        </h2>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setSidebarOpen(false)}
+                            title="Paneli Kapat"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-auto p-4 space-y-4">
+                        <React.Suspense fallback={<div className="animate-pulse space-y-2"><div className="h-6 bg-muted rounded"/><div className="h-24 bg-muted rounded"/></div>}>
+                            <EnterpriseMenuCompact />
+                        </React.Suspense>
+                        
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-2 gap-2 text-center">
+                            <div className="bg-blue-500/10 p-3 rounded-lg">
+                                <p className="text-2xl font-bold text-blue-600">6</p>
+                                <p className="text-xs text-muted-foreground">Entegrasyon</p>
+                            </div>
+                            <div className="bg-purple-500/10 p-3 rounded-lg">
+                                <p className="text-2xl font-bold text-purple-600">3</p>
+                                <p className="text-xs text-muted-foreground">Depo</p>
+                            </div>
+                            <div className="bg-orange-500/10 p-3 rounded-lg">
+                                <p className="text-2xl font-bold text-orange-600">12</p>
+                                <p className="text-xs text-muted-foreground">Bekleyen Sipariş</p>
+                            </div>
+                            <div className="bg-green-500/10 p-3 rounded-lg">
+                                <p className="text-2xl font-bold text-green-600">45</p>
+                                <p className="text-xs text-muted-foreground">B2B Müşteri</p>
+                            </div>
+                        </div>
+                        
+                        {/* Full Dashboard Link */}
+                        <Link 
+                            href="/enterprise"
+                            className="flex items-center justify-center gap-2 w-full py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity font-medium"
+                        >
+                            Enterprise Dashboard'a Git
+                            <ChevronRight className="h-4 w-4" />
+                        </Link>
                     </div>
                 </PanelWrapper>
             );

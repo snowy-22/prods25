@@ -5,7 +5,7 @@
 import { ContentItem } from '@/lib/initial-content';
 import { ScrollArea } from './ui/scroll-area';
 import { Button } from './ui/button';
-import { Palette, X, ImageUp, SlidersHorizontal, Sun, Moon, Monitor, Minus, Plus, Wand2, ChevronsDown, ChevronsUp, Save, Trash2, StretchHorizontal, StretchVertical, Minimize, Maximize, ZoomIn, ZoomOut, Ban, Square, Clock } from 'lucide-react';
+import { Palette, X, ImageUp, SlidersHorizontal, Sun, Moon, Monitor, Minus, Plus, Wand2, ChevronsDown, ChevronsUp, Save, Trash2, StretchHorizontal, StretchVertical, Minimize, Maximize, ZoomIn, ZoomOut, Ban, Square, Clock, PanelLeft, Columns2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Label } from './ui/label';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -74,7 +74,7 @@ export default function StyleSettingsPanel({
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [customThemes, setCustomThemes] = useState<ThemePreset[]>([]);
-    const accordionItems = useMemo(() => ['view', 'clock', 'theme', 'frame', 'background', 'pattern', 'webgl'], []);
+    const accordionItems = useMemo(() => ['view', 'sidebar', 'clock', 'theme', 'frame', 'background', 'pattern', 'webgl'], []);
   const [openAccordions, setOpenAccordions] = useState<string[]>(accordionItems);
   const scale = activeView.scale || 100;
   const setScale = (newScale: number) => onUpdate({ scale: newScale });
@@ -92,6 +92,12 @@ export default function StyleSettingsPanel({
   const setMicroClockShow24Hour = useAppStore(s => s.setMicroClockShow24Hour);
   const setMicroClockShowDate = useAppStore(s => s.setMicroClockShowDate);
   const setMicroClockShowDay = useAppStore(s => s.setMicroClockShowDay);
+  
+  // Secondary Sidebar Behavior State
+  const secondarySidebarBehavior = useAppStore(s => s.secondarySidebarBehavior);
+  const secondarySidebarWidth = useAppStore(s => s.secondarySidebarWidth);
+  const setSecondarySidebarBehavior = useAppStore(s => s.setSecondarySidebarBehavior);
+  const setSecondarySidebarWidth = useAppStore(s => s.setSecondarySidebarWidth);
   
     // Removed coverPreset and coverMaxItems settings
     const coverBlurFallback = (activeView as any)?.coverBlurFallback ?? false;
@@ -286,6 +292,76 @@ export default function StyleSettingsPanel({
                                     <Switch checked={coverBoldTitle} onCheckedChange={(val) => onUpdate({ coverBoldTitle: val })} />
                                 </div>
                             </div>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+                
+                {/* Kenar Çubuğu Davranışı Ayarları */}
+                <AccordionItem value="sidebar" className='px-4'>
+                    <AccordionTrigger className="py-3 text-sm font-medium">
+                        <div className='flex items-center gap-2'>
+                            <PanelLeft className='h-4 w-4'/>
+                            <span>Kenar Çubuğu</span>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4 space-y-4">
+                        <div className="space-y-3">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase">Yan Panel Davranışı</Label>
+                            <p className="text-xs text-muted-foreground">İkincil kenar çubuğunun nasıl görüntüleneceğini seçin.</p>
+                            <ToggleGroup 
+                                type="single" 
+                                value={secondarySidebarBehavior || 'expanded'} 
+                                onValueChange={(val) => val && setSecondarySidebarBehavior(val as 'expanded' | 'collapsed' | 'hover')}
+                                className="grid grid-cols-3 gap-2"
+                            >
+                                <ToggleGroupItem value="expanded" className="text-xs flex flex-col items-center gap-1 h-auto py-2 px-1">
+                                    <Columns2 className="h-4 w-4" />
+                                    <span className="text-[10px]">Genişletilmiş</span>
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="collapsed" className="text-xs flex flex-col items-center gap-1 h-auto py-2 px-1">
+                                    <PanelLeft className="h-4 w-4" />
+                                    <span className="text-[10px]">Daraltılmış</span>
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="hover" className="text-xs flex flex-col items-center gap-1 h-auto py-2 px-1">
+                                    <Maximize className="h-4 w-4" />
+                                    <span className="text-[10px]">Üzerine Gelince</span>
+                                </ToggleGroupItem>
+                            </ToggleGroup>
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div className="space-y-3">
+                            <Label className="text-xs font-semibold text-muted-foreground uppercase">Panel Genişliği</Label>
+                            <p className="text-xs text-muted-foreground">İkincil kenar çubuğunun genişliğini ayarlayın (280-600 piksel).</p>
+                            <div className='flex items-center gap-2'>
+                                <span className="text-xs text-muted-foreground w-12">{secondarySidebarWidth}px</span>
+                                <Slider 
+                                    value={[secondarySidebarWidth]} 
+                                    onValueChange={(value) => setSecondarySidebarWidth(value[0])} 
+                                    min={280} 
+                                    max={600} 
+                                    step={10} 
+                                    className="flex-1"
+                                />
+                            </div>
+                            <div className="grid grid-cols-3 gap-2">
+                                <Button variant="outline" size="sm" className="text-xs" onClick={() => setSecondarySidebarWidth(280)}>
+                                    Dar
+                                </Button>
+                                <Button variant="outline" size="sm" className="text-xs" onClick={() => setSecondarySidebarWidth(320)}>
+                                    Normal
+                                </Button>
+                                <Button variant="outline" size="sm" className="text-xs" onClick={() => setSecondarySidebarWidth(450)}>
+                                    Geniş
+                                </Button>
+                            </div>
+                        </div>
+                        
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                            <p className="text-xs text-muted-foreground">
+                                💡 <strong>İpucu:</strong> "Üzerine Gelince" modunda, panel kapalı kalır ve üzerine geldiğinizde otomatik açılır. Bu mod ekran alanından tasarruf sağlar.
+                            </p>
                         </div>
                     </AccordionContent>
                 </AccordionItem>

@@ -20,7 +20,7 @@ export default function GuestPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">
       <div className="max-w-md w-full bg-card rounded-lg shadow-lg p-8 text-center">
         <h1 className="text-2xl font-bold mb-4">Misafir Girişi</h1>
-        <p className="text-muted-foreground mb-6">Kayıt olmadan hemen deneyin. Tüm özellikler kısıtlı olabilir.</p>
+        <p className="text-muted-foreground mb-6">Üye olmadan hemen deneyin. Tüm özellikler kısıtlı olabilir.</p>
         <Button size="lg" className="w-full" onClick={handleGuest}>
           Misafir Olarak Devam Et
         </Button>
@@ -29,7 +29,7 @@ export default function GuestPage() {
             <a href="/login">Giriş Yap</a>
           </Button>
           <Button variant="link" asChild>
-            <a href="/register">Kayıt Ol</a>
+            <a href="/register">Üye Ol</a>
           </Button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-
+﻿
 'use server';
 /**
 * @fileoverview A versatile AI assistant flow for the tv25 application.
@@ -203,11 +203,11 @@ function initializeToolsAndFlow() {
           console.log(`Performing offline deep learning analysis on ${data?.length || 0} items for metric: ${metric || 'general'}`);
           return {
               insights: [
-                  "Kullanıcılar en çok video içerikleriyle etkileşime giriyor.",
-                  "Akşam saatlerinde (20:00 - 22:00) kullanım yoğunluğu artıyor.",
-                  "Eğitim kategorisindeki içerikler daha uzun süre izleniyor."
+                  "KullanÄ±cÄ±lar en Ã§ok video iÃ§erikleriyle etkileÅŸime giriyor.",
+                  "AkÅŸam saatlerinde (20:00 - 22:00) kullanÄ±m yoÄŸunluÄŸu artÄ±yor.",
+                  "EÄŸitim kategorisindeki iÃ§erikler daha uzun sÃ¼re izleniyor."
               ],
-              prediction: "Gelecek hafta video içeriklerine olan ilginin %15 artması bekleniyor.",
+              prediction: "Gelecek hafta video iÃ§eriklerine olan ilginin %15 artmasÄ± bekleniyor.",
               confidence: 0.89
           };
       }
@@ -235,7 +235,7 @@ function initializeToolsAndFlow() {
       outputSchema: AssistantOutputSchema,
     },
     async (input) => {
-      // 🔥 LOGLAMA 1: AI isteği başladı
+      // ğŸ”¥ LOGLAMA 1: AI isteÄŸi baÅŸladÄ±
       const userId = input.userId || 'anonymous';
       const lastUserMessage = input.history.filter((m: any) => m.role === 'user').pop();
       const prompt = lastUserMessage?.content[0]?.text || 'Unknown prompt';
@@ -297,8 +297,8 @@ Here are the test IDs for the main UI elements:
 
             const llmMessage = llmResponse.output;
             if (!llmMessage) {
-                console.error('❌ AI did not return a message at iteration', i);
-                await updateAIRequestStatus(logId, 'failed', 'No response from AI model');
+                console.error('âŒ AI did not return a message at iteration', i);
+                await updateAIRequestStatus(logId, 'error', { errorMessage: 'No response from AI model' });
                 throw new Error("AI did not return a message.");
             }
           
@@ -321,9 +321,9 @@ Here are the test IDs for the main UI elements:
                   const toolStartTime = Date.now();
                   
                   try {
-                      // 🔥 LOGLAMA 2: Tool çağrısı yapılıyor
+                      // ğŸ”¥ LOGLAMA 2: Tool Ã§aÄŸrÄ±sÄ± yapÄ±lÄ±yor
                       const toolName = toolRequest.name;
-                      console.log(`🔧 Calling tool: ${toolName}`, toolRequest.input);
+                      console.log(`ğŸ”§ Calling tool: ${toolName}`, toolRequest.input);
                       
                       switch (toolName) {
                           case 'webSearch':
@@ -357,13 +357,13 @@ Here are the test IDs for the main UI elements:
                               toolResponseOutput = await offlineAnalyticsTool(toolRequest.input);
                               break;
                           default:
-                              console.error(`❌ Unknown tool: ${toolName}`);
+                              console.error(`âŒ Unknown tool: ${toolName}`);
                               toolResponseOutput = { error: `Tool '${toolName}' not found.` };
                       }
                       
-                      console.log(`✅ Tool ${toolName} completed successfully`);
+                      console.log(`âœ… Tool ${toolName} completed successfully`);
                       
-                      // Tool başarılı - logla
+                      // Tool baÅŸarÄ±lÄ± - logla
                       await logToolCall(
                         logId,
                         toolRequest.name as AIToolName,
@@ -400,8 +400,8 @@ Here are the test IDs for the main UI elements:
 
           history.push(...toolResponses.filter((r): r is Message => r !== null));
           } catch (iterationError: any) {
-            console.error('❌ Error in iteration', i, ':', iterationError);
-            await updateAIRequestStatus(logId, 'failed', iterationError.message);
+            console.error('âŒ Error in iteration', i, ':', iterationError);
+            await updateAIRequestStatus(logId, 'error', { errorMessage: iterationError.message });
             
             // Return error message to user
             return {
@@ -410,7 +410,7 @@ Here are the test IDs for the main UI elements:
                 {
                   role: 'model',
                   content: [{
-                    text: `Üzgünüm, işlem sırasında bir hata oluştu: ${iterationError.message}. Lütfen tekrar deneyin.`
+                    text: `ÃœzgÃ¼nÃ¼m, iÅŸlem sÄ±rasÄ±nda bir hata oluÅŸtu: ${iterationError.message}. LÃ¼tfen tekrar deneyin.`
                   }]
                 }
               ]
@@ -436,19 +436,19 @@ Here are the test IDs for the main UI elements:
             history.push(finalResponse.output);
         }
 
-        // 🔥 LOGLAMA 3: İstek tamamlandı
+        // ğŸ”¥ LOGLAMA 3: Ä°stek tamamlandÄ±
         const finalMessage = history.filter(m => m.role === 'model').pop();
         const responseText = finalMessage?.content[0]?.text || 'No response';
         
         await updateAIRequestStatus(logId, 'success', {
-          response: responseText.substring(0, 500), // İlk 500 karakter
-          tokensUsed: undefined, // Genkit'te usage bilgisi farklı alınabilir
+          response: responseText.substring(0, 500), // Ä°lk 500 karakter
+          tokensUsed: undefined, // Genkit'te usage bilgisi farklÄ± alÄ±nabilir
         });
 
         return { history };
       } catch (finalError: any) {
-        console.error('❌ Error in final generation:', finalError);
-        await updateAIRequestStatus(logId, 'failed', finalError.message);
+        console.error('âŒ Error in final generation:', finalError);
+        await updateAIRequestStatus(logId, 'error', { errorMessage: finalError.message });
         
         // Still return the history we have so far
         return { history };
@@ -465,17 +465,17 @@ export async function askAi(input: AssistantInput): Promise<AssistantOutput> {
     const result = await assistantFlow!(input);
     return result;
   } catch (error: any) {
-    // Hata durumunda loglama (eğer logId varsa)
+    // Hata durumunda loglama (eÄŸer logId varsa)
     console.error('AI Flow Error:', error);
     
-    // En azından bir hata mesajı döndür
+    // En azÄ±ndan bir hata mesajÄ± dÃ¶ndÃ¼r
     return {
       history: [
         ...input.history,
         {
           role: 'model',
           content: [{
-            text: `Üzgünüm, bir hata oluştu: ${error.message || 'Bilinmeyen hata'}. Lütfen tekrar deneyin.`
+            text: `ÃœzgÃ¼nÃ¼m, bir hata oluÅŸtu: ${error.message || 'Bilinmeyen hata'}. LÃ¼tfen tekrar deneyin.`
           }]
         }
       ]

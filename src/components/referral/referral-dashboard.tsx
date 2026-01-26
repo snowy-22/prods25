@@ -170,7 +170,7 @@ export default function ReferralDashboard({
       try {
         await navigator.share({
           title: 'Bana Katıl!',
-          text: `Bu linki kullanarak kayıt ol ve özel indirimler kazan!`,
+          text: `Bu linki kullanarak üye ol ve özel indirimler kazan!`,
           url: linkInfo.fullUrl,
         });
       } catch {
@@ -376,7 +376,7 @@ export default function ReferralDashboard({
                 <DialogHeader>
                   <DialogTitle>QR Kod</DialogTitle>
                   <DialogDescription>
-                    Bu QR kodu taratarak arkadaşlarınız kayıt olabilir.
+                    Bu QR kodu taratarak arkadaşlarınız üye olabilir.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col items-center gap-4 py-4">

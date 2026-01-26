@@ -409,6 +409,81 @@ export default function AuthPage() {
       });
     } finally {
       setIsSubmitting(false);
+      const handleQuickDemo = async () => {
+        setIsSubmitting(true);
+        setError(null);
+        try {
+          console.log('🚀 Quick demo mode activated');
+      
+          // Try to signup or login with demo credentials
+          const demoEmail = 'demo@tv25.local';
+          const demoPassword = 'Demo@12345';
+      
+          // First try to login
+          try {
+            const { error } = await supabase.auth.signInWithPassword({
+              email: demoEmail,
+              password: demoPassword,
+            });
+        
+            if (!error) {
+              console.log('✅ Demo login successful');
+              setTimeout(() => {
+                router.push('/');
+              }, 500);
+              return;
+            }
+          } catch (e) {
+            console.log('Demo account not found, creating new one');
+          }
+      
+          // If login fails, try to signup
+          const { data, error: signupError } = await supabase.auth.signUp({
+            email: demoEmail,
+            password: demoPassword,
+            options: {
+              data: {
+                username: 'DemoUser',
+                full_name: 'Demo User',
+              },
+            },
+          });
+      
+          if (signupError) {
+            throw signupError;
+          }
+      
+          console.log('✅ Demo account created:', demoEmail);
+      
+          // Auto-login with the newly created account
+          const { error: loginError } = await supabase.auth.signInWithPassword({
+            email: demoEmail,
+            password: demoPassword,
+          });
+      
+          if (loginError) {
+            throw loginError;
+          }
+      
+          toast({
+            title: '🎉 Demo Modu Başlatıldı',
+            description: 'Hoş geldiniz! Canvas sayfasına yönlendiriliyorsunuz...',
+          });
+      
+          setTimeout(() => {
+            router.push('/');
+          }, 500);
+        } catch (error: any) {
+          console.error('❌ Demo mode error:', error);
+          toast({
+            title: 'Hata',
+            description: error.message || 'Demo modu etkinleştirilemedi.',
+            variant: 'destructive',
+          });
+        } finally {
+          setIsSubmitting(false);
+        }
+      };
     }
   };
   
@@ -529,7 +604,7 @@ export default function AuthPage() {
               {isSignup ? (
                 <>Zaten üye misin? <span className="text-indigo-600 font-semibold">Giriş Yap</span></>
               ) : (
-                <>Hesabın yok mu? <span className="text-indigo-600 font-semibold">Kayıt Ol</span></>
+                <>Hesabın yok mu? <span className="text-indigo-600 font-semibold">Üye Ol</span></>
               )}
             </motion.button>
           </div>
@@ -552,7 +627,7 @@ export default function AuthPage() {
             >
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-3xl md:text-4xl font-bold text-slate-900">
-                  {isSignup ? 'Kayıt Ol' : 'Giriş Yap'}
+                  {isSignup ? 'Üye Ol' : 'Giriş Yap'}
                 </h1>
                 <motion.span
                   animate={{ rotate: [0, 15, -15, 0] }}
@@ -862,7 +937,7 @@ export default function AuthPage() {
                   İşleniyor...
                 </>
               ) : (
-                isSignup ? 'Kayıt Ol' : 'Giriş Yap'
+                isSignup ? 'Üye Ol' : 'Giriş Yap'
               )}
             </Button>
           </form>

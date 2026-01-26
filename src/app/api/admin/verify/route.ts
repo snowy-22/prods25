@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     // Validate admin login
     const validation = await validateAdminLogin(email, password);
     
-    if (!validation.isValid) {
+    if (!validation.success) {
       return Response.json(
         { error: validation.error || 'Invalid credentials' },
         { status: 401 }
@@ -28,13 +28,13 @@ export async function POST(request: Request) {
     }
 
     // Generate token
-    const token = generateAdminToken(email, validation.role!);
+    const token = generateAdminToken(email, validation.user!.role);
 
     return Response.json(
       {
         success: true,
         token,
-        role: validation.role,
+        role: validation.user?.role,
         email: email,
         expiresIn: '24h',
       },
