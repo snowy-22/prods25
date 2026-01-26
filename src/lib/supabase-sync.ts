@@ -51,7 +51,7 @@ let deviceId: string | null = null;
  */
 function isSupabaseConfigured(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   // Treat placeholder or empty values as not configured
   return !!url && !!key && url !== 'https://placeholder.supabase.co' && key !== 'placeholder';
 }

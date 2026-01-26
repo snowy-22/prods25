@@ -1674,7 +1674,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                 }}
             >
                 <SidebarProvider open={state.isSecondLeftSidebarOpen} onOpenChange={(open) => state.togglePanel('isSecondLeftSidebarOpen', open)}>
-                    <div className={cn("flex h-screen w-screen bg-background text-foreground overflow-hidden relative", isUiHidden && "main-ui-hidden")}> 
+                    <div className={cn("flex h-screen w-screen bg-gradient-to-br from-background via-background/95 to-background text-foreground overflow-hidden relative", isUiHidden && "main-ui-hidden")}> 
                     {isUiHidden && (
                         <>
                             <div 
@@ -1707,7 +1707,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                     <div 
                         className={cn(
                             'flex h-full transition-all duration-300 ease-in-out flex-shrink-0 w-auto', 
-                            isUiHidden ? 'fixed left-0 top-0 bottom-0 z-50 shadow-2xl' : 'relative',
+                            isUiHidden ? 'fixed left-0 top-0 bottom-0 z-50 shadow-xl' : 'relative',
                             isUiHidden && !isLeftSidebarHovered ? '-translate-x-full' : 'translate-x-0'
                         )}
                         onMouseEnter={handleLeftSidebarEnter}
@@ -1758,7 +1758,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                         {state.isSecondLeftSidebarOpen && (
                             <div 
                                 className={cn(
-                                    "border-r flex-shrink-0 overflow-hidden bg-background shadow-2xl z-50",
+                                    "border-r border-border/50 flex-shrink-0 overflow-hidden bg-gradient-to-b from-card to-card/90 shadow-md z-50 backdrop-blur-sm",
                                     responsive.isMobile || responsive.isTablet || state.secondarySidebarOverlayMode
                                         ? "fixed left-14 top-0 bottom-0 animate-in slide-in-from-left duration-300" // Overlay mode
                                         : "relative" // Normal flow on desktop
@@ -1819,8 +1819,8 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
 
                          <div 
                              className={cn(
-                                 "transition-all duration-500 ease-in-out z-[60] bg-background/60 backdrop-blur-md border-b", 
-                                 isUiHidden ? "fixed top-0 left-0 right-0 shadow-lg" : "relative",
+                                 "transition-all duration-500 ease-in-out z-[60] bg-gradient-to-r from-background/80 to-background/70 backdrop-blur-lg border-b border-border/50 shadow-sm", 
+                                 isUiHidden ? "fixed top-0 left-0 right-0" : "relative",
                                  isUiHidden && !isTopBarHovered ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
                              )}
                              onMouseEnter={handleTopBarEnter}
@@ -2011,7 +2011,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                               </div>
                          </div>
                          
-                         <div ref={canvasScrollRef} className="flex-1 min-h-0 relative overflow-y-auto overflow-x-hidden">
+                         <div ref={canvasScrollRef} className="flex-1 min-h-0 relative overflow-y-auto overflow-x-hidden bg-gradient-to-br from-background via-background/98 to-background/95">
                             {state.selectedItemIds.length > 0 && (
                                 <div className="absolute top-3 right-3 z-40 flex items-center gap-2 px-3 py-2 rounded-full bg-background/90 border shadow-lg backdrop-blur-md">
                                     <span className="text-xs font-semibold">{state.selectedItemIds.length} öğe seçili</span>
@@ -2096,8 +2096,8 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                          </div>
                          <div 
                             className={cn(
-                                "p-0 bg-background border-t transition-all duration-300",
-                                isUiHidden ? "fixed bottom-0 left-0 right-0 z-[60] shadow-[0_-10px_20px_rgba(0,0,0,0.1)]" : "relative",
+                                "p-0 bg-gradient-to-t from-card to-card/90 border-t border-border/50 shadow-md transition-all duration-300",
+                                isUiHidden ? "fixed bottom-0 left-0 right-0 z-[60]" : "relative",
                                 isUiHidden && !isBottomBarHovered ? "translate-y-full" : "translate-y-0"
                             )}
                             onMouseEnter={handleBottomBarEnter}
@@ -2182,7 +2182,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                     <div 
                         className={cn(
                             'relative z-40 transition-all duration-300 ease-in-out', 
-                            isUiHidden ? 'fixed right-0 top-0 bottom-0 z-50 shadow-2xl' : 'relative',
+                            isUiHidden ? 'fixed right-0 top-0 bottom-0 z-50 shadow-xl' : 'relative',
                             isUiHidden && !isRightSidebarHovered ? 'translate-x-full' : 'translate-x-0'
                         )}
                         style={{ width: `${rightSidebarWidth}px` }}
@@ -2211,7 +2211,7 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                     <div 
                         className={cn(
                             'relative z-40 transition-all duration-300 ease-in-out', 
-                            isUiHidden ? 'fixed right-0 top-0 bottom-0 z-50 shadow-2xl' : 'relative',
+                            isUiHidden ? 'fixed right-0 top-0 bottom-0 z-50 shadow-xl' : 'relative',
                             isUiHidden && !isRightSidebarHovered ? 'translate-x-full' : 'translate-x-0'
                         )}
                         style={{ width: `${rightSidebarWidth}px` }}
