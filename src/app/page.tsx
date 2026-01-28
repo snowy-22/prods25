@@ -189,9 +189,18 @@ const MainHeader = () => (
 	<header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
 		<div className="container mx-auto flex h-16 items-center justify-between px-4">
 			<Logo />
-			<nav className="flex items-center gap-4">
+			<nav className="flex items-center gap-2 sm:gap-4">
+				<Link 
+					href="/corporate" 
+					className="hidden sm:inline-flex font-semibold text-sm text-muted-foreground hover:text-primary transition-colors"
+				>
+					Kurumlar için
+				</Link>
+				<Button asChild variant="ghost" size="sm">
+					<Link href="/auth?mode=login">Giriş Yap</Link>
+				</Button>
 				<AnimatedBorderButton asChild variant="primary" size="sm">
-					<Link href="/auth">Giriş / Üye Ol</Link>
+					<Link href="/auth?mode=signup">Üye Ol</Link>
 				</AnimatedBorderButton>
 			</nav>
 		</div>
@@ -329,16 +338,28 @@ export default function LandingPage() {
 								Hemen Dene
 							</SteelButton>
 							<AnimatedBorderButton asChild variant="shimmer" size="lg">
-								<Link href="/auth">Ücretsiz Başla</Link>
+								<Link href="/auth?mode=signup">Hemen Üye Ol!</Link>
 							</AnimatedBorderButton>
 						</div>
-						{/* Scroll indicator */}
-						<div className="flex flex-col items-center mt-8 animate-bounce">
-							<span className="text-xs text-muted-foreground/60 mb-1">Daha fazlası için kaydır</span>
-							<svg className="w-5 h-5 text-muted-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-							</svg>
-						</div>
+						{/* Scroll indicator with click functionality */}
+						<button 
+							onClick={() => {
+								const demoSection = document.getElementById('demo-section');
+								if (demoSection) {
+									demoSection.scrollIntoView({ behavior: 'smooth' });
+								}
+							}}
+							className="flex flex-col items-center mt-8 animate-bounce cursor-pointer group hover:opacity-80 transition-opacity"
+						>
+							<span className="text-sm text-muted-foreground/80 mb-2 font-medium group-hover:text-primary transition-colors">
+								Daha fazlası için kaydır veya tıkla
+							</span>
+							<div className="w-10 h-10 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center group-hover:border-primary group-hover:bg-primary/10 transition-all">
+								<svg className="w-5 h-5 text-muted-foreground/60 group-hover:text-primary transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+								</svg>
+							</div>
+						</button>
 					</div>
 					{/* Right: Responsive DVD Animation */}
 					<div className="flex-1 flex items-center justify-center w-full md:w-auto max-w-2xl">
@@ -348,7 +369,7 @@ export default function LandingPage() {
 					</div>
 				</section>
 				{/* Demo Grid Section */}
-				<section className="w-full max-w-6xl mx-auto py-12 md:py-20 px-4">
+				<section id="demo-section" className="w-full max-w-6xl mx-auto py-12 md:py-20 px-4 scroll-mt-16">
 					<LandingPageDemoGrid />
 				</section>
 
