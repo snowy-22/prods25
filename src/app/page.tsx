@@ -117,6 +117,74 @@ import React from "react";
 
 const SectionSeparator = () => <div className="section-separator" />;
 
+type SteelButtonProps = {
+	href: string;
+	children: React.ReactNode;
+	size?: 'md' | 'lg';
+	className?: string;
+	icon?: React.ReactNode;
+};
+
+const SteelButton = ({ href, children, size = 'lg', className, icon }: SteelButtonProps) => {
+	const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+	const handleMove = (event: React.MouseEvent<HTMLAnchorElement>) => {
+		const rect = event.currentTarget.getBoundingClientRect();
+		const x = ((event.clientX - rect.left) / rect.width - 0.5) * 14;
+		const y = ((event.clientY - rect.top) / rect.height - 0.5) * 14;
+		setOffset({ x, y });
+	};
+
+	const handleLeave = () => setOffset({ x: 0, y: 0 });
+
+	const padding = size === 'lg' ? 'px-6 py-3 text-lg' : 'px-4 py-2 text-sm';
+
+	return (
+		<Link
+			href={href}
+			className={cn(
+				'group relative inline-flex items-center justify-center overflow-hidden rounded-xl border border-white/15 text-white font-semibold tracking-tight shadow-lg transition-all duration-300',
+				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+				padding,
+				className
+			)}
+			onMouseMove={handleMove}
+			onMouseLeave={handleLeave}
+		>
+			<span
+				className="absolute inset-0 rounded-xl opacity-95"
+				style={{
+					backgroundImage:
+						'linear-gradient(135deg, #6b7686 0%, #404854 40%, #1a1f27 100%), ' +
+						'radial-gradient(circle at 18% 20%, rgba(255,255,255,0.18), transparent 32%), ' +
+						'radial-gradient(circle at 82% 30%, rgba(255,255,255,0.12), transparent 38%), ' +
+						'radial-gradient(circle at 50% 90%, rgba(0,0,0,0.35), transparent 48%), ' +
+						'repeating-linear-gradient(135deg, rgba(255,255,255,0.12) 0px, rgba(255,255,255,0.12) 1px, rgba(255,255,255,0.03) 3px, rgba(255,255,255,0.03) 5px)',
+					backgroundBlendMode: 'soft-light, screen, screen, normal, overlay',
+					transform: `translate(${offset.x}px, ${offset.y}px)`
+				}}
+			/>
+			<span
+				className="absolute inset-0 rounded-xl opacity-50 blur-2xl transition-opacity duration-300 group-hover:opacity-80"
+				style={{
+					background:
+						'radial-gradient(circle at 25% 25%, rgba(255,255,255,0.35), transparent 42%), ' +
+						'radial-gradient(circle at 70% 70%, rgba(0,0,0,0.35), transparent 45%)',
+					transform: `translate(${offset.x * 0.6}px, ${offset.y * 0.6}px)`
+				}}
+			/>
+			<span
+				className="absolute inset-0 rounded-xl transition duration-200"
+				style={{ boxShadow: `${offset.x * 0.6}px ${offset.y * 0.6}px 28px rgba(0,0,0,0.45)` }}
+			/>
+			<span className="relative z-10 flex items-center gap-2 drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)]">
+				{children}
+				{icon}
+			</span>
+		</Link>
+	);
+};
+
 const MainHeader = () => (
 	<header className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50">
 		<div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -257,9 +325,9 @@ export default function LandingPage() {
 							Web içeriklerini, videoları, widget'ları ve daha fazlasını tek bir dijital kanvasta organize et. Sürükle-bırak, AI entegrasyonu ve çoklu görünüm modları ile üretkenliğini artır.
 						</p>
 						<div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto justify-center md:justify-start">
-							<AnimatedBorderButton asChild variant="glass" size="lg">
-								<Link href="/guest-canvas">Hemen Dene</Link>
-							</AnimatedBorderButton>
+							<SteelButton href="/guest-canvas" icon={<ChevronRight className="h-4 w-4" />}>
+								Hemen Dene
+							</SteelButton>
 							<AnimatedBorderButton asChild variant="shimmer" size="lg">
 								<Link href="/auth">Ücretsiz Başla</Link>
 							</AnimatedBorderButton>
@@ -336,9 +404,9 @@ export default function LandingPage() {
 						</div>
 
 						<div className="text-center mt-12">
-							<AnimatedBorderButton asChild variant="secondary">
-								<Link href="/features">Tüm Özellikleri Keşfet</Link>
-							</AnimatedBorderButton>
+							<SteelButton href="/features" size="md" icon={<ChevronRight className="h-4 w-4" />}>
+								Tüm Özellikleri Keşfet
+							</SteelButton>
 						</div>
 					</div>
 				</section>
@@ -377,7 +445,11 @@ export default function LandingPage() {
 									</ul>
 								</div>
 
-								{tier.featured ? (
+								{tier.id === 'enterprise' ? (
+									<SteelButton href={tier.ctaLink} size="md" className="w-full justify-center" icon={<ChevronRight className="h-4 w-4" />}>
+										{tier.cta}
+									</SteelButton>
+								) : tier.featured ? (
 									<AnimatedBorderButton asChild variant="primary" className="w-full">
 										<Link href={tier.ctaLink}>{tier.cta}</Link>
 									</AnimatedBorderButton>
@@ -392,9 +464,9 @@ export default function LandingPage() {
 
 					<div className="text-center">
 						<p className="text-muted-foreground mb-4">Teknik destek, özel özellikleri veya toplu satın alma hakkında mı?</p>
-						<AnimatedBorderButton asChild variant="glass" size="lg">
-							<Link href="/corporate">Kurumsal Çözümler</Link>
-						</AnimatedBorderButton>
+						<SteelButton href="/corporate" size="md" icon={<ChevronRight className="h-4 w-4" />}>
+							Kurumsal Çözümler
+						</SteelButton>
 					</div>
 				</section>
 
@@ -433,9 +505,9 @@ export default function LandingPage() {
 								))}
 							</div>
 
-							<AnimatedBorderButton asChild variant="primary" size="lg">
-								<Link href="/corporate">Demo Talep Edin</Link>
-							</AnimatedBorderButton>
+							<SteelButton href="/corporate" icon={<ChevronRight className="h-4 w-4" />}>
+								Demo Talep Edin
+							</SteelButton>
 						</div>
 					</div>
 				</section>

@@ -94,15 +94,15 @@ export function useRealtimeSync(enabled: boolean = true) {
       }
     };
 
-    // Subscribe to Supabase Realtime (when items table exists)
+    // Subscribe to Supabase Realtime for canvas_items table
     const channel = supabase
-      .channel('items-changes')
+      .channel('canvas-items-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'items'
+          table: 'canvas_items'
         },
         (payload) => {
           syncLogger.debug('Supabase realtime event', { 
@@ -115,25 +115,41 @@ export function useRealtimeSync(enabled: boolean = true) {
             broadcastChannel.postMessage({
               type: 'ITEM_ADDED',
               payload: {
-                tabId: payload.new.tab_id,
+                tabId: payload.new.canvas_id || 'default',
                 parentId: payload.new.parent_id,
-                newItem: payload.new
+                newItem: {
+                  ...payload.new,
+                  parentId: payload.new.parent_id,
+                  gridSpanCol: payload.new.grid_span_col,
+                  gridSpanRow: payload.new.grid_span_row,
+                  layoutMode: payload.new.layout_mode,
+                  ...payload.new.item_data,
+                  ...payload.new.metadata,
+                }
               }
             });
           } else if (payload.eventType === 'UPDATE') {
             broadcastChannel.postMessage({
               type: 'ITEM_UPDATED',
               payload: {
-                tabId: payload.new.tab_id,
+                tabId: payload.new.canvas_id || 'default',
                 itemId: payload.new.id,
-                updates: payload.new
+                updates: {
+                  ...payload.new,
+                  parentId: payload.new.parent_id,
+                  gridSpanCol: payload.new.grid_span_col,
+                  gridSpanRow: payload.new.grid_span_row,
+                  layoutMode: payload.new.layout_mode,
+                  ...payload.new.item_data,
+                  ...payload.new.metadata,
+                }
               }
             });
           } else if (payload.eventType === 'DELETE') {
             broadcastChannel.postMessage({
               type: 'ITEM_DELETED',
               payload: {
-                tabId: payload.old.tab_id,
+                tabId: payload.old.canvas_id || 'default',
                 itemId: payload.old.id
               }
             });
@@ -141,7 +157,7 @@ export function useRealtimeSync(enabled: boolean = true) {
         }
       )
       .subscribe((status) => {
-        syncLogger.info('Supabase Realtime status', { status });
+        syncLogger.info('Supabase Realtime canvas_items status', { status });
       });
 
     channelRef.current = channel;

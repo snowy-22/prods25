@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,44 +13,212 @@ import {
   Play, Pause, Volume2, VolumeX, Maximize2, Heart, MessageCircle, 
   Share2, Download, Lock, User, LogIn, UserPlus, X, Sparkles,
   ChevronRight, ExternalLink, Eye, Clock, Star, Zap, Gift, RefreshCw,
-  Users, Wifi, WifiOff
+  Users, Wifi, WifiOff, Grid3x3, List, Folder, Grid, Plus, Settings,
+  ChevronLeft, ChevronDown, Monitor, FileText, Music, Database, Maximize
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Sidebar, SidebarContent, SidebarProvider } from '@/components/ui/sidebar';
+import PrimarySidebar from '@/components/primary-sidebar';
+import SecondarySidebar from '@/components/secondary-sidebar';
 
 // 25 Örnek İçerik - Video, Resim, Web Siteleri
 const DEMO_CONTENT = [
   // Videolar (10)
-  { id: 'v1', type: 'video', title: 'Lo-Fi Beats - Çalışma Müziği', url: 'https://www.youtube.com/embed/jfKfPfyJRdk', thumbnail: 'https://i.ytimg.com/vi/jfKfPfyJRdk/maxresdefault.jpg', views: 12500, likes: 890, duration: '3:45:00' },
-  { id: 'v2', type: 'video', title: 'Doğa Belgeseli - Okyanuslar', url: 'https://www.youtube.com/embed/H3xrFnUiYkg', thumbnail: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=400', views: 8200, likes: 654, duration: '42:18' },
-  { id: 'v3', type: 'video', title: 'Uzay Yolculuğu - NASA', url: 'https://www.youtube.com/embed/nA9UZF-SZoQ', thumbnail: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=400', views: 15600, likes: 1230, duration: '28:45' },
-  { id: 'v4', type: 'video', title: 'Yoga & Meditasyon', url: 'https://www.youtube.com/embed/v7AYKMP6rOE', thumbnail: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400', views: 6800, likes: 520, duration: '15:30' },
-  { id: 'v5', type: 'video', title: 'Avrupa Turu - Seyahat', url: 'https://www.youtube.com/embed/Scxs7L0vhZ4', thumbnail: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400', views: 9400, likes: 780, duration: '24:12' },
-  { id: 'v6', type: 'video', title: 'Kodlama Dersleri - React', url: 'https://www.youtube.com/embed/w7ejDZ8SWv8', thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400', views: 22100, likes: 1890, duration: '1:12:45' },
-  { id: 'v7', type: 'video', title: 'Yemek Tarifleri - İtalyan', url: 'https://www.youtube.com/embed/Ug6zpnFpLKo', thumbnail: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=400', views: 11200, likes: 920, duration: '18:22' },
-  { id: 'v8', type: 'video', title: 'Fitness Antrenmanı', url: 'https://www.youtube.com/embed/UItWltVZZmE', thumbnail: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400', views: 18700, likes: 1450, duration: '35:00' },
-  { id: 'v9', type: 'video', title: 'Müzik Prodüksiyon', url: 'https://www.youtube.com/embed/lTRiuFIWV54', thumbnail: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400', views: 7500, likes: 620, duration: '52:15' },
-  { id: 'v10', type: 'video', title: 'Fotoğrafçılık İpuçları', url: 'https://www.youtube.com/embed/V7z7BAZdt2M', thumbnail: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400', views: 13800, likes: 1100, duration: '21:38' },
+  { id: 'v1', type: 'video', title: 'Lo-Fi Beats - Çalışma Müziği', url: 'https://www.youtube.com/embed/jfKfPfyJRdk', thumbnail: 'https://i.ytimg.com/vi/jfKfPfyJRdk/maxresdefault.jpg', views: 12500, likes: 890, duration: '3:45:00', category: 'Müzik' },
+  { id: 'v2', type: 'video', title: 'Doğa Belgeseli - Okyanuslar', url: 'https://www.youtube.com/embed/H3xrFnUiYkg', thumbnail: 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=400', views: 8200, likes: 654, duration: '42:18', category: 'Belgesel' },
+  { id: 'v3', type: 'video', title: 'Uzay Yolculuğu - NASA', url: 'https://www.youtube.com/embed/nA9UZF-SZoQ', thumbnail: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=400', views: 15600, likes: 1230, duration: '28:45', category: 'Bilim' },
+  { id: 'v4', type: 'video', title: 'Yoga & Meditasyon', url: 'https://www.youtube.com/embed/v7AYKMP6rOE', thumbnail: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=400', views: 6800, likes: 520, duration: '15:30', category: 'Wellness' },
+  { id: 'v5', type: 'video', title: 'Avrupa Turu - Seyahat', url: 'https://www.youtube.com/embed/Scxs7L0vhZ4', thumbnail: 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400', views: 9400, likes: 780, duration: '24:12', category: 'Seyahat' },
+  { id: 'v6', type: 'video', title: 'Kodlama Dersleri - React', url: 'https://www.youtube.com/embed/w7ejDZ8SWv8', thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400', views: 22100, likes: 1890, duration: '1:12:45', category: 'Eğitim' },
+  { id: 'v7', type: 'video', title: 'Yemek Tarifleri - İtalyan', url: 'https://www.youtube.com/embed/Ug6zpnFpLKo', thumbnail: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=400', views: 11200, likes: 920, duration: '18:22', category: 'Mutfak' },
+  { id: 'v8', type: 'video', title: 'Fitness Antrenmanı', url: 'https://www.youtube.com/embed/UItWltVZZmE', thumbnail: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400', views: 18700, likes: 1450, duration: '35:00', category: 'Fitness' },
+  { id: 'v9', type: 'video', title: 'Müzik Prodüksiyon', url: 'https://www.youtube.com/embed/lTRiuFIWV54', thumbnail: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400', views: 7500, likes: 620, duration: '52:15', category: 'Müzik' },
+  { id: 'v10', type: 'video', title: 'Fotoğrafçılık İpuçları', url: 'https://www.youtube.com/embed/V7z7BAZdt2M', thumbnail: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400', views: 13800, likes: 1100, duration: '21:38', category: 'Sanat' },
   
   // Web Siteleri (8)
-  { id: 'w1', type: 'website', title: 'Donanım Haber - Türkiye', url: 'https://www.donanimhaber.com', thumbnail: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400', views: 5400, likes: 320 },
-  { id: 'w2', type: 'website', title: 'The Verge', url: 'https://www.theverge.com', thumbnail: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400', views: 6200, likes: 410 },
-  { id: 'w3', type: 'website', title: 'Dribbble - Tasarım', url: 'https://dribbble.com', thumbnail: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400', views: 8900, likes: 720 },
-  { id: 'w4', type: 'website', title: 'Product Hunt', url: 'https://www.producthunt.com', thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400', views: 4100, likes: 280 },
-  { id: 'w5', type: 'website', title: 'Medium - Blog', url: 'https://medium.com', thumbnail: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400', views: 7800, likes: 560 },
-  { id: 'w6', type: 'website', title: 'Behance - Portfolyo', url: 'https://www.behance.net', thumbnail: 'https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=400', views: 6500, likes: 480 },
-  { id: 'w7', type: 'website', title: 'Unsplash - Görseller', url: 'https://unsplash.com', thumbnail: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400', views: 12300, likes: 980 },
-  { id: 'w8', type: 'website', title: 'GitHub', url: 'https://github.com', thumbnail: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=400', views: 15600, likes: 1240 },
+  { id: 'w1', type: 'website', title: 'Donanım Haber - Türkiye', url: 'https://www.donanimhaber.com', thumbnail: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400', views: 5400, likes: 320, category: 'Haber' },
+  { id: 'w2', type: 'website', title: 'The Verge', url: 'https://www.theverge.com', thumbnail: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=400', views: 6200, likes: 410, category: 'Teknoloji' },
+  { id: 'w3', type: 'website', title: 'Dribbble - Tasarım', url: 'https://dribbble.com', thumbnail: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400', views: 8900, likes: 720, category: 'Tasarım' },
+  { id: 'w4', type: 'website', title: 'Product Hunt', url: 'https://www.producthunt.com', thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400', views: 4100, likes: 280, category: 'Teknoloji' },
+  { id: 'w5', type: 'website', title: 'Medium - Blog', url: 'https://medium.com', thumbnail: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400', views: 7800, likes: 560, category: 'Blog' },
+  { id: 'w6', type: 'website', title: 'Behance - Portfolyo', url: 'https://www.behance.net', thumbnail: 'https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=400', views: 6500, likes: 480, category: 'Tasarım' },
+  { id: 'w7', type: 'website', title: 'Unsplash - Görseller', url: 'https://unsplash.com', thumbnail: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400', views: 12300, likes: 980, category: 'Görseller' },
+  { id: 'w8', type: 'website', title: 'GitHub', url: 'https://github.com', thumbnail: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=400', views: 15600, likes: 1240, category: 'Teknoloji' },
   
   // Görseller (7)
-  { id: 'i1', type: 'image', title: 'Gün Batımı Manzarası', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800', thumbnail: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400', views: 9200, likes: 780 },
-  { id: 'i2', type: 'image', title: 'Şehir Manzarası', url: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800', thumbnail: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=400', views: 7600, likes: 620 },
-  { id: 'i3', type: 'image', title: 'Dağ Zirvesi', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800', thumbnail: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400', views: 11400, likes: 920 },
-  { id: 'i4', type: 'image', title: 'Orman Yolu', url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=800', thumbnail: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=400', views: 8100, likes: 670 },
-  { id: 'i5', type: 'image', title: 'Kuzey Işıkları', url: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800', thumbnail: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=400', views: 14200, likes: 1180 },
-  { id: 'i6', type: 'image', title: 'Çiçek Bahçesi', url: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=800', thumbnail: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400', views: 6300, likes: 510 },
-  { id: 'i7', type: 'image', title: 'Tropikal Plaj', url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800', thumbnail: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400', views: 10800, likes: 890 },
+  { id: 'i1', type: 'image', title: 'Gün Batımı Manzarası', url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800', thumbnail: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400', views: 9200, likes: 780, category: 'Doğa' },
+  { id: 'i2', type: 'image', title: 'Şehir Manzarası', url: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=800', thumbnail: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=400', views: 7600, likes: 620, category: 'Şehir' },
+  { id: 'i3', type: 'image', title: 'Dağ Zirvesi', url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800', thumbnail: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400', views: 11400, likes: 920, category: 'Doğa' },
+  { id: 'i4', type: 'image', title: 'Orman Yolu', url: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=800', thumbnail: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=400', views: 8100, likes: 670, category: 'Doğa' },
+  { id: 'i5', type: 'image', title: 'Kuzey Işıkları', url: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800', thumbnail: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=400', views: 14200, likes: 1180, category: 'Gökyüzü' },
+  { id: 'i6', type: 'image', title: 'Çiçek Bahçesi', url: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=800', thumbnail: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=400', views: 6300, likes: 510, category: 'Doğa' },
+  { id: 'i7', type: 'image', title: 'Tropikal Plaj', url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800', thumbnail: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400', views: 10800, likes: 890, category: 'Plaj' },
 ];
+
+// Sosyal Örnek İçerikleri
+const EXAMPLE_SOCIAL_ITEMS = [
+  { id: 'se1', icon: '🎬', title: 'Film Koleksiyonu', description: 'Klasik ve modern filmler', itemCount: 247, views: 45300, category: 'Video' },
+  { id: 'se2', icon: '🎵', title: 'Müzik Kütüphanesi', description: 'Tüm türlerden müzikler', itemCount: 1230, views: 89200, category: 'Müzik' },
+  { id: 'se3', icon: '📚', title: 'Okuma Listesi', description: 'Kitap ve makaleler', itemCount: 85, views: 12450, category: 'Okuma' },
+  { id: 'se4', icon: '🎨', title: 'Tasarım Referansları', description: 'UI/UX ve Graphic Design', itemCount: 546, views: 67890, category: 'Tasarım' },
+  { id: 'se5', icon: '✈️', title: 'Seyahat Rehberleri', description: 'Dünya çapında destinasyonlar', itemCount: 120, views: 34560, category: 'Seyahat' },
+  { id: 'se6', icon: '🍳', title: 'Tarif Koleksiyonu', description: 'Dünya mutfakları', itemCount: 890, views: 123450, category: 'Mutfak' },
+];
+
+// İçerik Modal - Iframe Viewer
+const ContentModal: React.FC<{ 
+  item: typeof DEMO_CONTENT[0] | null; 
+  onClose: () => void;
+}> = ({ item, onClose }) => {
+  if (!item) return null;
+  
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, y: 20 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 20 }}
+          className="relative w-full h-[90vh] max-w-6xl bg-black rounded-xl overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          {/* Content */}
+          <div className="w-full h-full flex flex-col">
+            {item.type === 'video' && (
+              <iframe
+                src={item.url}
+                className="flex-1 w-full border-0"
+                allowFullScreen
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                title={item.title}
+              />
+            )}
+            
+            {item.type === 'website' && (
+              <iframe
+                src={item.url}
+                className="flex-1 w-full border-0"
+                title={item.title}
+              />
+            )}
+            
+            {item.type === 'image' && (
+              <div className="flex-1 flex items-center justify-center bg-black">
+                <img
+                  src={item.url}
+                  alt={item.title}
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+            )}
+
+            {/* Info Bar */}
+            <div className="bg-black/80 backdrop-blur p-4 border-t border-white/10">
+              <div className="max-w-6xl mx-auto">
+                <h3 className="text-white font-bold text-lg mb-2">{item.title}</h3>
+                <div className="flex items-center justify-between text-white/70 text-sm">
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      {item.views.toLocaleString()} İzleme
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Heart className="w-4 h-4" />
+                      {item.likes.toLocaleString()} Beğeni
+                    </span>
+                    {item.category && (
+                      <Badge variant="secondary" className="text-xs">
+                        {item.category}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-white hover:bg-white/20"
+                      onClick={() => {
+                        const link = document.createElement('a');
+                        link.href = item.url;
+                        link.target = '_blank';
+                        link.click();
+                      }}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+// Sosyal Örnek Kartı Komponenti
+const SocialExampleCard: React.FC<{ item: typeof EXAMPLE_SOCIAL_ITEMS[0] }> = ({ item }) => {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02, y: -2 }}
+      className="group relative bg-gradient-to-br from-card to-card/50 rounded-xl p-5 border hover:border-primary/50 transition-all cursor-pointer overflow-hidden"
+    >
+      {/* Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+      
+      <div className="relative space-y-4">
+        {/* Icon & Category */}
+        <div className="flex items-start justify-between">
+          <div className="text-4xl">{item.icon}</div>
+          <Badge variant="secondary" className="text-xs">
+            {item.category}
+          </Badge>
+        </div>
+        
+        {/* Title & Description */}
+        <div className="space-y-1">
+          <h3 className="font-bold text-base group-hover:text-primary transition-colors">
+            {item.title}
+          </h3>
+          <p className="text-sm text-muted-foreground line-clamp-2">
+            {item.description}
+          </p>
+        </div>
+        
+        {/* Stats */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/40">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Grid className="w-3 h-3" />
+              {item.itemCount} içerik
+            </span>
+            <span className="flex items-center gap-1">
+              <Eye className="w-3 h-3" />
+              {(item.views / 1000).toFixed(0)}K
+            </span>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1 group-hover:-translate-y-1" />
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 // Canlı Sosyal Akış Bileşeni
 const LiveSocialFeed: React.FC<{ onLoginPrompt: () => void }> = ({ onLoginPrompt }) => {
@@ -290,16 +458,16 @@ const ContentCard: React.FC<{
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.02 }}
-      className="group relative bg-card rounded-xl overflow-hidden border shadow-sm hover:shadow-lg transition-all"
+      className="group relative bg-card rounded-xl overflow-hidden border shadow-sm hover:shadow-lg transition-all cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Thumbnail */}
-      <div className="relative aspect-video bg-muted">
+      <div className="relative aspect-video bg-muted overflow-hidden">
         <img 
           src={item.thumbnail} 
           alt={item.title}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
           loading="lazy"
         />
         
@@ -312,13 +480,13 @@ const ContentCard: React.FC<{
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/50 flex items-center justify-center"
             >
-              <motion.button
+              <motion.div
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center text-gray-900"
+                className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center text-gray-900 shadow-lg"
               >
                 {typeIcon[item.type as keyof typeof typeIcon]}
-              </motion.button>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -393,7 +561,9 @@ export default function GuestCanvasPage() {
   const { trackEvent, trackView } = useGuestAnalytics();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [promptMessage, setPromptMessage] = useState('');
+  const [activeMainTab, setActiveMainTab] = useState<'canvas' | 'examples'>('canvas');
   const [activeTab, setActiveTab] = useState<'all' | 'videos' | 'websites' | 'images'>('all');
+  const [selectedItem, setSelectedItem] = useState<typeof DEMO_CONTENT[0] | null>(null);
   
   // Track page view on mount
   useEffect(() => {
@@ -441,6 +611,11 @@ export default function GuestCanvasPage() {
     setActiveTab(tab);
     trackEvent('tab_change', { tab });
   };
+
+  const handleMainTabChange = (tab: typeof activeMainTab) => {
+    setActiveMainTab(tab);
+    trackEvent('main_tab_change', { tab });
+  };
   
   return (
     <div className="min-h-screen bg-background">
@@ -448,7 +623,7 @@ export default function GuestCanvasPage() {
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-blue-500 flex items-center justify-center">
                 <span className="text-xs font-bold text-white">TV</span>
               </div>
@@ -480,9 +655,9 @@ export default function GuestCanvasPage() {
       {/* Guest Info Banner */}
       <div className="bg-gradient-to-r from-purple-600/10 to-blue-500/10 border-b">
         <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <Gift className="w-5 h-5 text-purple-600" />
+              <Gift className="w-5 h-5 text-purple-600 flex-shrink-0" />
               <p className="text-sm">
                 <strong>Deneme Modundasınız!</strong> Tüm özelliklere erişmek için{' '}
                 <Link href="/register" className="text-purple-600 hover:underline font-medium">
@@ -512,41 +687,135 @@ export default function GuestCanvasPage() {
         <div className="flex gap-6">
           {/* Main Content */}
           <div className="flex-1">
-            {/* Tabs */}
-            <div className="flex items-center gap-2 mb-6">
-              {(['all', 'videos', 'websites', 'images'] as const).map((tab) => (
-                <Button
-                  key={tab}
-                  variant={activeTab === tab ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleTabChange(tab)}
-                >
-                  {tab === 'all' && '📁 Tümü'}
-                  {tab === 'videos' && '📹 Videolar'}
-                  {tab === 'websites' && '🌐 Web Siteleri'}
-                  {tab === 'images' && '🖼️ Görseller'}
-                </Button>
-              ))}
+            {/* Main Tabs */}
+            <div className="flex items-center gap-2 mb-6 border-b pb-4">
+              <Button
+                variant={activeMainTab === 'canvas' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleMainTabChange('canvas')}
+                className="gap-2"
+              >
+                <Grid className="w-4 h-4" />
+                Canvas Koleksiyonu
+              </Button>
+              <Button
+                variant={activeMainTab === 'examples' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleMainTabChange('examples')}
+                className="gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Sosyal Örnekler
+              </Button>
               <div className="flex-1" />
-              <Badge variant="outline">
-                {filteredContent.length} içerik
-              </Badge>
-            </div>
-            
-            {/* Content Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {contentWithAds.map((item, index) => 
-                'isAd' in item ? (
-                  <AdCard key={`ad-${item.position}`} position={item.position} />
-                ) : (
-                  <ContentCard 
-                    key={item.id} 
-                    item={item} 
-                    onAction={handleAction}
-                  />
-                )
+              {activeMainTab === 'canvas' && (
+                <Badge variant="outline" className="text-xs">
+                  {filteredContent.length} içerik
+                </Badge>
               )}
             </div>
+
+            {/* Canvas Tab Content */}
+            {activeMainTab === 'canvas' && (
+              <>
+                {/* Filter Tabs */}
+                <div className="flex items-center gap-2 mb-6 flex-wrap">
+                  {(['all', 'videos', 'websites', 'images'] as const).map((tab) => (
+                    <Button
+                      key={tab}
+                      variant={activeTab === tab ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => handleTabChange(tab)}
+                    >
+                      {tab === 'all' && '📁 Tümü'}
+                      {tab === 'videos' && '📹 Videolar'}
+                      {tab === 'websites' && '🌐 Web Siteleri'}
+                      {tab === 'images' && '🖼️ Görseller'}
+                    </Button>
+                  ))}
+                </div>
+                
+                {/* Content Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {contentWithAds.map((item, index) => 
+                    'isAd' in item ? (
+                      <AdCard key={`ad-${item.position}`} position={item.position} />
+                    ) : (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        onClick={() => {
+                          setSelectedItem(item);
+                          trackEvent('open_content', { contentId: item.id, type: item.type });
+                        }}
+                      >
+                        <ContentCard 
+                          item={item} 
+                          onAction={handleAction}
+                        />
+                      </motion.div>
+                    )
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Examples Tab Content */}
+            {activeMainTab === 'examples' && (
+              <>
+                <div className="mb-6">
+                  <h2 className="text-lg font-bold mb-2">Sosyal Örnek Koleksiyonları</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Diğer kullanıcıların oluşturduğu harika koleksiyonları keşfedin
+                  </p>
+                </div>
+                
+                {/* Social Examples Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {EXAMPLE_SOCIAL_ITEMS.map((item, index) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      onClick={() => {
+                        trackEvent('view_social_example', { exampleId: item.id });
+                      }}
+                    >
+                      <SocialExampleCard item={item} />
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Feature Grid Section */}
+                <div className="mt-12">
+                  <h2 className="text-lg font-bold mb-4">Öne Çıkan Özellikler</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[
+                      { icon: Folder, title: 'Klasörler', desc: 'İçeriğini kategorilere ayır' },
+                      { icon: Grid, title: 'Yer Paylaşımı', desc: 'İzgara görünümüyle düzenle' },
+                      { icon: Share2, title: 'Paylaş', desc: 'Koleksiyonları arkadaşlarla paylaş' },
+                      { icon: Heart, title: 'Beğen', desc: 'Sevdiğin içerikleri işaretle' },
+                      { icon: Eye, title: 'İzle', desc: 'Çevrimiçi olarak izle' },
+                      { icon: Sparkles, title: 'AI Öneriler', desc: 'Yapay zeka destekli tavsiyeler' },
+                    ].map((feature, idx) => {
+                      const Icon = feature.icon;
+                      return (
+                        <Card key={idx} className="hover:shadow-lg transition-shadow cursor-pointer">
+                          <CardContent className="p-4 text-center">
+                            <Icon className="w-8 h-8 mx-auto mb-2 text-primary" />
+                            <h3 className="font-semibold text-sm mb-1">{feature.title}</h3>
+                            <p className="text-xs text-muted-foreground">{feature.desc}</p>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           
           {/* Social Feed Sidebar */}
@@ -559,6 +828,9 @@ export default function GuestCanvasPage() {
           </div>
         </div>
       </div>
+
+      {/* Content Modal - Iframe Viewer */}
+      <ContentModal item={selectedItem} onClose={() => setSelectedItem(null)} />
       
       {/* Login Prompt Modal */}
       <AnimatePresence>

@@ -10,7 +10,8 @@ import { Draggable, Droppable } from '@hello-pangea/dnd';
 import { Skeleton } from './ui/skeleton';
 import { canvasLogger } from '@/lib/logger';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, ContextMenuSeparator } from './ui/context-menu';
-import { Plus, Clipboard, Settings, Folder, Trash2, MessageCircle, ChevronDown } from 'lucide-react';
+import { Plus, Clipboard, Settings, Folder, Trash2, MessageCircle, ChevronDown, Share2 } from 'lucide-react';
+import { ExportDialog } from './export/export-dialog';
 
 // Undo/Redo System
 import { useUndoRedo } from '@/hooks/use-undo-redo';
@@ -175,6 +176,9 @@ const Canvas = memo(function Canvas({
   const [isDescriptionsVisible, setIsDescriptionsVisible] = useState(false);
   const [isCommentsVisible, setIsCommentsVisible] = useState(false);
   const [isAnalyticsVisible, setIsAnalyticsVisible] = useState(false);
+
+  // Export Dialog State
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
   // Bottom Info Bar - Folder Comments
   const [folderComments, setFolderComments] = useState<any[]>([]);
@@ -1030,6 +1034,11 @@ const Canvas = memo(function Canvas({
                 <span>Yapıştır</span>
             </ContextMenuItem>
             <ContextMenuSeparator />
+            <ContextMenuItem onClick={() => setIsExportDialogOpen(true)}>
+                <Share2 className="mr-2 h-4 w-4" />
+                <span>Canvas&apos;ı Export Et</span>
+            </ContextMenuItem>
+            <ContextMenuSeparator />
             <ContextMenuItem onClick={onShowFolderProperties}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Klasör Özellikleri</span>
@@ -1068,6 +1077,15 @@ const Canvas = memo(function Canvas({
           </div>
         </div>
       )}
+
+    {/* Export Dialog */}
+    <ExportDialog
+      isOpen={isExportDialogOpen}
+      onClose={() => setIsExportDialogOpen(false)}
+      items={items}
+      title={activeView?.title || 'Canvas Export'}
+      viewId={activeViewId}
+    />
 
     {/* Main canvas wrapper end */}
     </div>

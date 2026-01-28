@@ -208,68 +208,109 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
         }
     }, [searchParams, isMounted, setActiveSecondaryPanel, setEcommerceView]);
 
-    // Sync local data to Supabase when logged in
+    // Sync local data to Supabase canvas_items when logged in
     useEffect(() => {
         const syncData = async () => {
-            // Disable sync for now - items table not yet created in Supabase
-            return;
-            
             if (state.user && !hasSyncedRef.current && !isSyncing) {
                 setIsSyncing(true);
                 try {
                     // Check if user already has items in DB
                     const { data: existingItems, error: fetchError } = await supabase
-                        .from('items')
+                        .from('canvas_items')
                         .select('id')
+                        .eq('user_id', state.user.id)
                         .limit(1);
 
-                    if (fetchError) throw fetchError;
+                    if (fetchError) {
+                        // Table might not exist yet - log but don't block
+                        console.warn('canvas_items check failed:', fetchError.message);
+                        hasSyncedRef.current = true;
+                        return;
+                    }
 
                     // If no items in DB, sync local items
                     if (!existingItems?.length) {
                         const itemsToSync = allRawItems.map(item => ({
                             id: item.id,
                             user_id: state.user!.id,
-                            parent_id: item.parentId,
+                            canvas_id: 'default',
+                            parent_id: item.parentId || null,
                             type: item.type,
-                            title: item.title,
-                            content: item.content,
-                            url: item.url,
-                            icon: item.icon,
-                            styles: item.styles,
-                            order: item.order,
+                            title: item.title || null,
+                            content: item.content || null,
+                            url: item.url || null,
+                            icon: item.icon || null,
+                            thumbnail: (item as any).thumbnail_url || null,
+                            styles: item.styles || {},
+                            order: item.order || 0,
+                            x: item.x || 0,
+                            y: item.y || 0,
+                            width: item.width || 200,
+                            height: item.height || 150,
+                            grid_span_col: item.gridSpanCol || 1,
+                            grid_span_row: item.gridSpanRow || 1,
+                            layout_mode: item.layoutMode || 'grid',
+                            item_data: {
+                                html: item.html,
+                                iframeUrl: item.iframeUrl,
+                                ratings: item.ratings,
+                                comments: item.comments,
+                                children: item.children?.map(c => c.id),
+                            },
                             metadata: {
-                                thumbnail_url: item.thumbnail_url,
-                                author_name: item.author_name,
-                                published_at: item.published_at,
+                                thumbnail_url: (item as any).thumbnail_url,
+                                author_name: (item as any).author_name,
+                                published_at: (item as any).published_at,
                                 viewCount: item.viewCount,
                                 likeCount: item.likeCount,
                                 commentCount: item.commentCount,
-                                logo: item.logo,
-                                coverImage: item.coverImage,
-                                gridSketch: item.gridSketch
+                                logo: (item as any).logo,
+                                coverImage: (item as any).coverImage,
+                                gridSketch: (item as any).gridSketch
                             }
                         }));
 
                         const { error: upsertError } = await supabase
-                            .from('items')
-                            .upsert(itemsToSync);
+                            .from('canvas_items')
+                            .upsert(itemsToSync, { onConflict: 'id' });
 
-                        if (upsertError) throw upsertError;
-                        toast({ title: "Bulut Senkronizasyonu", description: "Verileriniz başarıyla buluta aktarıldı." });
+                        if (upsertError) {
+                            console.warn('canvas_items upsert failed:', upsertError.message);
+                        } else {
+                            toast({ title: "Bulut Senkronizasyonu", description: "Verileriniz başarıyla buluta aktarıldı." });
+                        }
                     } else {
                         // If items exist in DB, fetch them and update local storage
                         const { data: dbItems, error: dbFetchError } = await supabase
-                            .from('items')
-                            .select('*');
+                            .from('canvas_items')
+                            .select('*')
+                            .eq('user_id', state.user.id);
 
-                        if (dbFetchError) throw dbFetchError;
-
-                        if (dbItems && dbItems.length > 0) {
+                        if (dbFetchError) {
+                            console.warn('canvas_items fetch failed:', dbFetchError.message);
+                        } else if (dbItems && dbItems.length > 0) {
                             const mappedItems: ContentItem[] = dbItems.map(item => ({
-                                ...item,
+                                id: item.id,
+                                type: item.type,
+                                title: item.title,
+                                content: item.content,
+                                url: item.url,
+                                icon: item.icon,
                                 parentId: item.parent_id,
-                                thumbnail_url: item.metadata?.thumbnail_url,
+                                order: item.order,
+                                x: item.x,
+                                y: item.y,
+                                width: item.width,
+                                height: item.height,
+                                gridSpanCol: item.grid_span_col,
+                                gridSpanRow: item.grid_span_row,
+                                layoutMode: item.layout_mode,
+                                styles: item.styles || {},
+                                html: item.item_data?.html,
+                                iframeUrl: item.item_data?.iframeUrl,
+                                ratings: item.item_data?.ratings,
+                                comments: item.item_data?.comments,
+                                thumbnail_url: item.metadata?.thumbnail_url || item.thumbnail,
                                 author_name: item.metadata?.author_name,
                                 published_at: item.metadata?.published_at,
                                 viewCount: item.metadata?.viewCount,
@@ -277,18 +318,19 @@ const MainContentInternal = ({ username }: { username: string | null }) => {
                                 commentCount: item.metadata?.commentCount,
                                 logo: item.metadata?.logo,
                                 coverImage: item.metadata?.coverImage,
-                                gridSketch: item.metadata?.gridSketch
+                                gridSketch: item.metadata?.gridSketch,
+                                createdAt: item.created_at,
+                                updatedAt: item.updated_at,
+                                isDeletable: item.is_deletable,
+                                isPinned: item.is_pinned,
                             }));
                             setAllRawItems(mappedItems);
                         }
                     }
                     hasSyncedRef.current = true;
                 } catch (e: any) {
-                    console.error("Sync failed", e);
-                    // Only show toast if there's an actual error message
-                    if (e?.message) {
-                        toast({ title: "Senkronizasyon Hatası", description: e.message, variant: "destructive" });
-                    }
+                    console.error("Canvas sync failed:", e);
+                    hasSyncedRef.current = true; // Don't retry on error
                 } finally {
                     setIsSyncing(false);
                 }

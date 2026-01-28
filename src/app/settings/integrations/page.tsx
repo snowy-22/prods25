@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+
 import { 
   Shield, Home, Youtube, Brain, Settings, Key, 
   ChevronRight, Lock, Unlock, Plus, Zap
